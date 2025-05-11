@@ -5,7 +5,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, Spacer, SimpleDocTemplate, Table, TableStyle
 from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
-from .common import PDF_DIR
+from ..common.utils import PDF_DIR
 
 def create_pdf_text_single_column(filename="single_column.pdf"):
     """

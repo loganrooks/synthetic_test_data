@@ -1,6 +1,6 @@
 import os
 from ebooklib import epub
-from ..common import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
 
 def create_epub_citation_kant_intext(filename="citation_kant_intext.epub"):
     """

@@ -1,5 +1,5 @@
 import os
-from .common import MD_DIR
+from ..common.utils import MD_DIR
 
 def create_md_basic_elements(filename="all_basic_elements.md"):
     """
@@ -212,33 +212,33 @@ def create_md_with_embedded_html(filename="embedded_html.md"):
 This document tests the handling of HTML embedded within Markdown.
 
 ## Simple Embedded HTML
-Here is some **bold Markdown text** followed by simple &lt;b&gt;bold HTML text&lt;/b&gt;.
-And here is &lt;em&gt;italic HTML text&lt;/em&gt; mixed with *italic Markdown*.
+Here is some **bold Markdown text** followed by simple <b>bold HTML text</b>.
+And here is <em>italic HTML text</em> mixed with *italic Markdown*.
 
 A simple div:
-&lt;div style="color: blue; border: 1px solid green; padding: 5px;"&gt;
-  This is a div with inline styles. It contains &lt;strong&gt;strong HTML&lt;/strong&gt; text.
-&lt;/div&gt;
+<div style="color: blue; border: 1px solid green; padding: 5px;">
+  This is a div with inline styles. It contains <strong>strong HTML</strong> text.
+</div>
 
 ## Complex or Malformed Embedded HTML
 This section includes HTML that might be more challenging for parsers.
 
 An unclosed HTML tag:
-&lt;p&gt;This paragraph starts, but the tag is not closed.
+<p>This paragraph starts, but the tag is not closed.
 What happens to the subsequent Markdown?
 
 A table created with HTML:
-&lt;table border="1"&gt;
-  &lt;tr&gt;&lt;th&gt;HTML Header 1&lt;/th&gt;&lt;th&gt;HTML Header 2&lt;/th&gt;&lt;/tr&gt;
-  &lt;tr&gt;&lt;td&gt;Data A1&lt;/td&gt;&lt;td&gt;Data B1&lt;/td&gt;&lt;/tr&gt;
-  &lt;tr&gt;&lt;td&gt;Data A2&lt;/td&gt;&lt;td&gt;Data B2&lt;/td&gt;
-&lt;/table&gt;
+<table border="1">
+  <tr><th>HTML Header 1</th><th>HTML Header 2</th></tr>
+  <tr><td>Data A1</td><td>Data B1</td></tr>
+  <tr><td>Data A2</td><td>Data B2</td>
+</table>
 
 Markdown after the HTML table:
 - List item 1
 - List item 2
 
-A malformed tag: &lt;div class="test" id=unquoted_id&gt;Content of malformed div.&lt;/div class="mismatch"&gt;
+A malformed tag: <div class="test" id=unquoted_id>Content of malformed div.</div class="mismatch">
 
 This tests whether the parser correctly identifies and handles (or ignores/passes through) these HTML blocks.
 """

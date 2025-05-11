@@ -1,12 +1,13 @@
 import os
 from ebooklib import epub
 
-# Define output base directory relative to the script's location
-BASE_OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Define output base directory relative to the project root
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+BASE_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "generated")
 
-EPUB_DIR = os.path.join(BASE_OUTPUT_DIR, "generated", "epub")
-PDF_DIR = os.path.join(BASE_OUTPUT_DIR, "generated", "pdf")
-MD_DIR = os.path.join(BASE_OUTPUT_DIR, "generated", "markdown")
+EPUB_DIR = os.path.join(BASE_OUTPUT_DIR, "epub")
+PDF_DIR = os.path.join(BASE_OUTPUT_DIR, "pdf")
+MD_DIR = os.path.join(BASE_OUTPUT_DIR, "markdown")
 
 def ensure_output_directories():
     """Ensures all necessary output directories exist."""
