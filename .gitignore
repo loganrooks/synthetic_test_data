@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# Generated files
+generated/
+
+# IDEs and editors (optional, uncomment if you use these)
+# .vscode/
+# .idea/
+# *.swp
+# *.swo
+
+# Virtual environment (optional, uncomment if you use these)
+# .env
+# .venv
+# env/
+# venv/
+# ENV/
+# env.bak/
+# venv.bak/
