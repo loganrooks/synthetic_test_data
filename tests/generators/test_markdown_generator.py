@@ -259,7 +259,7 @@ def test_generate_probabilistic_headings_count(mocker: MockerFixture, markdown_g
     }
     specific_config_exact = {
         "headings_config": headings_prob_config_exact, "md_list_items_config": {"count": 0},
-        "md_images_config": {"count": 0}, "gfm_features": {}, "frontmatter": {"include_chance": 0.0},
+        "md_images_config": {"count": 0}, "gfm_features": {}, "frontmatter": {"include_chance": 0},
         "md_variant": "basic_elements"
     }
     output_path_exact = os.path.join(output_dir, "test_prob_headings_exact.md")
@@ -285,7 +285,7 @@ def test_generate_probabilistic_headings_count(mocker: MockerFixture, markdown_g
     }
     specific_config_range = {
         "headings_config": headings_prob_config_range, "md_list_items_config": {"count": 0},
-        "md_images_config": {"count": 0}, "gfm_features": {}, "frontmatter": {"include_chance": 0.0},
+        "md_images_config": {"count": 0}, "gfm_features": {}, "frontmatter": {"include_chance": 0},
         "md_variant": "basic_elements"
     }
     output_path_range = os.path.join(output_dir, "test_prob_headings_range.md")
@@ -308,7 +308,7 @@ def test_generate_probabilistic_headings_count(mocker: MockerFixture, markdown_g
     }
     specific_config_fail = {
         "headings_config": headings_prob_config_fail, "md_list_items_config": {"count": 0},
-        "md_images_config": {"count": 0}, "gfm_features": {}, "frontmatter": {"include_chance": 0.0},
+        "md_images_config": {"count": 0}, "gfm_features": {}, "frontmatter": {"include_chance": 0},
         "md_variant": "basic_elements"
     }
     output_path_fail = os.path.join(output_dir, "test_prob_headings_fail.md")
@@ -392,7 +392,7 @@ def test_generate_probabilistic_list_items_count(mocker: MockerFixture, markdown
     specific_config_s1 = {
         "headings_config": {"count": 0}, "md_list_items_config": list_items_config_s1,
         "md_images_config": {"count": 0}, "gfm_features": {},
-        "frontmatter": {"include_chance": 0.0}, "md_variant": "basic_elements"
+        "frontmatter": {"include_chance": 0}, "md_variant": "basic_elements"
     }
     output_path_s1 = os.path.join(output_dir, "test_prob_list_items_s1.md")
     generator.generate(specific_config_s1, {"default_language": "en"}, output_path_s1)
@@ -419,7 +419,7 @@ def test_generate_probabilistic_list_items_count(mocker: MockerFixture, markdown
     specific_config_s2 = {
         "headings_config": {"count": 0}, "md_list_items_config": list_items_config_s2,
         "md_images_config": {"count": 0}, "gfm_features": {},
-        "frontmatter": {"include_chance": 0.0}, "md_variant": "basic_elements"
+        "frontmatter": {"include_chance": 0}, "md_variant": "basic_elements"
     }
     output_path_s2 = os.path.join(output_dir, "test_prob_list_items_s2.md")
     generator.generate(specific_config_s2, {"default_language": "en"}, output_path_s2)
@@ -442,7 +442,7 @@ def test_generate_probabilistic_list_items_count(mocker: MockerFixture, markdown
     specific_config_s3 = {
         "headings_config": {"count": 0}, "md_list_items_config": list_items_config_s3,
         "md_images_config": {"count": 0}, "gfm_features": {},
-        "frontmatter": {"include_chance": 0.0}, "md_variant": "basic_elements"
+        "frontmatter": {"include_chance": 0}, "md_variant": "basic_elements"
     }
     output_path_s3 = os.path.join(output_dir, "test_prob_list_items_s3.md")
     generator.generate(specific_config_s3, {"default_language": "en"}, output_path_s3)
@@ -518,7 +518,7 @@ def test_generate_probabilistic_images_count(mocker: MockerFixture, markdown_gen
     specific_config_s1 = {
         "headings_config": {"count": 0}, "md_list_items_config": {"count": 0},
         "md_images_config": images_config_s1, "gfm_features": {},
-        "frontmatter": {"include_chance": 0.0}, "md_variant": "basic_elements"
+        "frontmatter": {"include_chance": 0}, "md_variant": "basic_elements"
     }
     output_path_s1 = os.path.join(output_dir, "test_prob_images_s1.md")
     generator.generate(specific_config_s1, {"default_language": "en"}, output_path_s1)
@@ -544,7 +544,7 @@ def test_generate_probabilistic_images_count(mocker: MockerFixture, markdown_gen
     specific_config_s2 = {
         "headings_config": {"count": 0}, "md_list_items_config": {"count": 0},
         "md_images_config": images_config_s2, "gfm_features": {},
-        "frontmatter": {"include_chance": 0.0}, "md_variant": "basic_elements"
+        "frontmatter": {"include_chance": 0}, "md_variant": "basic_elements"
     }
     output_path_s2 = os.path.join(output_dir, "test_prob_images_s2.md")
     generator.generate(specific_config_s2, {"default_language": "en"}, output_path_s2)
@@ -566,7 +566,7 @@ def test_generate_probabilistic_images_count(mocker: MockerFixture, markdown_gen
     specific_config_s3 = {
         "headings_config": {"count": 0}, "md_list_items_config": {"count": 0},
         "md_images_config": images_config_s3, "gfm_features": {},
-        "frontmatter": {"include_chance": 0.0}, "md_variant": "basic_elements"
+        "frontmatter": {"include_chance": 0}, "md_variant": "basic_elements"
     }
     output_path_s3 = os.path.join(output_dir, "test_prob_images_s3.md")
     generator.generate(specific_config_s3, {"default_language": "en"}, output_path_s3)

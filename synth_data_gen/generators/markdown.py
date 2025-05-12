@@ -158,7 +158,8 @@ The YAML frontmatter above contains intentional syntax errors.
         content = ""
         for i in range(num_headings_to_generate):
             current_depth = (i % max_depth) + 1
-            content += f"{'#' * current_depth} Header Level {current_depth} - Instance {i+1}\n"
+            content += self._create_md_heading(specific_config, global_config, current_depth)
+            # Adding generic content after heading, can be made more sophisticated
             content += f"This is some content under heading {i+1}.\n\n"
 
         # Keep other basic elements for now, will be driven by their own configs later
@@ -170,14 +171,11 @@ The YAML frontmatter above contains intentional syntax errors.
             num_list_items = self._determine_count(list_items_config, "md_list_items")
             if num_list_items > 0:
                 content += "\n" # Add a newline before the list
-                # Determine list type (e.g., unordered, ordered) based on config if available
-                # For now, default to unordered
-                list_marker = "- "
                 for i in range(num_list_items):
                     # Basic nesting example (not fully config-driven yet for nesting depth)
-                    nest_depth = list_items_config.get("max_nesting_depth", 1) # Simplified
-                    prefix = "  " * (i % nest_depth if nest_depth > 0 else 0) # Basic indent
-                    content += f"{prefix}{list_marker}List item {i+1}\n"
+                    nest_depth_val = list_items_config.get("max_nesting_depth", 1) # Simplified
+                    current_nest_level = i % nest_depth_val if nest_depth_val > 0 else 0
+                    content += self._create_md_list_item(specific_config, global_config, nest_level=current_nest_level)
                 content += "\n" # Add a newline after the list
         
         content += "A link to a [resource](https://example.com/).\n"
@@ -188,10 +186,8 @@ The YAML frontmatter above contains intentional syntax errors.
             num_images = self._determine_count(images_config, "md_images")
             if num_images > 0:
                 content += "\n"
-                for i in range(num_images):
-                    alt_text = images_config.get("default_alt_text", "Placeholder image")
-                    image_path = images_config.get("default_image_path", f"images/placeholder_{i+1}.jpg")
-                    content += f"![{alt_text} {i+1}]({image_path})\n"
+                for _ in range(num_images): # Iterate num_images times
+                    content += self._create_md_image(specific_config, global_config)
                 content += "\n"
         
         content += "---\n> A blockquote.\n"
@@ -234,3 +230,27 @@ $$
 \\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
 $$
 """
+
+    def _create_md_code_block(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
+        # Placeholder for code block generation
+        return "```python\n# Placeholder code block\npass\n```\n\n"
+
+    def _create_md_footnote(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
+        # Placeholder for footnote generation
+        return "[^1]: Placeholder footnote.\n\n"
+
+    def _create_md_task_list(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
+        # Placeholder for task list generation
+        return "- [x] Placeholder task\n\n"
+
+    def _create_md_heading(self, specific_config: Dict[str, Any], global_config: Dict[str, Any], level: int) -> str:
+        # Placeholder for heading generation
+        return f"{'#' * level} Placeholder Heading {level}\n\n"
+
+    def _create_md_image(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
+        # Placeholder for image generation
+        return "![Placeholder Alt Text](placeholder.jpg)\n\n"
+
+    def _create_md_list_item(self, specific_config: Dict[str, Any], global_config: Dict[str, Any], nest_level: int = 0) -> str:
+        # Placeholder for list item generation
+        return f"{'  ' * nest_level}- Placeholder list item\n"

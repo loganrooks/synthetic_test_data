@@ -560,7 +560,9 @@ def test_single_column_with_exact_figure_occurrence(mocker: MockerFixture, pdf_g
         "chapters_config": 1, "sections_per_chapter_config": 0,
         "notes_system": {"notes_config": 0}, "multimedia": {"include_images": False, "images_config": 0},
         "pdf_tables_occurrence_config": {"count": 0},
-        "pdf_figures_occurrence_config": {"count": exact_figure_count}, 
+        "figure_generation": {
+            "pdf_figures_occurrence_config": {"count": exact_figure_count}
+        },
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":20, "right":25}},
         "running_header": {"enable": False}, "running_footer": {"enable": False},
         "page_numbering": {"enable": False},
@@ -571,7 +573,7 @@ def test_single_column_with_exact_figure_occurrence(mocker: MockerFixture, pdf_g
 
     pdf_generator_instance.generate(specific_config, global_config, output_path)
 
-    assert call(specific_config["pdf_figures_occurrence_config"], "figures") in mock_determine_count.call_args_list
+    assert call(specific_config["figure_generation"]["pdf_figures_occurrence_config"], "figures") in mock_determine_count.call_args_list
     assert mock_add_figure_to_story.call_count == exact_figure_count
     mock_simple_doc_template_class.assert_called_once()
     mock_doc_instance.build.assert_called_once()
