@@ -1,5 +1,16 @@
 # Debug Feedback
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Feedback Entry - 2025-05-12 01:03:00
+- **Trigger**: Task completion.
+- **Context**: Debugging pytest migration failures.
+- **Action**:
+    - Fixed `test_single_column_with_exact_figure_occurrence` in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1) by correcting config structure and assertion.
+    - Fixed 3 new `AssertionError`s (probabilistic `call_count`) in [`tests/generators/test_markdown_generator.py`](tests/generators/test_markdown_generator.py:1) by:
+        - Modifying `frontmatter: {"include_chance": 0}` in test configs.
+        - Refactoring `_create_md_basic_elements_content` in [`synth_data_gen/generators/markdown.py`](synth_data_gen/generators/markdown.py:1) to use helper `_create_md_*` methods.
+- **Rationale**: Systematic diagnosis of test failures by examining test setup, generator code, and base class logic.
+- **Outcome**: All new failures resolved. `pytest` now reports 11 known failures in `test_markdown_generator.py`.
+- **Follow-up**: Proceed to `attempt_completion`.
 ### Feedback Entry - 2025-05-11 18:48:00
 - **Trigger**: Successful diagnosis using temporary logging.
 - **Context**: Issue "PDF_RANDINT_DOUBLE_CALL" where `random.randint(2,5)` was called twice.

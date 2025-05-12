@@ -1,5 +1,40 @@
 # Debug Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Issue: PYTEST_PDF_FIGURES_FAIL - `test_single_column_with_exact_figure_occurrence` `KeyError` &amp; Assertion - Resolved - 2025-05-12 01:03:00
+- **Reported**: 2025-05-12 00:58:55 (Task objective) / **Severity**: High / **Symptoms**: `AssertionError: assert call({'count': 1}, 'figures') in [call(10, 'page_count'), call(1, 'chapters')]` followed by `KeyError: 'pdf_figures_occurrence_config'` after first fix attempt.
+- **Investigation**:
+    1. Reviewed test `test_single_column_with_exact_figure_occurrence` in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:533). (2025-05-12 00:59:45)
+    2. Reviewed `PdfGenerator` code for figure handling in [`synth_data_gen/generators/pdf.py`](synth_data_gen/generators/pdf.py:167-172). (2025-05-12 01:00:02)
+    3. Identified mismatch in `specific_config` structure: test provided `pdf_figures_occurrence_config` at top level, but generator expected it under `figure_generation`. (2025-05-12 01:00:02)
+    4. Corrected `specific_config` in the test. (2025-05-12 01:00:19)
+    5. `pytest` then showed `KeyError` on the assertion line, as it was still trying to access the old path. (2025-05-12 01:00:29)
+    6. Corrected assertion to use `specific_config["figure_generation"]["pdf_figures_occurrence_config"]`. (2025-05-12 01:00:40)
+- **Root Cause**: Initial error due to incorrect `specific_config` structure in the test. Subsequent `KeyError` due to assertion not being updated after fixing config structure.
+- **Fix Applied**:
+    1. Modified `specific_config` in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:563) to nest `pdf_figures_occurrence_config` under `figure_generation`.
+    2. Updated assertion in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:574) to `call(specific_config["figure_generation"]["pdf_figures_occurrence_config"], "figures")`.
+- **Verification**: `pytest tests/generators/test_pdf_generator.py` now passes all tests. (2025-05-12 01:00:47)
+- **Related Issues**: None.
+
+### Issue: PYTEST_MD_PROBABILISTIC_CALL_COUNT - Probabilistic tests in `test_markdown_generator.py` failing `call_count` - Resolved - 2025-05-12 01:03:00
+- **Reported**: 2025-05-12 01:00:47 (`pytest` output after PDF fix) / **Severity**: Medium / **Symptoms**: `AssertionError: assert mock_create_*.call_count == 0` (expected non-zero) for `test_generate_probabilistic_headings_count`, `test_generate_probabilistic_list_items_count`, `test_generate_probabilistic_images_count`. This was after fixing initial `random.random` called twice error.
+- **Investigation**:
+    1. Reviewed `_create_md_basic_elements_content` in [`synth_data_gen/generators/markdown.py`](synth_data_gen/generators/markdown.py:153). (2025-05-12 01:02:53)
+    2. Found that headings, list items, and images were directly generated as strings, not by calling their respective `_create_md_*` helper methods. (2025-05-12 01:02:53)
+- **Root Cause**: The `_create_md_basic_elements_content` method was not delegating to the specific `_create_md_heading`, `_create_md_list_item`, and `_create_md_image` methods, so the mocks for these methods were never called.
+- **Fix Applied**: Refactored `_create_md_basic_elements_content` in [`synth_data_gen/generators/markdown.py`](synth_data_gen/generators/markdown.py:1) to call `self._create_md_heading()`, `self._create_md_list_item()`, and `self._create_md_image()` in their respective loops. (2025-05-12 01:03:19)
+- **Verification**: `pytest` run showed these 3 tests now pass. (2025-05-12 01:03:26)
+- **Related Issues**: PYTEST_MD_PROBABILISTIC_RANDOM_TWICE (previous state of these tests).
+
+### Issue: PYTEST_MD_PROBABILISTIC_RANDOM_TWICE - Probabilistic tests in `test_markdown_generator.py` calling `random.random` twice - Resolved - 2025-05-12 01:02:18
+- **Reported**: 2025-05-12 01:00:29 (`pytest` output) / **Severity**: Medium / **Symptoms**: `AssertionError: Expected 'random' to have been called once. Called 2 times.` for `test_generate_probabilistic_headings_count`, `test_generate_probabilistic_list_items_count`, `test_generate_probabilistic_images_count`.
+- **Investigation**:
+    1. Reviewed `BaseGenerator._determine_count` ([`synth_data_gen/core/base.py`](synth_data_gen/core/base.py:91-100)) - it calls `random.random()` for probabilistic configs. (2025-05-12 01:01:19)
+    2. Reviewed `MarkdownGenerator._generate_frontmatter` ([`synth_data_gen/generators/markdown.py`](synth_data_gen/generators/markdown.py:54)) - it *also* calls `random.random()` if `frontmatter.include_chance` is a float. (2025-05-12 01:01:50)
+- **Root Cause**: The tests correctly mocked `random.random` expecting one call from `_determine_count` for the feature under test (e.g., headings). However, the `frontmatter` config in these tests also had `include_chance: 0.0` (a float), causing a second call to `random.random()` from `_generate_frontmatter`.
+- **Fix Applied**: Changed `frontmatter: {"include_chance": 0.0}` to `{"include_chance": 0}` (integer) in the `specific_config` of the three affected probabilistic tests in [`tests/generators/test_markdown_generator.py`](tests/generators/test_markdown_generator.py:1) (lines 262, 288, 311, 395, 422, 445, 521, 547, 569). (2025-05-12 01:02:18)
+- **Verification**: Subsequent `pytest` run showed these specific errors were resolved, though new `call_count` errors emerged. (2025-05-12 01:02:24)
+- **Related Issues**: PYTEST_MD_PROBABILISTIC_CALL_COUNT (next state of these tests).
 ### Issue: PDF_TYPE_ERROR_CONTEXT_KEY - `test_generate_single_column_page_count_range` `TypeError` - Investigated (Not Reproducible) - 2025-05-11 21:45:00
 - **Reported**: 2025-05-11 21:42:23 (via `tdd` Early Return, see [`memory-bank/activeContext.md:2`](memory-bank/activeContext.md:2) entry `[2025-05-11 21:42:23]`) / **Severity**: Medium (Reported as Blocker) / **Symptoms**: `TypeError: BaseGenerator._determine_count() missing 1 required positional argument: 'context_key_name'` in `tests.generators.test_pdf_generator.TestPdfGenerator.test_generate_single_column_page_count_range`.
 - **Investigation**:

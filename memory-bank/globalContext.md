@@ -92,6 +92,27 @@
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
 # Progress
+### Progress: Pytest Migration Fallout Fixes - 2025-05-12 01:03:00
+- **Status**: In Progress (Debug)
+- **Details**:
+    - Fixed 1 new failure in `tests/generators/test_pdf_generator.py::test_single_column_with_exact_figure_occurrence` by correcting `specific_config` structure for `figure_generation` and updating the assertion's key access.
+    - Fixed 3 new `AssertionError: mock_create_*.call_count == 0` failures in `tests/generators/test_markdown_generator.py` for probabilistic tests (`test_generate_probabilistic_headings_count`, `test_generate_probabilistic_list_items_count`, `test_generate_probabilistic_images_count`).
+        - Root cause for probabilistic `call_count` errors: `_generate_frontmatter` in `MarkdownGenerator` was directly calling `random.random()`, causing an extra call when `frontmatter.include_chance` was a float. Changed `include_chance` to integer 0 in test configs.
+        - Root cause for all `call_count` errors (including range tests which are now passing): `_create_md_basic_elements_content` was not calling the helper `_create_md_*` methods. Refactored to use helper methods.
+- **Current State**: `tests/generators/test_pdf_generator.py` passes all tests. `tests/generators/test_markdown_generator.py` has 11 remaining failures, consistent with known issues.
+- **Files Affected**: [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1), [`tests/generators/test_markdown_generator.py`](tests/generators/test_markdown_generator.py:1), [`synth_data_gen/generators/markdown.py`](synth_data_gen/generators/markdown.py:1).
+- **Next Steps**: Complete Memory Bank updates and attempt completion.
+### Progress: TDD for MarkdownGenerator - Indentation Fix &amp; Early Return - 2025-05-11 23:47:52
+- **Status**: Partially Completed / Early Return by `tdd` mode.
+- **Details**:
+    - `tdd` mode fixed indentation issues in `tests/generators/test_markdown_generator.py`, allowing 24 tests to be discovered.
+    - Added stub methods to `synth_data_gen/generators/markdown.py` to resolve initial `AttributeError`s.
+    - Corrected `frontmatter_config` in TOML/JSON tests.
+    - Corrected a `side_effect` signature in one test.
+    - **Blocker**: 13/24 tests in `tests/generators/test_markdown_generator.py` are failing (8 ERRORS due to `TypeError` in mock `side_effect` signatures, 5 FAILURES related to frontmatter logic and other `AssertionError`s).
+- **Files Affected**: [`tests/generators/test_markdown_generator.py`](tests/generators/test_markdown_generator.py:1), [`synth_data_gen/generators/markdown.py`](synth_data_gen/generators/markdown.py:1), [`memory-bank/activeContext.md`](memory-bank/activeContext.md:1), [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
+- **Next Steps**: Per user request and `tdd` recommendation, the next task will be to migrate all tests to `pytest`. Following migration, a new TDD/debug task will address the underlying logic issues.
+- **Related Issues**: Follows `tdd` task delegated at `[2025-05-11 23:07:42]` for indentation fix and TDD resumption. See `tdd` feedback entry `[2025-05-11 23:47:00]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
 ### Progress: TDD for MarkdownGenerator Count Configs &amp; Basic Frontmatter - 2025-05-11 22:26:20
 - **Status**: Completed by `tdd` mode.
 - **Details**:

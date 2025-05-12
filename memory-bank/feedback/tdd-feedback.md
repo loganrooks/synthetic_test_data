@@ -1,3 +1,51 @@
+### [2025-05-11 23:47:00] - TDD - Early Return (User Request &amp; High Context) - Test Failures in MarkdownGenerator
+- **Trigger**: User request for Early Return to migrate tests to `pytest`. Context size at 56%.
+- **Context**:
+    - Indentation issues in `tests/generators/test_markdown_generator.py` were addressed using `write_to_file`. Tests are now discovered (24 tests).
+    - Stub methods (`_create_md_...`) were added to `synth_data_gen/generators/markdown.py`.
+    - `apply_diff` was used to correct `side_effect` signature in `test_generate_range_headings_count`.
+- **Problem**: Running `python3 -m unittest tests.generators.test_markdown_generator` results in 13 FAILED tests (8 ERRORS, 5 FAILURES).
+    - **ERRORS (8)**: Primarily `TypeError` in `side_effect` functions within various tests (e.g., `test_generate_exact_code_blocks_count.<locals>.side_effect() missing 1 required positional argument: 'key'`). This indicates incorrect mock `side_effect` signatures.
+    - **FAILURES (5)**:
+        - `test_generate_frontmatter_json_basic`: `AssertionError: False is not true : Content should be a JSON object if style is JSON`.
+        - `test_generate_frontmatter_yaml_not_included_when_chance_is_zero`: `AssertionError: Expected '_generate_frontmatter' to not have been called. Called 1 times.`
+        - Other `AssertionError`s related to `mock_determine_count.call_args_list` mismatches and `mock_create_heading.call_count` being 0 instead of 3 in `test_generate_range_headings_count`.
+- **Analysis of Blocker**: The immediate blockers are the incorrect `side_effect` signatures in multiple tests and the logic errors in frontmatter generation/testing. The high number of inter-related failures makes iterative TDD cycles slow.
+- **Context % at Early Return**: 56%
+- **Recommendations for Next Steps (for SPARC/User)**:
+    1.  **New Task for Pytest Migration**: As per user request, create a new task for `devops` or `code` mode to:
+        *   Install `pytest` and `pytest-cov`.
+        *   Migrate all tests in the `tests/` directory from `unittest` to `pytest` style. This includes updating assertions, class structures, and mock usage as needed.
+        *   Ensure all tests pass after migration or document any new failures introduced by the migration itself.
+    2.  **Address Test Failures (Post-Migration)**: Once migrated to `pytest` (which might offer better debugging), create a new `tdd` or `debug` task to address the underlying logic errors highlighted by the current failures in `test_markdown_generator.py`.
+- **Files Affected**: `tests/generators/test_markdown_generator.py`, `synth_data_gen/generators/markdown.py`, `memory-bank/feedback/tdd-feedback.md`.
+### [2025-05-11 23:27:40] - TDD - User Intervention: Re-check Indentation for Test Discovery
+- **Trigger**: User feedback after `attempt_completion` (Early Return).
+- **Context**: Agent invoked Early Return due to persistent `AttributeError` when trying to run new frontmatter tests in `tests/generators/test_markdown_generator.py`, believing the issue was beyond simple indentation.
+- **User Guidance**: User stated the problem is "just the indentation" and advised to "read 1111-end" of `tests/generators/test_markdown_generator.py`.
+- **Action**: Will re-read lines 1111 to the end of `tests/generators/test_markdown_generator.py` to meticulously check the indentation of `test_generate_frontmatter_toml_basic` and `test_generate_frontmatter_json_basic` methods relative to the class structure.
+- **Rationale**: User's strong assertion suggests a specific indentation error might have been missed or misinterpreted by the agent.
+- **Outcome**: If a clear indentation error is found, it will be corrected. If not, the underlying discovery issue might still persist.
+- **Follow-up**: Re-read specified file section, apply diff if necessary, then re-run tests.
+### [2025-05-11 23:25:00] - TDD - CRITICAL Blocker & Early Return: Persistent Test Discovery Failure (Post-Indentation Fix)
+- **Trigger**: After committing indentation fixes, `python3 -m unittest -v tests.generators.test_markdown_generator.TestMarkdownGenerator.test_generate_frontmatter_toml_basic` still fails with `AttributeError: type object 'TestMarkdownGenerator' has no attribute 'test_generate_frontmatter_toml_basic'`.
+- **Context**:
+    - Indentation and minor cleanup changes were applied to `tests/generators/test_markdown_generator.py` and committed.
+    - Full regression suite (`python3 -m unittest discover -s tests -p "test_*.py"`) passed, finding 14 tests.
+    - Running `python3 -m unittest tests.generators.test_markdown_generator` still only discovers 5 tests.
+- **Problem**: The `unittest` framework is consistently unable to discover or execute newly added test methods (`test_generate_frontmatter_toml_basic`, `test_generate_frontmatter_json_basic`) in `tests/generators/test_markdown_generator.py`, even when targeted directly. This issue persists despite code corrections.
+- **Critical Evaluation**: The issue is not a simple syntax or indentation error that can be fixed with `apply_diff` or `write_to_file`. It's a deeper test discovery/execution anomaly specific to this file or environment.
+- **Attempts**: Previous sessions involved numerous attempts (see entry `[2025-05-11 23:00:00]`). Current session confirmed the issue persists after targeted fixes and commit.
+- **Analysis of Blocker**: Root cause remains unknown. Potential causes: `unittest` caching, subtle environment/Python path issues, non-obvious character/encoding problems in the file not visible in `read_file`, or a deeper conflict within the `unittest` framework's interaction with this file.
+- **Self-Correction Attempted**: Indentation correction, direct test execution.
+- **Context % at Early Return**: 16%
+- **Recommendations for Next Steps (for SPARC/User/Debugger)**:
+    1.  **Manual Deep Dive**: A developer needs to manually open `tests/generators/test_markdown_generator.py` in an IDE, ensure no hidden characters or encoding issues exist.
+    2.  **Simplify Radically**: Create a *minimal* copy of `TestMarkdownGenerator` with only `setUp`, `tearDown`, and *one* of the problematic tests (e.g., `test_generate_frontmatter_toml_basic`). See if this minimal version runs. If it does, incrementally add back other tests to find a conflict. If it doesn't, the issue is very fundamental.
+    3.  **Python Environment Check**: Verify Python environment, `sys.path`, and any `PYTHONPATH` variables. Clear `__pycache__` directories (`find . -path "*/__pycache__/*" -delete` and `find . -name "*.pyc" -delete`).
+    4.  **Delegate to Debug**: If the issue persists after manual checks, delegate to `debug` mode for a focused investigation on Python's `unittest` discovery and execution behavior in this specific file and environment.
+    5.  **Alternative Test Runner**: Consider if `pytest` (mentioned in global context as a future enhancement) might behave differently and if a temporary switch for this file is feasible for debugging discovery.
+- **Files Affected**: `tests/generators/test_markdown_generator.py` (committed), `memory-bank/feedback/tdd-feedback.md`.
 ### [2025-05-11 23:00:00] - TDD - CRITICAL Blocker & Early Return: Persistent Test Discovery Failure
 - **Trigger**: Multiple failed attempts to get new tests (`test_generate_frontmatter_toml_basic`, `test_generate_frontmatter_json_basic`) in `tests/generators/test_markdown_generator.py` to be discovered and fail as expected. Context at 41%.
 - **Context**:

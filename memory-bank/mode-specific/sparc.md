@@ -30,8 +30,10 @@
 - Assigned to: tdd
 - Description: Continue TDD cycle. Objectives include: Completing `MarkdownGenerator` frontmatter tests; Proceeding with `PdfGenerator` tests (probabilistic `page_count_config`, other settings); `EpubGenerator` tests (Unified Quantity Specs, styling, features); `epub_components` unit tests; `ConfigLoader` implementation and testing.
 - Expected deliverable: Passing tests and implemented features as per the TDD cycle. Regular commits and Memory Bank updates.
-- Status: pending
-- Link to Progress Entry: (Will be created by tdd mode)
+- Status: completed (Early Return)
+- Completion time: 2025-05-11 23:47:52
+- Outcome: Indentation fixed in `tests/generators/test_markdown_generator.py`. However, 13/24 tests are failing (TypeErrors in mock side_effects, Frontmatter logic issues). Context at 58%.
+- Link to Progress Entry: [Progress: TDD for MarkdownGenerator - Indentation Fix & Early Return - 2025-05-11 23:47:52]
 - **Trigger**: `tdd` mode invoked Early Return.
 - **Context**: Persistent `apply_diff` failures modifying `test_generate_single_column_unified_chapters_range` in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1). High context window (48%).
 - **Action Taken**: Logged Early Return. Will review `tdd` feedback log and then delegate a focused fix for the specific test.
