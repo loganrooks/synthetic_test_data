@@ -1,5 +1,17 @@
 # Debug Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Issue: PDF_TYPE_ERROR_CONTEXT_KEY - `test_generate_single_column_page_count_range` `TypeError` - Investigated (Not Reproducible) - 2025-05-11 21:45:00
+- **Reported**: 2025-05-11 21:42:23 (via `tdd` Early Return, see [`memory-bank/activeContext.md:2`](memory-bank/activeContext.md:2) entry `[2025-05-11 21:42:23]`) / **Severity**: Medium (Reported as Blocker) / **Symptoms**: `TypeError: BaseGenerator._determine_count() missing 1 required positional argument: 'context_key_name'` in `tests.generators.test_pdf_generator.TestPdfGenerator.test_generate_single_column_page_count_range`.
+- **Investigation**:
+    1. Verified `BaseGenerator._determine_count` signature in [`synth_data_gen/core/base.py`](synth_data_gen/core/base.py:65) requires `context_key_name`. (2025-05-11 21:43:47)
+    2. Verified call in `PdfGenerator._create_pdf_text_single_column` ([`synth_data_gen/generators/pdf.py:133`](synth_data_gen/generators/pdf.py:133)) correctly passes `context_key_name`. (2025-05-11 21:43:53)
+    3. Analyzed mock setup in `test_generate_single_column_page_count_range` ([`tests/generators/test_pdf_generator.py:453-460`](tests/generators/test_pdf_generator.py:453-460)); the `side_effect` correctly calls `BaseGenerator._determine_count` with all arguments. (2025-05-11 21:44:00)
+    4. Executed `test_generate_single_column_page_count_range` directly; test passed. (2025-05-11 21:43:40)
+    5. Executed all tests in `tests.generators.test_pdf_generator`; all 13 tests passed. (2025-05-11 21:44:40)
+- **Root Cause**: Not reproducible with the current codebase. The `tdd` mode's reported error may have been based on an intermediate or since-corrected code state.
+- **Fix Applied**: No fix applied as the issue is not currently present.
+- **Verification**: All relevant tests pass.
+- **Related Issues**: None directly, but highlights potential discrepancies between different test execution environments or code states.
 ### Issue: PDF_TEST_NAMEERROR_MOCK_DETERMINE_COUNT - `test_generate_single_column_unified_chapters_range` NameError - Resolved - 2025-05-11 18:24:30
 - **Reported**: 2025-05-11 18:24:00 (User feedback after test execution) / **Severity**: Medium (Blocking Test) / **Symptoms**: `NameError: name 'mock_determine_count' is not defined` in `tests.generators.test_pdf_generator.TestPdfGenerator.test_generate_single_column_unified_chapters_range` at line 302.
 - **Investigation**:
