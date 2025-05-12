@@ -483,8 +483,8 @@ def test_generate_uses_toc_settings(mocker: MockerFixture, epub_generator_instan
 
     epub_generator_instance.generate(specific_config, global_config, output_path)
 
-    mock_create_nav_doc.assert_called_once()
-    args_nav, _ = mock_create_nav_doc.call_args
+    mock_create_nav_document.assert_called_once()
+    args_nav, _ = mock_create_nav_document.call_args
     assert args_nav[0] is mock_book_instance
     assert len(args_nav[1]) == 1
     assert args_nav[1][0] is mock_chapter_item
