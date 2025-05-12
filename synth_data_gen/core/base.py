@@ -91,20 +91,63 @@ class BaseGenerator(ABC):
             elif "chance" in config_value:
                 # Probabilistic object
                 chance = config_value.get("chance", 0.0)
-                max_total = config_value.get("max_total", 1) # Default max_total for simple chance
-                # per_unit_of = config_value.get("per_unit_of") # For future more complex logic
+                if_true_config = config_value.get("if_true", 1)  # Default to 1 if chance met and if_true missing
+                if_false_config = config_value.get("if_false", 0) # Default to 0 if chance not met and if_false missing
+                max_total_val = config_value.get("max_total") # Can be None
 
-                if not (isinstance(chance, float) and 0.0 <= chance <= 1.0 and isinstance(max_total, int) and max_total >=0):
-                    print(f"Warning: Invalid probabilistic config for '{context_key_name}': {config_value}. Defaulting to 0.")
-                    return 0
+                if not (isinstance(chance, float) and 0.0 <= chance <= 1.0):
+                    print(f"Warning: Invalid chance value for probabilistic config '{context_key_name}': {chance}. Defaulting to determined if_false value.")
+                    # Determine count based on if_false_config directly
+                    if isinstance(if_false_config, int):
+                        determined_count = if_false_config
+                    elif isinstance(if_false_config, dict) and "min" in if_false_config and "max" in if_false_config:
+                        min_val_f = if_false_config.get("min", 0)
+                        max_val_f = if_false_config.get("max", 0)
+                        if not (isinstance(min_val_f, int) and isinstance(max_val_f, int) and min_val_f >= 0 and max_val_f >= min_val_f):
+                            determined_count = 0
+                        else:
+                            determined_count = random.randint(min_val_f, max_val_f)
+                    else:
+                        determined_count = 0 # Default for invalid if_false_config
+                else:
+                    # Valid chance, proceed with probability check
+                    if random.random() < chance:
+                        # Process if_true_config
+                        if isinstance(if_true_config, int):
+                            determined_count = if_true_config
+                        elif isinstance(if_true_config, dict) and "min" in if_true_config and "max" in if_true_config:
+                            min_val_t = if_true_config.get("min", 0)
+                            max_val_t = if_true_config.get("max", 0)
+                            if not (isinstance(min_val_t, int) and isinstance(max_val_t, int) and min_val_t >= 0 and max_val_t >= min_val_t):
+                                print(f"Warning: Invalid range in if_true for probabilistic config '{context_key_name}': {if_true_config}. Defaulting to 1.")
+                                determined_count = 1
+                            else:
+                                determined_count = random.randint(min_val_t, max_val_t)
+                        else:
+                            print(f"Warning: Invalid if_true structure in probabilistic config '{context_key_name}': {if_true_config}. Defaulting to 1.")
+                            determined_count = 1
+                    else:
+                        # Process if_false_config
+                        if isinstance(if_false_config, int):
+                            determined_count = if_false_config
+                        elif isinstance(if_false_config, dict) and "min" in if_false_config and "max" in if_false_config:
+                            min_val_f = if_false_config.get("min", 0)
+                            max_val_f = if_false_config.get("max", 0)
+                            if not (isinstance(min_val_f, int) and isinstance(max_val_f, int) and min_val_f >= 0 and max_val_f >= min_val_f):
+                                print(f"Warning: Invalid range in if_false for probabilistic config '{context_key_name}': {if_false_config}. Defaulting to 0.")
+                                determined_count = 0
+                            else:
+                                determined_count = random.randint(min_val_f, max_val_f)
+                        else:
+                            print(f"Warning: Invalid if_false structure in probabilistic config '{context_key_name}': {if_false_config}. Defaulting to 0.")
+                            determined_count = 0
                 
-                # For now, a simple interpretation: if chance hits, return 1 (up to max_total), else 0.
-                # More complex logic (e.g. for "per_unit_of") would go here.
-                # If per_unit_of is "document" or not specified, it's a one-time check.
-                count = 0
-                if random.random() < chance:
-                    count = 1 # For now, assume 1 if chance hits, up to max_total
-                return min(count, max_total) # Ensure we don't exceed max_total
+                if max_total_val is not None:
+                    if not (isinstance(max_total_val, int) and max_total_val >= 0):
+                        print(f"Warning: Invalid max_total value for probabilistic config '{context_key_name}': {max_total_val}. Ignoring max_total.")
+                    else:
+                        determined_count = min(determined_count, max_total_val)
+                return determined_count
             else:
                 print(f"Warning: Unknown dictionary structure for count config '{context_key_name}': {config_value}. Defaulting to 0.")
                 return 0
