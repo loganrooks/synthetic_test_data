@@ -18,22 +18,17 @@ class MarkdownGenerator(BaseGenerator):
         Refer to specifications/synthetic_data_package_specification.md for details.
         """
         return {
-            "headings_config": 5,
-            "max_heading_depth": 3,
+            "headings_config": {"count": 5, "max_depth": 3}, # Unified Quantity for count
             "include_emphasis_styles": True,
-            "include_lists": True,
-            "md_list_items_config": 4,
-            "list_max_nesting_depth": 2,
-            "include_links": True,
-            "include_images": True,
-            "md_images_config": 1,
-            "include_blockquotes": True,
+            "md_list_items_config": {"count": 4, "max_nesting_depth": 2, "include_lists": True}, # Unified Quantity
+            "include_links": True, # This might become part of a link_config object
+            "md_images_config": {"count": 1, "include_images": True}, # Unified Quantity
+            "include_blockquotes": True, # This might become part of a blockquote_config object
             "gfm_features": {
-                "md_tables_occurrence_config": 0,
-                "md_footnotes_occurrence_config": 0,
-                "md_task_lists_occurrence_config": 0,
-                "include_code_blocks": True,
-                "md_code_blocks_config": 1,
+                "md_tables_occurrence_config": {"count": 0}, # Unified Quantity
+                "md_footnotes_occurrence_config": {"count": 0}, # Unified Quantity
+                "md_task_lists_occurrence_config": {"count": 0}, # Unified Quantity
+                "md_code_blocks_config": {"count": 1, "include_code_blocks": True}, # Unified Quantity
             },
             "frontmatter": {
                 "include_chance": 1.0,
@@ -156,31 +151,69 @@ The YAML frontmatter above contains intentional syntax errors.
     # --- Helper methods for content generation, adapted from original functions ---
 
     def _create_md_basic_elements_content(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
-        # Use specific_config to customize content, e.g., number of list items, heading depth
-        num_headings = specific_config.get("headings_config", 3) # Simplified
-        if isinstance(num_headings, dict): num_headings = num_headings.get("min", 3)
+        headings_config = specific_config.get("headings_config", {"count": 3, "max_depth": 3})
+        num_headings_to_generate = self._determine_count(headings_config, "headings")
+        max_depth = headings_config.get("max_depth", 3)
 
-        content = f"# Header 1: The Nature of Synthesis (Configurable: {num_headings} headings planned)\n"
+        content = ""
+        for i in range(num_headings_to_generate):
+            current_depth = (i % max_depth) + 1
+            content += f"{'#' * current_depth} Header Level {current_depth} - Instance {i+1}\n"
+            content += f"This is some content under heading {i+1}.\n\n"
+
+        # Keep other basic elements for now, will be driven by their own configs later
         content += "This document serves as a basic test for Markdown parsing.\n"
-        content += "## Header 2: Elements of Style\n"
         content += "We explore *italicized text* and **bold text**. `inline code`.\n"
-        content += "### Header 3: Lists\n"
-        content += "- Item Alpha\n  - Nested Alpha.1\n- Item Beta\n"
-        content += "1. First step\n   1. Sub-step 1.1\n2. Second step\n"
+        # Config-driven list generation
+        list_items_config = specific_config.get("md_list_items_config", {"count": 0, "include_lists": False})
+        if list_items_config.get("include_lists", False):
+            num_list_items = self._determine_count(list_items_config, "md_list_items")
+            if num_list_items > 0:
+                content += "\n" # Add a newline before the list
+                # Determine list type (e.g., unordered, ordered) based on config if available
+                # For now, default to unordered
+                list_marker = "- "
+                for i in range(num_list_items):
+                    # Basic nesting example (not fully config-driven yet for nesting depth)
+                    nest_depth = list_items_config.get("max_nesting_depth", 1) # Simplified
+                    prefix = "  " * (i % nest_depth if nest_depth > 0 else 0) # Basic indent
+                    content += f"{prefix}{list_marker}List item {i+1}\n"
+                content += "\n" # Add a newline after the list
+        
         content += "A link to a [resource](https://example.com/).\n"
-        content += "![Placeholder image](images/placeholder.jpg)\n"
+
+        # Config-driven image generation
+        images_config = specific_config.get("md_images_config", {"count": 0, "include_images": False})
+        if images_config.get("include_images", False):
+            num_images = self._determine_count(images_config, "md_images")
+            if num_images > 0:
+                content += "\n"
+                for i in range(num_images):
+                    alt_text = images_config.get("default_alt_text", "Placeholder image")
+                    image_path = images_config.get("default_image_path", f"images/placeholder_{i+1}.jpg")
+                    content += f"![{alt_text} {i+1}]({image_path})\n"
+                content += "\n"
+        
         content += "---\n> A blockquote.\n"
         return content
 
     def _create_md_extended_elements_content(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
         gfm_config = specific_config.get("gfm_features", {})
-        tables_config = gfm_config.get("md_tables_occurrence_config", 0)
-        if isinstance(tables_config, dict): tables_config = tables_config.get("min", 0)
         
         content = "# Extended Markdown Features\n"
-        if tables_config > 0:
-            content += "## Tables\n"
-            content += "| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | Cell 2 |\n"
+
+        # Config-driven table generation
+        tables_occurrence_config = gfm_config.get("md_tables_occurrence_config", {"count": 0})
+        num_tables = self._determine_count(tables_occurrence_config, "md_tables")
+
+        if num_tables > 0:
+            content += "\n## Tables\n"
+            for _ in range(num_tables):
+                # Add a simple placeholder table structure
+                content += "| Header 1 | Header 2 | Header 3 |\n"
+                content += "|---|---|---|\n"
+                content += "| Cell 1.1 | Cell 1.2 | Cell 1.3 |\n"
+                content += "| Cell 2.1 | Cell 2.2 | Cell 2.3 |\n\n"
         
         content += "## Footnotes\nHere is text with a footnote.[^1]\n[^1]: This is a footnote.\n"
         content += "## Task Lists\n- [x] Done\n- [ ] To Do\n"
