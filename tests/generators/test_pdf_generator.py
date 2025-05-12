@@ -182,72 +182,101 @@ class TestPdfGenerator(unittest.TestCase):
     @patch('synth_data_gen.core.base.random.randint') # Patch randint where BaseGenerator calls it
     def test_generate_single_column_unified_chapters_range(
         self, mock_base_randint, mock_add_pdf_chapter_content,
-        mock_simple_doc_template_class, mock_ensure_output_dirs
+        mock_simple_doc_template_class, mock_ensure_output_dirs # ensure_output_dirs is from class-level patch
     ):
         """Test 'chapters_config' (range object) for 'single_column_text' variant,
-        ensuring BaseGenerator._determine_count uses random.randint."""
+        ensuring BaseGenerator._determine_count uses the patched random.randint."""
         mock_doc_instance = MagicMock()
         mock_simple_doc_template_class.return_value = mock_doc_instance
         
         chapters_range_config = {"min": 2, "max": 5}
-        # The actual number of chapters determined by random.randint is not the primary focus
-        # for this specific test, as long as random.randint is called correctly.
-        # We must set a return_value for mock_base_randint because the subsequent logic
-        # (e.g. looping num_chapters_to_generate times) depends on it being an integer.
-        mock_base_randint.return_value = 3 # Value within the range {"min": 2, "max": 5}
+        expected_chapters_from_range = 3 # This is what random.randint will return
+        mock_base_randint.return_value = expected_chapters_from_range
 
-        self.generator.config = {
-            "output_directory_base": "test_output",
-            "output_filename_base": "single_col_unified_range",
+        # This is the specific configuration for the PDF document itself
+        specific_pdf_config = {
+            "title": "Test PDF Range Chapters",
+            "author": "Test Author Range Chapters",
+            "variant": "single_column_text",
+            "chapters_config": chapters_range_config,
+            "sections_config": {"min": 0, "max": 0},
+            "paragraphs_config": {"min": 1, "max": 1},
+            "sentences_config": {"min": 1, "max": 1},
+            "words_config": {"min": 1, "max": 1},
+            "images_config": {"min": 0, "max": 0},
+            "tables_config": {"min": 0, "max": 0},
+            "lists_config": {"min": 0, "max": 0},
+            "code_blocks_config": {"min": 0, "max": 0},
+            "blockquotes_config": {"min": 0, "max": 0},
+            "text_boxes_config": {"min": 0, "max": 0},
+            "diagrams_config": {"min": 0, "max": 0},
+            "charts_config": {"min": 0, "max": 0},
+            "math_formulas_config": {"min": 0, "max": 0},
+            "footnotes_config": {"min": 0, "max": 0},
+            "endnotes_config": {"min": 0, "max": 0},
+            "index_terms_config": {"min": 0, "max": 0},
+            "glossary_terms_config": {"min": 0, "max": 0},
+            "bibliography_entries_config": {"min": 0, "max": 0},
+            "appendices_config": {"min": 0, "max": 0},
+            "cover_config": {"include_cover": False},
+            "toc_config": {"include_toc": False},
+            "header_config": {"include_header": False},
+            "footer_config": {"include_footer": False},
+            "page_numbering_config": {"include_page_numbers": False},
+            "font_config": {"font_name": "Helvetica", "font_size_pt": 12, "line_spacing_pt": 14},
+            "page_layout": {"page_width_mm": 210, "page_height_mm": 297, "left_margin_mm": 20, "right_margin_mm": 20, "top_margin_mm": 25, "bottom_margin_mm": 25},
+        }
+
+        # This is the global configuration that includes the specific PDF config
+        # and other top-level settings.
+        global_generator_config = {
+            "output_directory_base": "test_output_pdf_range_chapters_global",
+            "output_filename_base": "test_doc_range_global",
             "document_template_class": "synth_data_gen.document_templates.SimpleDocTemplate",
+            "random_seed": 42,
+            "debug_mode": False,
             "file_types": {
-                "pdf": {
-                    "variant": "single_column_text",
-                    "chapters_config": chapters_range_config, # Use the range object
-                    "sections_config": {"min": 0, "max": 0}, # No sections for this test
-                    "paragraphs_config": {"min": 1, "max": 1},
-                    "sentences_per_paragraph_config": {"min": 1, "max": 1},
-                    "words_per_sentence_config": {"min": 1, "max": 1},
-                    "page_layout": {
-                        "page_width_mm": 210,
-                        "page_height_mm": 297,
-                        "left_margin_mm": 20,
-                        "right_margin_mm": 20,
-                        "top_margin_mm": 25,
-                        "bottom_margin_mm": 25
-                    },
-                    "font_config": {
-                        "font_name": "Helvetica",
-                        "font_size_pt": 12,
-                        "line_spacing_pt": 14
-                    }
-                }
+                "pdf": specific_pdf_config # Embed the specific config here
             }
         }
-        specific_config = self.generator.config["file_types"]["pdf"]
-        global_config_for_gen = self.generator.config
         
-        output_filename = self.generator.config.get("output_filename_base", "single_col_unified_range_test") + ".pdf"
-        output_dir_base = self.generator.config.get("output_directory_base", "test_output_pdfs")
-        final_output_path = os.path.join(output_dir_base, self.generator.GENERATOR_ID, output_filename)
+        # Construct the output path
+        output_dir = os.path.join(
+            global_generator_config["output_directory_base"],
+            self.generator.GENERATOR_ID
+        )
+        output_filename = global_generator_config["output_filename_base"] + ".pdf"
+        final_output_path = os.path.join(output_dir, output_filename)
 
-        mock_base_randint.reset_mock() # Reset before the action we are testing
-        self.generator.generate(specific_config, global_config_for_gen, final_output_path)
+        mock_ensure_output_dirs.return_value = None # This mock comes from class-level patch
+        mock_base_randint.reset_mock()
+        mock_add_pdf_chapter_content.reset_mock()
 
-        # self.generator.generate(specific_config, global_config_for_gen, final_output_path) # Redundant call removed
+        original_instance_determine_count_mock = None
+        # Check if _determine_count is already a mock on the instance (from setUp)
+        had_instance_mock = hasattr(self.generator, '_determine_count') and \
+                            isinstance(self.generator._determine_count, MagicMock)
 
-        mock_base_randint.assert_called_once_with(chapters_range_config["min"], chapters_range_config["max"])
-        # We expect _add_pdf_chapter_content to be called based on the outcome of random.randint
-        # If mock_base_randint.return_value was set, we could assert call_count here.
-        # For now, we just ensure it's called at least once if chapters are generated.
-        # If min_chapters is > 0, it should be called.
-        if chapters_range_config["min"] > 0:
-            mock_add_pdf_chapter_content.assert_called()
-        
-        # Assert that _add_pdf_chapter_content was called the expected number of times
-        # This relies on mock_base_randint.return_value which dictates num_chapters_to_generate
-        expected_chapters_from_range = mock_base_randint.return_value
-        self.assertEqual(mock_add_pdf_chapter_content.call_count, expected_chapters_from_range)
+        if had_instance_mock:
+            original_instance_determine_count_mock = self.generator._determine_count
+            del self.generator._determine_count # Temporarily remove to call BaseGenerator's version
+
+        try:
+            # Call generate with the correct arguments
+            self.generator.generate(
+                specific_config=specific_pdf_config,
+                global_config=global_generator_config,
+                output_path=final_output_path
+            )
+
+            mock_base_randint.assert_called_once_with(
+                chapters_range_config["min"], chapters_range_config["max"]
+            )
+            self.assertEqual(mock_add_pdf_chapter_content.call_count, expected_chapters_from_range)
+        finally:
+            # Restore the instance mock if it was present and we had temporarily removed it.
+            if had_instance_mock and original_instance_determine_count_mock:
+                self.generator._determine_count = original_instance_determine_count_mock
 
         # Further assertions could check the content passed to _add_pdf_chapter_content
         # or the number of times it was called if mock_base_randint.return_value was fixed.
