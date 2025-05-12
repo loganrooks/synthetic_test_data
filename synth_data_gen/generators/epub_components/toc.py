@@ -575,3 +575,34 @@ def create_epub_html_toc_non_linked(filename="html_toc_non_linked.epub"):
     book.spine = [html_toc_page] + chapters # HTML ToC often first after cover (if any)
     # _write_epub_file was removed by a previous diff, adding it back
     _write_epub_file(book, filepath)
+def create_ncx(book, chapters_content, toc_settings):
+    """
+    Placeholder for NCX creation logic.
+    This function will be called by EpubGenerator.
+    It should use toc_settings to customize NCX generation.
+    """
+    # For now, to allow tests to proceed, just add a basic NCX.
+    # Actual implementation will use chapters_content and toc_settings.
+    ncx = epub.EpubNcx()
+    book.add_item(ncx)
+    # book.toc should be set appropriately by this function or a wrapper
+    # For basic passing of some tests, we might set a simple book.toc here if not handled by EpubGenerator
+    if not book.toc and chapters_content: # Avoid overwriting if already set
+        book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0] + "_ncx_id") for ch in chapters_content)
+
+
+def create_nav_document(book, chapters_content, toc_settings, epub_version):
+    """
+    Placeholder for NavDoc (EPUB 3 Navigation Document) creation logic.
+    This function will be called by EpubGenerator.
+    It should use toc_settings and epub_version to customize NavDoc generation.
+    """
+    # For now, to allow tests to proceed, just add a basic EpubNav.
+    # Actual implementation will use chapters_content, toc_settings, and epub_version.
+    nav = epub.EpubNav()
+    # nav.file_name = 'nav.xhtml' # Default, but can be set
+    book.add_item(nav)
+    # Similar to NCX, book.toc might be set here or by a wrapper if not already handled.
+    # The 'nav' item is usually automatically added to spine if it has 'nav' property.
+    # Ensure nav.properties.append('nav') if creating a custom EpubHtml for nav.
+    # EpubNav from ebooklib handles this.

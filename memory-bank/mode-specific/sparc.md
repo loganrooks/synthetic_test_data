@@ -2,6 +2,13 @@
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
 ## Intervention Log
+### [2025-05-11 14:21:00] Intervention: Early Return from TDD Mode
+- **Trigger**: `tdd` mode invoked Early Return.
+- **Context**: Persistent `apply_diff` failures modifying `test_generate_single_column_unified_chapters_range` in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1). High context window (48%).
+- **Action Taken**: Logged Early Return. Will review `tdd` feedback log and then delegate a focused fix for the specific test.
+- **Rationale**: To address the blocker with a fresh context and precise instructions as recommended by `tdd` mode.
+- **Outcome**: Pending review of feedback and redelegation.
+- **Follow-up**: Delegate focused task to fix the test.
 ### [2025-05-11 03:29:27] Intervention: User Correction on Delegation Process
 - **Trigger**: User feedback on `new_task` delegation to `spec-pseudocode`.
 - **Context**: SPARC attempted to delegate specification revision without first reading the architect's output documents ([`docs/spec_revision_guidance_unified_quantity.md`](docs/spec_revision_guidance_unified_quantity.md) and [`docs/architecture_overview.md`](docs/architecture_overview.md)).

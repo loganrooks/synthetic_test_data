@@ -3,33 +3,48 @@ from ebooklib import epub
 
 # Define output base directory relative to the project root
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-BASE_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "generated")
+BASE_OUTPUT_DIR = os.path.join(PROJECT_ROOT, "generated") # Restored for general use
 
+# Define absolute default paths for potential use by components
 EPUB_DIR = os.path.join(BASE_OUTPUT_DIR, "epub")
 PDF_DIR = os.path.join(BASE_OUTPUT_DIR, "pdf")
 MD_DIR = os.path.join(BASE_OUTPUT_DIR, "markdown")
 
-def ensure_output_directories():
-    """Ensures all necessary output directories exist."""
-    os.makedirs(os.path.join(EPUB_DIR, "toc"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "headers"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "notes"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "citations_bibliography"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "images_fonts"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "structure_metadata"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "content_types"), exist_ok=True)
-    os.makedirs(os.path.join(EPUB_DIR, "general_edge_cases"), exist_ok=True)
+# Subdirectory names, can be used by ensure_output_directories with a dynamic base_dir
+EPUB_SUBDIR_NAME = "epub" # Renamed to avoid conflict with EPUB_DIR
+PDF_SUBDIR_NAME = "pdf"   # Renamed to avoid conflict with PDF_DIR
+MD_SUBDIR_NAME = "markdown" # Renamed to avoid conflict with MD_DIR
 
-    os.makedirs(os.path.join(PDF_DIR, "text_based"), exist_ok=True)
-    os.makedirs(os.path.join(PDF_DIR, "image_based_ocr"), exist_ok=True)
-    os.makedirs(os.path.join(PDF_DIR, "structure"), exist_ok=True)
-    os.makedirs(os.path.join(PDF_DIR, "notes"), exist_ok=True)
-    os.makedirs(os.path.join(PDF_DIR, "general_edge_cases"), exist_ok=True)
+def ensure_output_directories(base_dir: str):
+    """Ensures all necessary output subdirectories exist within the given base_dir."""
+    
+    # Ensure the base_dir itself exists
+    os.makedirs(base_dir, exist_ok=True)
 
-    os.makedirs(os.path.join(MD_DIR, "basic"), exist_ok=True)
-    os.makedirs(os.path.join(MD_DIR, "extended"), exist_ok=True)
-    os.makedirs(os.path.join(MD_DIR, "frontmatter"), exist_ok=True)
-    os.makedirs(os.path.join(MD_DIR, "general_edge_cases"), exist_ok=True)
+    # Use SUBDIR_NAME constants for clarity when creating paths within the dynamic base_dir
+    epub_dir_dynamic = os.path.join(base_dir, EPUB_SUBDIR_NAME)
+    pdf_dir_dynamic = os.path.join(base_dir, PDF_SUBDIR_NAME)
+    md_dir_dynamic = os.path.join(base_dir, MD_SUBDIR_NAME)
+
+    os.makedirs(os.path.join(epub_dir_dynamic, "toc"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "headers"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "notes"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "citations_bibliography"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "images_fonts"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "structure_metadata"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "content_types"), exist_ok=True)
+    os.makedirs(os.path.join(epub_dir_dynamic, "general_edge_cases"), exist_ok=True)
+
+    os.makedirs(os.path.join(pdf_dir_dynamic, "text_based"), exist_ok=True)
+    os.makedirs(os.path.join(pdf_dir_dynamic, "image_based_ocr"), exist_ok=True)
+    os.makedirs(os.path.join(pdf_dir_dynamic, "structure"), exist_ok=True)
+    os.makedirs(os.path.join(pdf_dir_dynamic, "notes"), exist_ok=True)
+    os.makedirs(os.path.join(pdf_dir_dynamic, "general_edge_cases"), exist_ok=True)
+
+    os.makedirs(os.path.join(md_dir_dynamic, "basic"), exist_ok=True)
+    os.makedirs(os.path.join(md_dir_dynamic, "extended"), exist_ok=True)
+    os.makedirs(os.path.join(md_dir_dynamic, "frontmatter"), exist_ok=True)
+    os.makedirs(os.path.join(md_dir_dynamic, "general_edge_cases"), exist_ok=True)
 
 def _create_epub_book(identifier, title, author="Synthetic Data Generator", lang="en", custom_metadata=None, add_default_metadata=True):
     """Helper function to create a basic EpubBook object with common metadata."""
