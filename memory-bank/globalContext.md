@@ -26,6 +26,39 @@
         Example: `num_chapters: 5`
     2.  **Object with `min` and `max` keys**: For a random count within an inclusive range.
         Example: `num_chapters: { min: 3, max: 7 }`
+### Progress: Consolidated Pending Changes - 2025-05-11 21:06:44
+- **Status**: Completed
+## Future Enhancements / Technical Debt
+- **[2025-05-11 21:07:00] - Testing Framework Migration:** Consider migrating test suite from `unittest` to `pytest` for potential benefits in conciseness and features. To be evaluated after core functionality is stable.
+- **Details**: All pending uncommitted changes from previous tasks (code migration, class-based refactoring, initial TDD cycles) were staged and committed.
+- **Commit**: `4f839cc`
+- **Commit Message**: "feat: Implement class-based architecture, migrate code, and add initial tests"
+- **Impact**: The working directory is now clean, providing a stable base for subsequent tasks.
+- **Files Affected**: 
+    - `memory-bank/activeContext.md`
+    - `memory-bank/feedback/debug-feedback.md`
+    - `memory-bank/feedback/tdd-feedback.md`
+    - `memory-bank/globalContext.md`
+    - `memory-bank/mode-specific/code.md`
+    - `memory-bank/mode-specific/debug.md`
+    - `memory-bank/mode-specific/sparc.md`
+    - `memory-bank/mode-specific/tdd.md`
+    - `synth_data_gen/__init__.py`
+    - `synth_data_gen/common/utils.py`
+    - `synth_data_gen/core/__init__.py`
+    - `synth_data_gen/core/base.py`
+    - `synth_data_gen/generators/epub.py`
+    - `synth_data_gen/generators/epub_components/toc.py`
+    - `synth_data_gen/generators/markdown.py`
+    - `synth_data_gen/generators/pdf.py`
+    - `tests/core/test_base_generator.py`
+    - `tests/generators/epub_components/test_toc.py`
+    - `tests/generators/test_epub_generator.py`
+    - `tests/generators/test_markdown_generator.py`
+    - `tests/test_common_utils.py`
+    - `tests/test_config_loader.py`
+    - `tests/test_main_generator.py`
+- **Next Steps**: Proceed with focused test fixing tasks.
 ### Progress: PDF Generator Test `test_generate_single_column_unified_chapters_range` Fixed - 2025-05-11 19:00:00
 - **Status**: Completed
 - **Details**: The test `test_generate_single_column_unified_chapters_range` in `tests/generators/test_pdf_generator.py` was fixed. The primary issue was a duplicated block of test code causing `PdfGenerator.generate()` to be called twice, leading to an `AssertionError` for `random.randint` call count. Subsequent `NameError` issues were also resolved. All 10 tests in `tests/generators/test_pdf_generator.py` now pass.
@@ -59,6 +92,31 @@
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
 # Progress
+### Progress: TDD for MarkdownGenerator Count Configs &amp; Basic Frontmatter - 2025-05-11 22:26:20
+- **Status**: Completed by `tdd` mode.
+- **Details**:
+    - Added and passed tests for `MarkdownGenerator` covering range and probabilistic counts for:
+        - `headings_config`
+        - `md_list_items_config`
+        - `md_images_config`
+        - `md_footnotes_occurrence_config`
+        - `md_task_lists_occurrence_config`
+        - `md_code_blocks_config`
+    - Added and passed basic tests for `frontmatter` (YAML style, `include_chance` 1.0 and 0.0).
+    - Existing `BaseGenerator._determine_count` and `MarkdownGenerator` frontmatter logic handled these cases without modification.
+- **Files Affected**: [`tests/generators/test_markdown_generator.py`](tests/generators/test_markdown_generator.py:1), [`memory-bank/mode-specific/tdd.md`](memory-bank/mode-specific/tdd.md:1).
+- **Next Steps**: Continue `MarkdownGenerator` tests for remaining `frontmatter` settings (TOML/JSON styles, field variations, probabilistic inclusion). Then proceed to `PdfGenerator` and `EpubGenerator` TDD objectives.
+- **Related Issues**: Follows handover task and `tdd` feedback entry `[2025-05-11 22:05:39]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
+### Progress: Investigation of `TypeError` in `test_generate_single_column_page_count_range` - 2025-05-11 21:45:00
+- **Status**: Investigated
+- **Details**: Investigated a `TypeError` reported by `tdd` mode in `tests.generators.test_pdf_generator.TestPdfGenerator.test_generate_single_column_page_count_range`, specifically `BaseGenerator._determine_count() missing 1 required positional argument: 'context_key_name'`.
+- **Findings**:
+    - The `BaseGenerator._determine_count` signature in [`synth_data_gen/core/base.py`](synth_data_gen/core/base.py:65) correctly requires `context_key_name`.
+    - The direct call to `_determine_count` in `PdfGenerator._create_pdf_text_single_column` ([`synth_data_gen/generators/pdf.py:133`](synth_data_gen/generators/pdf.py:133)) correctly passes `context_key_name`.
+    - The mocking setup for `_determine_count` in the specified test ([`tests/generators/test_pdf_generator.py:453-460`](tests/generators/test_pdf_generator.py:453-460)) appears to correctly call the original method with all required arguments.
+    - The specific test `test_generate_single_column_page_count_range` and all other tests in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1) passed when executed directly.
+- **Conclusion**: The reported `TypeError` was not reproducible with the current state of the codebase. It's possible the error was transient or related to a previous code state. No code changes were made as the current code appears correct and tests pass.
+- **Related Issues**: Original report from `tdd` mode (see [`memory-bank/activeContext.md:2`](memory-bank/activeContext.md:2) - entry `[2025-05-11 21:42:23]`).
 ### Progress: PDF Test `test_generate_single_column_unified_chapters_range` NameError Fixed - 2025-05-11 18:24:30
 - **Status**: Completed
 - **Details**: Resolved `NameError: name 'mock_determine_count' is not defined` in `tests.generators.test_pdf_generator.TestPdfGenerator.test_generate_single_column_unified_chapters_range` (at line 302). The error occurred because `mock_determine_count` was used without being defined in the test method's scope. The fix involved commenting out the problematic line: `mock_determine_count.side_effect = None`. Issue ID: PDF_TEST_NAMEERROR_MOCK_DETERMINE_COUNT. This followed a previous fix for Issue ID: PDF_RANDINT_DOUBLE_CALL in the same test.
