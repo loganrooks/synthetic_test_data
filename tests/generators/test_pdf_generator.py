@@ -184,7 +184,8 @@ class TestPdfGenerator(unittest.TestCase):
         self, mock_base_randint, mock_add_pdf_chapter_content,
         mock_simple_doc_template_class, mock_ensure_output_dirs
     ):
-        """Test 'chapters_config' (range object) for 'single_column_text' variant."""
+        """Test 'chapters_config' (range object) for 'single_column_text' variant,
+        ensuring BaseGenerator._determine_count uses random.randint."""
         mock_doc_instance = MagicMock()
         mock_simple_doc_template_class.return_value = mock_doc_instance
         
@@ -232,25 +233,6 @@ class TestPdfGenerator(unittest.TestCase):
 
         mock_base_randint.reset_mock() # Reset before the action we are testing
         self.generator.generate(specific_config, global_config_for_gen, final_output_path)
-        # The PdfGenerator.generate method will create subdirectories based on generator_id
-        # So, we provide the base path up to where the generator will create its own folder.
-        # Example: if output_path is 'test_output_pdfs/pdf/file.pdf',
-        # PdfGenerator.generate will ensure 'test_output_pdfs/pdf' exists.
-        # So, the output_path passed to generate should be the full desired path.
-        
-        # Let's ensure the test output directory exists to avoid issues if mocks are tricky
-        # This is a common practice in tests to ensure the environment is set up.
-        # We can use a unique directory for each test run if needed, or a common one.
-        # For simplicity, using a fixed path that the generator should handle.
-        # The mock_ensure_output_dirs should be active for the PdfGenerator's call.
-        
-        # Construct the full output path expected by PdfGenerator.generate()
-        # It expects the final file path.
-        # The PdfGenerator itself will call ensure_output_directories on os.path.dirname(output_path)
-        
-        # Let's use a simpler output path for the test, assuming the generator handles dir creation.
-        # The main thing is that `output_path` is a string representing the full file path.
-        final_output_path = os.path.join(output_dir_base, self.generator.GENERATOR_ID, output_filename)
 
         # self.generator.generate(specific_config, global_config_for_gen, final_output_path) # Redundant call removed
 
@@ -269,10 +251,6 @@ class TestPdfGenerator(unittest.TestCase):
 
         # Further assertions could check the content passed to _add_pdf_chapter_content
         # or the number of times it was called if mock_base_randint.return_value was fixed.
-
-                # Fix: The `_determine_count` mock should *not* provide a return for the first call
-                # if we want to test the `random.randint` call *within* it.
-                # Instead, we should let the original `_determine_count` execute for the first call.
                 # The mock on `random.randint` will then be hit.
                 # For subsequent calls to `_determine_count` (for sections, etc.), we can then
                 # make it return 0.
