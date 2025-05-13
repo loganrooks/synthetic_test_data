@@ -31,30 +31,22 @@ This marks page 12 of the original print edition.</p>
 <p>This content would correspond to page 13.</p>
 """
     chapter_details = [
-        {"title": "Semantic Pagebreaks", "filename": "c1_pgnum_semantic.xhtml", "content": chapter_content}
+        {"title": "Semantic Pagebreaks", "filename": "c1_pgnum_semantic.xhtml", "content": chapter_content, "uid": "chapter_semantic_pagebreaks"}
     ]
     chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_pgnum_semantic_toc"),)
+    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_pgnum_semantic_toc"),) # Ensure chapters[0] is the correct item
     book.add_item(epub.EpubNcx())
-    # Create a NavDoc with page-list
-    nav_html_content=u"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
-<head><title>Nav</title></head>
-<body>
-  <nav epub:type="toc" id="toc"><ol><li><a href="c1_pgnum_semantic.xhtml">Semantic Pagebreaks</a></li></ol></nav>
-  <nav epub:type="page-list" hidden=""><ol>
-    <li><a href="c1_pgnum_semantic.xhtml#Page_12">12</a></li>
-    <li><a href="c1_pgnum_semantic.xhtml#Page_13">13</a></li>
-  </ol></nav>
-</body></html>"""
-    nav_doc_item = epub.EpubHtml(title='Navigation', file_name='nav_pgnum.xhtml', lang='en')
-    nav_doc_item.content = nav_html_content
-    nav_doc_item.properties.append('nav')
-    book.add_item(nav_doc_item)
-    
-    book.spine = [nav_doc_item] + chapters
+    book.add_item(epub.EpubNav()) # Use default NAV
+
+    # The default EpubNav will be automatically picked up for the spine if 'nav' is in the spine items.
+    # If chapters need to be explicitly added to spine before nav, adjust accordingly.
+    # Default spine is usually ['nav'] + chapters or similar.
+    # Let ebooklib handle the nav item in spine if it's standard.
+    book.spine = ['nav'] + chapters # 'nav' will refer to the default EpubNav
+    # If there's another item that gets 'nav' property by default (like EpubNav()), remove it or ensure this one takes precedence.
+    # Let's check if an EpubNav() is added elsewhere and remove it if so, to avoid conflict.
+    # The SUT adds epub.EpubNcx() at line 39, but not epub.EpubNav() apart from this custom one.
     _write_epub_file(book, filepath)
 
 def create_epub_pagenum_kant_anchor(filename="pagenum_kant_anchor.epub"):
