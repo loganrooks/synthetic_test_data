@@ -159,7 +159,7 @@ class PdfGenerator(BaseGenerator):
         pdf_tables_occurrence_config = table_generation_config.get("pdf_tables_occurrence_config")
         
         if pdf_tables_occurrence_config is not None:
-            num_tables_to_generate = self._determine_count(pdf_tables_occurrence_config, "tables")
+            num_tables_to_generate = self._determine_count(pdf_tables_occurrence_config, "pdf_tables")
             for _ in range(num_tables_to_generate):
                 self._add_pdf_table_content(story, specific_config, global_config)
                 story.append(Spacer(1, 0.1*inch)) # Add some space after a table
@@ -169,7 +169,7 @@ class PdfGenerator(BaseGenerator):
         pdf_figures_occurrence_config = figure_generation_config.get("pdf_figures_occurrence_config")
 
         if pdf_figures_occurrence_config is not None:
-            num_figures_to_generate = self._determine_count(pdf_figures_occurrence_config, "figures")
+            num_figures_to_generate = self._determine_count(pdf_figures_occurrence_config, "pdf_figures")
             for _ in range(num_figures_to_generate):
                 self._add_pdf_figure_content(story, specific_config, global_config)
                 story.append(Spacer(1, 0.1*inch)) # Add some space after a figure
@@ -529,13 +529,25 @@ class PdfGenerator(BaseGenerator):
         Adds a placeholder table to the PDF story.
         This is a placeholder to be expanded.
         """
-        # For now, just use the logic from _create_pdf_simple_table as a placeholder
-        table_data = [
-            ["Header 1", "Header 2", "Header 3"],
-            ["Data A1", "Data B1", "Data C1"],
-            ["Data A2", "Data B2", "Data C2"],
-        ]
+        table_gen_config = specific_config.get("table_generation", {})
+        row_config = table_gen_config.get("row_count_config", 3) # Default to 3 rows if not specified
+        col_config = table_gen_config.get("col_count_config", 3) # Default to 3 cols if not specified
+
+        num_rows = self._determine_count(row_config, "table_rows")
+        num_cols = self._determine_count(col_config, "table_cols")
+
+        # Create header row
+        header_row = [f"Header {j+1}" for j in range(num_cols)]
+        table_data = [header_row]
+
+        # Create data rows
+        for i in range(num_rows -1): # num_rows includes header
+            row_data = [f"Data {chr(65+j)}{i+1}" for j in range(num_cols)]
+            table_data.append(row_data)
         
+        if not table_data: # Ensure table_data is not empty if counts are zero
+            table_data = [[""]] # ReportLab Table needs at least one cell
+
         table = Table(table_data)
         table_style_config = specific_config.get("table_generation", {}).get("default_table_style", {}) # Basic support for future styling
         
@@ -554,10 +566,46 @@ class PdfGenerator(BaseGenerator):
 
     def _add_pdf_figure_content(self, story: List, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         """
-        Adds a placeholder figure to the PDF story.
-        This is a placeholder to be expanded.
+        Adds a placeholder figure and its caption to the PDF story.
         """
+        figure_gen_config = specific_config.get("figure_generation", {})
+        caption_cfg = figure_gen_config.get("caption_config", {})
+        
+        # Placeholder for the figure itself (e.g., a box)
         # In a real implementation, this would involve creating an Image flowable
+        # For now, we'll just add a spacer or a simple paragraph representing the figure.
+        styles = getSampleStyleSheet()
+        styleN = styles['Normal']
+        story.append(Paragraph("[Placeholder Figure Image]", styleN)) # Placeholder for figure
+        story.append(Spacer(1, 0.1*inch))
+
+        if caption_cfg.get("enable", False):
+            caption_text_options = caption_cfg.get("text_options", ["Default Figure Caption"])
+            # Use _determine_count to select a caption if multiple options are provided
+            # If text_options is a single string, _determine_count should ideally return it directly.
+            # If it's a list, it should pick one.
+            selected_caption_text = self._determine_count(caption_text_options, "figure_caption_text")
+
+            if selected_caption_text: # Ensure caption is not empty
+                caption_style = styles['Italic'] # Default to italic or allow config
+                caption_style.fontName = caption_cfg.get("font_family", "Helvetica-Oblique")
+                caption_style.fontSize = caption_cfg.get("font_size_pt", 9)
+                
+                alignment_str = caption_cfg.get("alignment", "CENTER").upper()
+                if alignment_str == "LEFT":
+                    caption_style.alignment = TA_LEFT
+                elif alignment_str == "RIGHT":
+                    caption_style.alignment = TA_RIGHT # TA_RIGHT is not standard, usually TA_CENTER or TA_JUSTIFY
+                                                    # For ReportLab, TA_RIGHT might need custom handling or specific style.
+                                                    # Using TA_CENTER as a fallback if TA_RIGHT is not directly supported by default styles.
+                    caption_style.alignment = TA_CENTER # Fallback for simplicity
+                elif alignment_str == "JUSTIFY":
+                    caption_style.alignment = TA_JUSTIFY
+                else: # Default to CENTER
+                    caption_style.alignment = TA_CENTER
+
+                story.append(Paragraph(selected_caption_text, caption_style))
+                story.append(Spacer(1, 0.1*inch))
         # and adding it to the story. For now, just a placeholder paragraph.
         styles = getSampleStyleSheet()
         styleN = styles['Normal']
