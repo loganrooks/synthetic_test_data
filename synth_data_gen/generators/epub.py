@@ -183,6 +183,25 @@ class EpubGenerator(BaseGenerator):
         # reference them in chapter_item.content, and add them to the book.
         pass
 
+    def _get_font_path(self, font_name: str, specific_config: Dict[str, Any]) -> str | None:
+        """
+        Tries to find a font file.
+        Placeholder: very simplified. Real version would search system paths, project paths etc.
+        """
+        # For testing, assume fonts are in a 'fonts' subdir or directly accessible if full path given
+        if os.path.exists(font_name): # Allows absolute paths or paths relative to CWD for tests
+            return font_name
+        
+        # Try common extensions if just a name is given
+        common_extensions = ['.ttf', '.otf']
+        for ext in common_extensions:
+            if os.path.exists(font_name + ext):
+                return font_name + ext
+        
+        # Placeholder for more sophisticated search (e.g. in a bundled 'fonts' dir)
+        # print(f"Warning: Font '{font_name}' not found.")
+        return None
+
     def _create_section_content(self, book: epub.EpubBook, chapter_number: int, section_number: int, section_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         """
         Creates and adds a single section's content within a chapter.
@@ -289,8 +308,42 @@ class EpubGenerator(BaseGenerator):
         book.spine = spine_items
 
         # 5. Add CSS, Fonts (if any)
-        # Use multimedia.py for font embedding if specific_config.get("font_embedding", {}).get("enable")
-        style = 'BODY {color: black;}'
+        font_embedding_config = specific_config.get("font_embedding", {})
+        if font_embedding_config.get("enable"):
+            font_list = font_embedding_config.get("fonts", [])
+            # obfuscation_method = font_embedding_config.get("obfuscation", "none") # Not used yet
+
+            for font_spec_name in font_list:
+                font_path = self._get_font_path(font_spec_name, specific_config)
+                if font_path:
+                    try:
+                        with open(font_path, 'rb') as f_content:
+                            font_content = f_content.read()
+                        
+                        # Determine filename for EPUB (e.g., fonts/font_name.ttf)
+                        base_font_name = os.path.basename(font_spec_name)
+                        epub_font_filename = f"fonts/{base_font_name}"
+                        if not base_font_name.lower().endswith(('.ttf', '.otf')):
+                            epub_font_filename += ".ttf" # Default to .ttf if no extension
+
+                        # Determine media type
+                        media_type = 'application/vnd.ms-opentype' # Default for TTF/OTF
+                        if epub_font_filename.lower().endswith('.otf'):
+                            media_type = 'application/font-sfnt' # More generic for OTF
+                        
+                        font_item = epub.EpubItem(
+                            uid=f"font_{base_font_name.split('.')[0]}",
+                            file_name=epub_font_filename,
+                            media_type=media_type,
+                            content=font_content
+                        )
+                        book.add_item(font_item)
+                    except IOError as e:
+                        print(f"Warning: Could not read font file {font_path}: {e}")
+        
+        style = 'BODY {color: black;}' # Basic style
+        # Potentially add @font-face rules here if fonts were embedded
+        # For now, just a basic CSS
         nav_css = epub.EpubItem(uid="style_nav", file_name="style/nav.css", media_type="text/css", content=style)
         book.add_item(nav_css)
 

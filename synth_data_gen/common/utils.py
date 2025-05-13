@@ -70,8 +70,9 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
         ch_title = detail.get("title", f"Chapter {i+1}")
         ch_filename = detail.get("filename", f"chap_{i+1:02}.xhtml")
         ch_content = detail.get("content", f"<h1>{ch_title}</h1><p>Content for {ch_title}.</p>")
+        ch_uid = detail.get("uid", ch_filename.split('.')[0]) # Use filename as uid if not provided
         
-        chapter = epub.EpubHtml(title=ch_title, file_name=ch_filename, lang=book.language)
+        chapter = epub.EpubHtml(title=ch_title, file_name=ch_filename, lang=book.language, uid=ch_uid)
         chapter.content = ch_content
         if default_style_item:
             chapter.add_item(default_style_item)
