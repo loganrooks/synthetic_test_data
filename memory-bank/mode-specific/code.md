@@ -1,3 +1,40 @@
+## Intervention Log
+### [2025-05-12 01:20:50] Intervention: Test Failures Post-Migration
+- **Trigger**: `pytest` run showed 18 failures after initial migration and `PYTHONPATH` fix.
+- **Context**: Task is to migrate tests to pytest, ensuring known failures persist and new ones are fixed.
+- **Action Taken**: Delegated investigation and fixing of 5 new failures to `debug` mode via `new_task`. Debug mode resolved these.
+- **Rationale**: High context (78%) and complexity of distinguishing new vs. known failures warranted specialized debugging.
+- **Outcome**: Debug mode successfully fixed new failures. `pytest` now shows 11 known failures in `test_markdown_generator.py`.
+- **Follow-up**: Proceed with final verification and task completion.
+
+## Components Implemented
+### [2025-05-12 01:20:50] Pytest Test Suite Migration
+- **Purpose**: Convert all `unittest` tests in `tests/` directory to `pytest` conventions.
+- **Files**:
+    - [`tests/test_common_utils.py`](tests/test_common_utils.py:1)
+    - [`tests/test_config_loader.py`](tests/test_config_loader.py:1)
+    - [`tests/test_main_generator.py`](tests/test_main_generator.py:1)
+    - [`tests/core/test_base_generator.py`](tests/core/test_base_generator.py:1)
+    - [`tests/generators/test_epub_generator.py`](tests/generators/test_epub_generator.py:1)
+    - [`tests/generators/test_markdown_generator.py`](tests/generators/test_markdown_generator.py:1)
+    - [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1)
+    - [`tests/generators/epub_components/test_toc.py`](tests/generators/epub_components/test_toc.py:1)
+- **Status**: Implemented.
+- **Dependencies**: `pytest`, `pytest-mock`.
+- **Tests**: All tests converted. 11 known failures persist in `test_markdown_generator.py`.
+
+## Dependencies
+### [2025-05-12 01:20:50] pytest-mock
+- **Purpose**: Mocking library for pytest.
+- **Scope**: All test files in `tests/`.
+- **Alternatives Considered**: `unittest.mock` (migrated from).
+- **Decision Rationale**: Standard pytest mocking library.
+
+### [2025-05-12 01:20:50] pytest
+- **Purpose**: Test framework.
+- **Scope**: All test files in `tests/`.
+- **Alternatives Considered**: `unittest` (migrated from).
+- **Decision Rationale**: User preference and potential for simpler test structure.
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 ### [2025-05-11 05:01:49] BaseGenerator Class

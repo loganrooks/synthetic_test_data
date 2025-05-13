@@ -1,5 +1,18 @@
 # Debug Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Issue: TDD_PAGE_NUMBERS_GET_ITEM_WITH_ID - `book.get_item_with_id` returning `None` - Resolved - 2025-05-13 10:01:32
+- **Reported**: 2025-05-13 02:41:19 (SPARC Delegation, see [`memory-bank/activeContext.md:2`](memory-bank/activeContext.md:2)) / **Severity**: High (Blocking TDD) / **Symptoms**: `book.get_item_with_id("chapter_semantic_pagebreaks")` returned `None` in `test_create_epub_pagenum_semantic_pagebreak_content` ([`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1)).
+- **Investigation**:
+    1. Added debug print statements to [`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1) to list all item IDs in the `book` object. (2025-05-13 02:44:15)
+    2. Fixed an `UnboundLocalError` in the test file caused by the debug print statements. (2025-05-13 10:00:20)
+    3. Test execution with debug prints (from a previous failed run) showed the item `chapter_semantic_pagebreaks` was present in `book.items`. (2025-05-13 10:00:20 - analysis of output from 2025-05-13 10:00:20)
+    4. After fixing the `UnboundLocalError` and re-running, the test `test_create_epub_pagenum_semantic_pagebreak_content` passed. (2025-05-13 10:00:41)
+- **Root Cause**: The original issue of `get_item_with_id` returning `None` was likely resolved by prior fixes to UID assignment in the SUT ([`synth_data_gen/generators/epub_components/page_numbers.py`](synth_data_gen/generators/epub_components/page_numbers.py:1)) or helper ([`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1)) by the `tdd` mode. The test was then failing due to an unrelated `UnboundLocalError` introduced by my debugging attempts.
+- **Fix Applied**:
+    - Corrected `UnboundLocalError` in [`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1) by moving `chapter_item_uid` definition.
+    - Removed debug print statements from [`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1).
+- **Verification**: Test `test_create_epub_pagenum_semantic_pagebreak_content` now passes. (2025-05-13 10:00:41)
+- **Related Issues**: Original TDD Blocker: [`memory-bank/activeContext.md`](memory-bank/activeContext.md:2) (entry `[2025-05-13 02:41:19]`).
 ### Issue: PYTEST_PDF_FIGURES_FAIL - `test_single_column_with_exact_figure_occurrence` `KeyError` &amp; Assertion - Resolved - 2025-05-12 01:03:00
 - **Reported**: 2025-05-12 00:58:55 (Task objective) / **Severity**: High / **Symptoms**: `AssertionError: assert call({'count': 1}, 'figures') in [call(10, 'page_count'), call(1, 'chapters')]` followed by `KeyError: 'pdf_figures_occurrence_config'` after first fix attempt.
 - **Investigation**:
