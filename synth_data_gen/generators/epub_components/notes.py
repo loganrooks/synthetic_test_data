@@ -19,7 +19,7 @@ def create_epub_footnote_hegel_sol_ref(filename="footnote_hegel_sol_ref.epub"):
     .fn-body-sol sup.calibre30-sol { font-weight: bold; }
     BODY { font-family: 'Times New Roman', serif; }
     """
-    style_item = epub.EpubItem(uid="style_fn_hegel_sol_ref", file_name="style/fn_hegel_sol_ref.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_fn_hegel_sol_ref", file_name="style/fn_hegel_sol_ref.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>The Doctrine of Being</h1>
@@ -450,7 +450,7 @@ def create_epub_same_page_footnotes(filename="same_page_footnotes.epub"):
     body { font-family: serif; }
     .footnote { font-size: 0.8em; margin-top: 1em; border-top: 1px solid #ccc; padding-top: 0.5em; }
     sup a { text-decoration: none; color: blue; }"""
-    style_item = epub.EpubItem(uid="style_notes", file_name="style/notes.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_notes", file_name="style/notes.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
     chapter_details = [{"title": "Chapter with Footnotes", "filename": "chap_footnotes.xhtml", "content": """
 <h1>Chapter 1: The Burden of Proof</h1>
@@ -464,7 +464,22 @@ def create_epub_same_page_footnotes(filename="same_page_footnotes.epub"):
     chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_fn"),)
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav())
+    nav = epub.EpubNav()
+    # Basic NAV content, similar to kant_style_footnotes
+    nav_content_str = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{book.language}" xml:lang="{book.language}">
+<head><title>{book.title} - Navigation</title></head>
+<body>
+<nav epub:type="toc" id="toc"><h1>Table of Contents</h1><ol>
+{f'<li><a href="{chapters[0].file_name}">{chapters[0].title}</a></li>' if chapters else ''}
+</ol></nav>
+<nav epub:type="landmarks" id="landmarks"><h1>Landmarks</h1><ol>
+{f'<li><a epub:type="bodymatter" href="{chapters[0].file_name}">Start of Content</a></li>' if chapters else ''}
+</ol></nav>
+</body></html>"""
+    nav.content = nav_content_str.encode('utf-8')
+    book.add_item(nav)
     book.spine = ['nav'] + chapters
     _write_epub_file(book, filepath)
 
@@ -475,14 +490,14 @@ def create_epub_endnotes_separate_file(filename="endnotes_separate_file.epub"):
     body { font-family: serif; }
     sup a { text-decoration: none; color: green; }
     .endnote-item { margin-bottom: 0.5em; }"""
-    style_item = epub.EpubItem(uid="style_endnotes", file_name="style/endnotes.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_endnotes", file_name="style/endnotes.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
     endnotes_content = """<h1>Endnotes</h1>
 <div id="en1" class="endnote-item"><p><a href="chap_main.xhtml#enref1">1.</a> The concept of "Dasein" is central to Heidegger's Being and Time.</p></div>
 <div id="en2" class="endnote-item"><p><a href="chap_main.xhtml#enref2">2.</a> This refers to the Socratic paradox, "I know that I know nothing."</p></div>
 <div id="en3" class="endnote-item"><p><a href="chap_main_page2.xhtml#enref3">3.</a> Foucault's analysis of power structures is detailed in "Discipline and Punish".</p></div>"""
     endnotes_page = epub.EpubHtml(title="Endnotes", file_name="endnotes.xhtml", lang="en")
-    endnotes_page.content = endnotes_content
+    endnotes_page.content = endnotes_content.encode('utf-8')
     endnotes_page.add_item(style_item)
     book.add_item(endnotes_page)
     chapter_details = [
@@ -515,32 +530,78 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
     .calibre9 { text-decoration: none; color: #0000FF; } /* Example blue link */
     .calibre18 {} /* Example sup container class */
     p.footnotes { font-size: 0.75em; margin-top: 1.5em; border-top: 1px dashed #999; padding-top: 0.75em; }
+    .footnote-kant { margin-left: 2em; text-indent: -2em; font-size: 0.9em; } /* Added for Kant style */
     """
     style_item = epub.EpubItem(uid="style_kant_notes", file_name="style/kant_notes.css", media_type="text/css", content=css_content)
-    book.add_item(style_item)
+    book.add_item(style_item) # Add style_item directly
 
     chapter_details = [
         {
-            "title": "Chapter with Kantian Footnotes", 
+            "title": "Chapter 1: Kantian Reflections",
             "filename": "chap_kant_fn.xhtml",
-            "content": """
-<h1>Chapter 1: The Synthetic A Priori</h1>
-<p>Kant's exploration of synthetic a priori judgments revolutionized philosophy.<sup class="calibre18"><em class="calibre1"><a id="Fkantfn1" href="#Fkantfr1" class="calibre9">1</a></em></sup> 
-This concept is foundational to his transcendental idealism.</p>
-<p>He argues that concepts without intuitions are empty, while intuitions without concepts are blind.<sup class="calibre18"><em class="calibre1"><a id="Fkantfn2" href="#Fkantfr2" class="calibre9">2</a></em></sup></p>
-<hr />
-<div>
-  <p id="Fkantfr1" class="footnotes"><sup class="calibre18"><em class="calibre1"><a href="#Fkantfn1" class="calibre9">1.</a></em></sup> See Critique of Pure Reason, B19.</p>
-  <p id="Fkantfr2" class="footnotes"><sup class="calibre18"><em class="calibre1"><a href="#Fkantfn2" class="calibre9">2.</a></em></sup> Ibid., A51/B75. This highlights the interplay between sensibility and understanding.</p>
-</div>
-"""
+            "uid": "chap_kant_fn_uid",
+            "content": """<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head>
+    <title>Kantian Reflections with Footnotes</title>
+    <link rel="stylesheet" type="text/css" href="../style/kant_notes.css" />
+</head>
+<body>
+    <h1>Chapter 1: Kantian Reflections</h1>
+    <p>This is some text that refers to a Kant-style footnote<sup class="calibre18"><em class="calibre1"><a href="#fn1_kant" id="fnref1_kant" epub:type="noteref">1</a></em></sup>. The critique of pure reason is a monumental work.</p>
+    <p>Another paragraph here for context.</p>
+    <hr class="footnotes-separator-kant" />
+    <div class="footnotes-kant">
+        <div class="footnote-kant" id="fn1_kant" epub:type="footnote">
+            <p><a href="#fnref1_kant" epub:type="backlink">1.</a> This is a Kant-style footnote. It appears on the same page, typically separated by a rule.</p>
+        </div>
+    </div>
+</body>
+</html>"""
         }
     ]
+    # _add_epub_chapters adds chapters to book.items and links default_style_item
     chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_kant_fn_toc"),)
-    book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
+
+    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap1_kant"),)
+    
+    # Add NCX and Nav items
+    ncx = epub.EpubNcx()
+    nav = epub.EpubNav()
+    book.add_item(ncx)
+    book.add_item(nav)
+
+    # Explicitly set NAV content
+    nav_content_str = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{book.language}" xml:lang="{book.language}">
+<head>
+<title>{book.title} - Navigation</title>
+</head>
+<body>
+<nav epub:type="toc" id="toc">
+  <h1>Table of Contents</h1>
+  <ol>
+"""
+    if chapters: # Ensure chapters list is not empty
+        nav_content_str += f'    <li><a href="{chapters[0].file_name}">{chapters[0].title}</a></li>\n'
+    nav_content_str += """  </ol>
+</nav>
+<nav epub:type="landmarks" id="landmarks">
+  <h1>Landmarks</h1>
+  <ol>
+"""
+    if chapters: # Ensure chapters list is not empty
+        nav_content_str += f'    <li><a epub:type="bodymatter" href="{chapters[0].file_name}">Start of Content</a></li>\n'
+    nav_content_str += """  </ol>
+</nav>
+</body>
+</html>"""
+    nav.content = nav_content_str.encode('utf-8') # ebooklib expects bytes for nav content
+
     book.spine = ['nav'] + chapters
+    
+
     _write_epub_file(book, filepath)
 
 def create_epub_hegel_sol_style_footnotes(filename="hegel_sol_footnotes.epub"):
@@ -559,7 +620,7 @@ def create_epub_hegel_sol_style_footnotes(filename="hegel_sol_footnotes.epub"):
     .calibre14 { margin: 0; padding: 0; font-size: 0.9em; } /* blockquote for note text */
     a { text-decoration: none; color: #550000; } /* Dark red link */
     """
-    style_item = epub.EpubItem(uid="style_hegel_sol_notes", file_name="style/hegel_sol.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_hegel_sol_notes", file_name="style/hegel_sol.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -594,7 +655,22 @@ This initial triad sets the stage for the entire system.</p>
     chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_hegel_sol_fn_toc"),)
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
+    nav = epub.EpubNav()
+    # Basic NAV content, similar to kant_style_footnotes
+    nav_content_str = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{book.language}" xml:lang="{book.language}">
+<head><title>{book.title} - Navigation</title></head>
+<body>
+<nav epub:type="toc" id="toc"><h1>Table of Contents</h1><ol>
+{f'<li><a href="{chapters[0].file_name}">{chapters[0].title}</a></li>' if chapters else ''}
+</ol></nav>
+<nav epub:type="landmarks" id="landmarks"><h1>Landmarks</h1><ol>
+{f'<li><a epub:type="bodymatter" href="{chapters[0].file_name}">Start of Content</a></li>' if chapters else ''}
+</ol></nav>
+</body></html>"""
+    nav.content = nav_content_str.encode('utf-8')
+    book.add_item(nav)
     book.spine = ['nav'] + chapters
     _write_epub_file(book, filepath)
 
@@ -613,7 +689,7 @@ def create_epub_dual_note_system(filename="dual_note_system.epub"):
     .footnote-author-ref sup a { color: #800000; } /* Maroon for author notes */
     .endnote-item { margin-bottom: 0.5em; }
     """
-    style_item = epub.EpubItem(uid="style_dual_notes", file_name="style/dual_notes.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_dual_notes", file_name="style/dual_notes.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     # Editor's Endnotes HTML file
@@ -627,7 +703,7 @@ def create_epub_dual_note_system(filename="dual_note_system.epub"):
 </div>
 """
     editor_endnotes_page = epub.EpubHtml(title="Editor's Endnotes", file_name="editor_endnotes.xhtml", lang="en")
-    editor_endnotes_page.content = editor_endnotes_content
+    editor_endnotes_page.content = editor_endnotes_content.encode('utf-8')
     editor_endnotes_page.add_item(style_item)
     book.add_item(editor_endnotes_page)
 
