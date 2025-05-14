@@ -1,5 +1,71 @@
 # Debug Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Issue: CALIBRE_META_TDD_BLOCK
+### Issue: CALIBRE_META_TDD_BLOCKER - Calibre metadata handling in `ebooklib` for `structure.py` - Resolved - 2025-05-14 14:50:00
+- **Reported**: 2025-05-14 13:41:00 (SPARC Delegation via TDD Early Return, see [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1) entry `[2025-05-14 13:41:00]`) / **Severity**: High (Blocking TDD)
+- **Symptoms**:
+    - Tests in [`tests/generators/epub_components/test_structure.py`](tests/generators/epub_components/test_structure.py:1) for `create_epub_structure_calibre_artifacts` failed to find added Calibre metadata (`calibre:series`).
+    - `ValueError: too many values to unpack (expected 3)` when iterating `book.metadata.get(None, [])`.
+    - `AssertionError: OPF file not found in EPUB` when reading back the EPUB using `read_book.get_items()`.
+    - `AssertionError: Calibre series metadata tag not found in OPF XML` when parsing OPF directly with incorrect XML namespace query.
+- **Investigation**:
+    1. Used `investigate_ebooklib_metadata.py` to confirm Calibre-style tags (`<meta name="..." content="..."/>`) should be added with `book.add_metadata(None, 'meta', None, attributes_dict)`.
+    2. Confirmed they are stored in `book.metadata[None]['meta']` as a list of 2-tuples: `(None, attributes_dict)`, resolving the `ValueError`.
+    3. Simplified SUT `create_epub_structure_calibre_artifacts` and ensured `book.toc` was set and `EpubNcx()` item was added for basic EPUB validity, which resolved issues with `epub.read_epub()` not finding OPF or erroring during spine processing.
+    4. Modified `test_create_epub_structure_calibre_artifacts_creates_file` to unzip the EPUB and parse the OPF XML directly.
+    5. Identified that the OPF file has a default namespace (`xmlns="http://www.idpf.org/2007/opf"`). When `ebooklib` writes `<meta>` tags (added with `namespace=None`) inside the `<opf:metadata>` block, these `<meta>` tags are effectively in the OPF namespace.
+- **Root Cause**:
+    1. Initial `ValueError` was due to incorrect unpacking of the 2-tuple metadata entry from `book.metadata[None]['meta']`.
+    2. Failures to find the OPF item via `read_book.get_items()` after `epub.read_epub()` were likely due to an insufficiently structured EPUB (missing `book.toc` for NCX generation, or missing NCX item itself), leading to parsing issues in `ebooklib`.
+    3. Subsequent failures in the `_creates_file` test (when directly parsing OPF XML) were due to incorrect XML namespace querying. The `findall('meta')` call did not account for the default OPF namespace.
+- **Fix Applied**:
+    1. Corrected metadata iteration in tests to unpack 2-tuples: `for _, attrs_dict in book.metadata[None]['meta']`.
+    2. Ensured SUT `create_epub_structure_calibre_artifacts` sets `book.toc = tuple(toc_links)` and calls `book.add_item(epub.EpubNcx())`.
+    3. In `test_create_epub_structure_calibre_artifacts_creates_file`, corrected the XML parsing to find Calibre meta tags using `metadata_element.findall('opf:meta', namespaces)` after identifying the `<opf:metadata>` element.
+- **Verification**: Tests `test_create_epub_structure_calibre_artifacts_content` and `test_create_epub_structure_calibre_artifacts_creates_file` now pass.
+- **Related Issues**: TDD Early Return `[2025-05-14 13:41:00]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
+
+### Tool/Technique: `ebooklib` Metadata & XML Namespaces - 2025-05-14 14:50:00
+- **Context**: Adding and verifying custom `<meta name="..." content="..."/>` tags (e.g., Calibre-specific) in EPUB OPF files using `ebooklib`.
+- **Usage**:
+    - **Adding**: Use `book.add_metadata(None, 'meta', None, {'name': 'custom:tag', 'content': 'value'})`. The `None` namespace is key.
+    - **In-memory Retrieval**: Access via `book.metadata[None]['meta']`. Each entry is a 2-tuple: `(tag_text_content, attributes_dict)`. For these tags, `tag_text_content` is `None`.
+    - **XML Verification (Direct OPF Parsing)**:
+        - EPUB OPF files typically have a default namespace: `<package xmlns="http://www.idpf.org/2007/opf" ...>`.
+        - When `ebooklib` writes `<meta>` tags (that were added with `namespace=None`) inside the `<opf:metadata>` block, these `<meta>` tags inherit the default OPF namespace.
+        - To find them using `xml.etree.ElementTree`, after finding the `<opf:metadata>` element (e.g., `metadata_element = root.find('opf:metadata', {'opf': 'http://www.idpf.org/2007/opf'})`), use `metadata_element.findall('opf:meta', {'opf': 'http://www.idpf.org/2007/opf'})` to query for the meta tags.
+- **Effectiveness**: High. Correct namespace handling is crucial for direct XML parsing of OPF files. Essential for verifying tags not easily accessible via `book.get_metadata()` after `read_epub()`.
+### Issue: EPUB_NOTES_TYPEERROR - `TypeError` in `epub.write_epub()` for `create_epub_kant_style_footnotes` - Resolved - 2025-05-14 01:22:00
+- **Reported**: 2025-05-14 00:48:00 (SPARC Delegation, see [`memory-bank/activeContext.md:1`](memory-bank/activeContext.md:1) entry `[2025-05-14 00:48:00]`) / **Severity**: High (Blocking TDD)
+- **Symptoms**: Initially `TypeError: Argument must be bytes or unicode, got 'NoneType'` in `ebooklib.epub.write_epub()`, leading to `EpubException: 'Can not find container file'` or `zipfile.BadZipFile` or `ebooklib`'s "Document is empty" error. Later, test assertion failures.
+- **Investigation**:
+    1. Added debug prints to `_write_epub_file` in [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1) to inspect `book.items` before `epub.write_epub()`.
+    2. Corrected an `AttributeError` in debug prints (`item.get_media_type` to `item.media_type`).
+    3. Observed that chapter and NAV document content was an empty string in the iterated `book.items` within `_write_epub_file`.
+    4. Explicitly set NAV document content to bytes in `create_epub_kant_style_footnotes` ([`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1)). This fixed NAV content but not chapter content.
+    5. Added more debug prints to trace chapter content from its definition through `_add_epub_chapters` and into `create_epub_kant_style_footnotes` just before `_write_epub_file`. Confirmed content was present until the iteration within `_write_epub_file`.
+    6. Discovered that iterating `book.items` showed empty string content for the chapter, while `book.get_item_with_id()` for the same chapter showed populated content *at the same point in execution*.
+    7. Hypothesized `ebooklib` expects XHTML content (chapters, NAV) as bytes.
+- **Root Cause**:
+    1. `ebooklib.epub.write_epub()` (or its internal processing of `book.items`) appears to expect XHTML item content (like chapters and NAV documents) to be `bytes`. If it's a `str`, it might be mishandled or cleared during the EPUB serialization process, leading to the "Document is empty" error.
+    2. The SUT (`create_epub_kant_style_footnotes`) was not generating the correct Kant footnote markup in its chapter content.
+    3. Test assertions in `test_create_epub_kant_style_footnotes_content` were not perfectly matching the generated HTML (missing `epub:type` attributes) and used an incorrect chapter filename initially.
+- **Fix Applied**:
+    1. Modified `_add_epub_chapters` in [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1) to encode chapter content to UTF-8 bytes: `chapter.content = ch_content.encode('utf-8')`.
+    2. Ensured NAV document content in `create_epub_kant_style_footnotes` ([`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1)) was also set as UTF-8 encoded bytes.
+    3. Updated the `chapter_details["content"]` in `create_epub_kant_style_footnotes` to include the correct Kant footnote markup.
+    4. Corrected assertions and chapter filename logic in `test_create_epub_kant_style_footnotes_content` ([`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1)).
+- **Verification**: `test_create_epub_kant_style_footnotes_content` now passes. EPUB file is generated correctly.
+- **Related Issues**: Original TDD Blocker: [`memory-bank/activeContext.md:1`](memory-bank/activeContext.md:1) (entry `[2025-05-14 00:48:00]`).
+
+---
+
+### Tool/Technique: `ebooklib` Content Type Expectation - 2025-05-14 01:22:00
+- **Context**: Debugging `ebooklib.epub.write_epub()` failures ("Document is empty", `TypeError`).
+- **Usage**: When adding XHTML content (chapters, NAV documents) to `ebooklib.epub.EpubHtml` items, ensure the `.content` attribute is set with UTF-8 encoded `bytes`, not Python `str` type. While `ebooklib` might accept strings for some items (like CSS `EpubItem`), it appears less robust for `EpubHtml` content during the final write process if content is not bytes.
+- **Effectiveness**: High. Changing string content to `bytes` resolved persistent EPUB generation failures.
+
+---
 ### Issue: TDD_PAGE_NUMBERS_GET_ITEM_WITH_ID - `book.get_item_with_id` returning `None` - Resolved - 2025-05-13 10:01:32
 - **Reported**: 2025-05-13 02:41:19 (SPARC Delegation, see [`memory-bank/activeContext.md:2`](memory-bank/activeContext.md:2)) / **Severity**: High (Blocking TDD) / **Symptoms**: `book.get_item_with_id("chapter_semantic_pagebreaks")` returned `None` in `test_create_epub_pagenum_semantic_pagebreak_content` ([`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1)).
 - **Investigation**:

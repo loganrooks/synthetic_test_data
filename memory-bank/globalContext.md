@@ -1,3 +1,50 @@
+### Progress: Calibre Metadata Handling in `ebooklib` Resolved - 2025-05-14 15:47:00
+- **Status**: Resolved by `debug` mode.
+- **Details**: Successfully investigated and resolved issues with adding and retrieving Calibre-specific `<meta>` tags using `ebooklib` for the `create_epub_structure_calibre_artifacts` function in [`synth_data_gen/generators/epub_components/structure.py`](synth_data_gen/generators/epub_components/structure.py:1).
+    - Key findings include the correct method for adding such tags (`namespace=None`, `value=None`), their in-memory storage structure, and robust retrieval methods for testing (both in-memory and via direct OPF XML parsing).
+    - The SUT was updated to correctly add metadata and ensure a valid EPUB structure (setting `book.toc` and adding `EpubNcx`).
+    - Tests `test_create_epub_structure_calibre_artifacts_content` and `test_create_epub_structure_calibre_artifacts_creates_file` in [`tests/generators/epub_components/test_structure.py`](tests/generators/epub_components/test_structure.py:1) were updated and now pass.
+- **Files Affected**: [`synth_data_gen/generators/epub_components/structure.py`](synth_data_gen/generators/epub_components/structure.py:1), [`tests/generators/epub_components/test_structure.py`](tests/generators/epub_components/test_structure.py:1).
+- **Next Steps**: Commit changes. Recommend `tdd` run for `structure.py` or all `epub_components`.
+- **Related Issues**: TDD Early Return `[2025-05-14 13:41:00]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1). See also Debug Issue History `CALIBRE_META_TDD_BLOCKER` in [`memory-bank/mode-specific/debug.md`](memory-bank/mode-specific/debug.md:1).
+### Progress: TDD for `epub_components/structure.py` Partially Complete - Calibre Metadata Blocked - 2025-05-14 13:41:00
+- **Status**: Partially Completed / Early Return by `tdd` mode.
+- **Details**:
+    - TDD for `create_epub_opf_specific_meta` completed. Tests pass.
+    - TDD for `create_epub_spine_pagemap_ref` completed. Tests pass.
+    - TDD for `create_epub_structure_split_files` completed. Tests pass.
+    - **Blocker**: TDD for `create_epub_structure_calibre_artifacts` is blocked due to persistent issues with adding and retrieving Calibre-specific `<meta>` tags using `ebooklib`. `tdd` agent invoked Early Return (context 42%).
+- **Files Affected**: [`synth_data_gen/generators/epub_components/structure.py`](synth_data_gen/generators/epub_components/structure.py:1), [`tests/generators/epub_components/test_structure.py`](tests/generators/epub_components/test_structure.py:1), [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
+- **Next Steps**: Delegate Calibre metadata investigation to `debug` mode.
+- **Related Issues**: See `tdd` feedback entry `[2025-05-14 13:41:00]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
+### Progress: `epub_components/page_numbers.py` - All Tests Passing - 2025-05-14 11:59:12
+- **Status**: Completed
+- **Details**: Completed TDD for all 4 public functions in [`synth_data_gen/generators/epub_components/page_numbers.py`](synth_data_gen/generators/epub_components/page_numbers.py:1). This involved adding `uid` to `chapter_details` in SUTs and correcting test assertions for HTML content (self-closing tags, content order, newlines) and chapter retrieval (using UIDs). All 8 tests in [`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1) now pass.
+- **Files Affected**: [`synth_data_gen/generators/epub_components/page_numbers.py`](synth_data_gen/generators/epub_components/page_numbers.py:1), [`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1).
+- **Commit**: `feat(epub): Implement TDD for page_numbers.py ...` (details in commit message)
+- **Next Steps**: Proceed with TDD for [`synth_data_gen/generators/epub_components/structure.py`](synth_data_gen/generators/epub_components/structure.py:1).
+### Progress: `epub_components/notes.py` - All Tests Passing - 2025-05-14 02:30:00
+- **Status**: Completed
+- **Details**: All 5 previously failing tests in [`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1) are now passing. This was achieved by:
+    - Ensuring all EPUB content (chapters, NAV, CSS, manually set XHTML) is UTF-8 byte encoded in the SUTs within [`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1). This involved encoding direct `.content` assignments and explicitly constructing and encoding NAV document content.
+    - Correcting test assertion logic in [`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1) for filenames (e.g., removing `Text/` prefix) and HTML content (e.g., matching self-closing tags, actual SUT-generated text instead of placeholders, and correct `id` attributes).
+    - Changing the item iteration strategy in tests from `book.get_items_of_type(epub.EpubHtml)` to `for item in book.get_items(): if isinstance(item, epub.EpubHtml):`.
+- **Files Affected**: [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1), [`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1), [`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1).
+- **Commit**: The commit includes these fixes and prior uncommitted changes by `debug` mode.
+- **Next Steps**: Proceed with TDD for other `epub_components` as per the original plan.
+### Progress: `epub_components/notes.py` - `TypeError` in `create_epub_kant_style_footnotes` Resolved - 2025-05-14 01:22:00
+- **Status**: Resolved
+- **Details**: The persistent `TypeError: Argument must be bytes or unicode, got 'NoneType'` (which also manifested as `EpubException: 'Can not find container file'`, `zipfile.BadZipFile`, or `ebooklib`'s "Document is empty" error) when testing `create_epub_kant_style_footnotes` has been resolved. The primary root cause was that `EpubHtml` item content (chapters, NAV) was being stored as strings, while `ebooklib` appears to expect bytes for these items during the EPUB writing process.
+- **Fixes**:
+    1. Modified `_add_epub_chapters` in [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1) to encode chapter XHTML content to UTF-8 bytes before assigning it to `EpubHtml.content`.
+    2. Explicitly generated and set NAV document content as UTF-8 encoded bytes in `create_epub_kant_style_footnotes` in [`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1).
+    3. Updated the chapter content in `create_epub_kant_style_footnotes` to include the actual Kant footnote markup expected by the test.
+    4. Corrected test assertions in `test_create_epub_kant_style_footnotes_content` ([`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1)) to accurately match the generated HTML structure (including `epub:type` attributes) and ensure correct chapter filename matching.
+- **Outcome**: The test `test_create_epub_kant_style_footnotes_content` now passes. The EPUB file is generated correctly.
+- **Files Affected**: [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1), [`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1), [`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1).
+- **Related Issues**: Original TDD Blocker: [`memory-bank/activeContext.md:1`](memory-bank/activeContext.md:1) (entry `[2025-05-14 00:48:00]`).
+
+---
 ### Progress: `test_page_numbers.py` - `get_item_with_id` Issue Resolved - 2025-05-13 10:01:22
 - **Status**: Resolved
 - **Details**: The test `test_create_epub_pagenum_semantic_pagebreak_content` in [`tests/generators/epub_components/test_page_numbers.py`](tests/generators/epub_components/test_page_numbers.py:1) was failing because `book.get_item_with_id("chapter_semantic_pagebreaks")` returned `None`. Debugging confirmed the item was present in `book.items`. The issue was likely resolved by prior UID assignment fixes made by `tdd` mode in the SUT ([`synth_data_gen/generators/epub_components/page_numbers.py`](synth_data_gen/generators/epub_components/page_numbers.py:1)) or helper ([`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1)). The test now passes after cleaning up the test file (removing debug prints and fixing an `UnboundLocalError`).
@@ -79,6 +126,20 @@
 - **Impact**: Significant refactoring of the `synth_data_gen` package. Existing generation logic is now encapsulated within classes. The main entry point is simplified.
 - **Files Affected**: `synth_data_gen/__init__.py`, `synth_data_gen/core/base.py`, `synth_data_gen/generators/epub.py`, `synth_data_gen/generators/pdf.py`, `synth_data_gen/generators/markdown.py`.
 ### System Pattern: Dual-Mode Quantity Specification - 2025-05-11 02:35:00
+### Progress: Debug of `epub_components/notes.py` Kant Footnotes Test Completed - 2025-05-14 00:55:59
+- **Status**: Completed by `debug` mode.
+- **Details**:
+    - The `TypeError` (manifesting as `EpubException: 'Can not find container file'`, etc.) in `ebooklib.epub.write_epub()` for `create_epub_kant_style_footnotes` was resolved.
+    - Root Cause: `ebooklib` expects XHTML content (chapters, NAV) as `bytes` (UTF-8 encoded). String content was being mishandled.
+    - Fixes:
+        - `_add_epub_chapters` in [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1) updated to encode chapter content to `bytes`.
+        - NAV document content in `create_epub_kant_style_footnotes` ([`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1)) ensured to be `bytes`.
+        - SUT (`create_epub_kant_style_footnotes`) updated to generate correct Kant footnote HTML.
+        - Test assertions in `test_create_epub_kant_style_footnotes_content` ([`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1)) updated for precision.
+    - The test `test_create_epub_kant_style_footnotes_content` now passes.
+- **Files Affected**: [`synth_data_gen/common/utils.py`](synth_data_gen/common/utils.py:1), [`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1), [`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1), Memory Bank files.
+- **Next Steps**: Resume TDD for remaining functions in `notes.py` and other `epub_components`.
+- **Related Issues**: Follows `tdd` Early Return (entry `[2025-05-14 00:48:00]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1)).
 - **Description**: A unified configuration pattern for specifying the quantity of generated sub-elements (e.g., chapters, footnotes, images, list items). This pattern allows for both deterministic (exact counts) and flexible (ranged or probabilistic) generation.
 - **Structure**: For a configuration key representing a countable element (e.g., `num_chapters`, `footnote_config`), the value can be:
     1.  **Integer**: For an exact, deterministic count.
@@ -92,6 +153,15 @@
 - **Details**: All pending uncommitted changes from previous tasks (code migration, class-based refactoring, initial TDD cycles) were staged and committed.
 - **Commit**: `4f839cc`
 - **Commit Message**: "feat: Implement class-based architecture, migrate code, and add initial tests"
+### Progress: TDD for `epub_components/notes.py` Blocked - 2025-05-14 00:48:00
+- **Status**: Blocked / Early Return by `tdd` mode.
+- **Details**:
+    - `tdd` mode attempted to complete tests for `synth_data_gen/generators/epub_components/notes.py`.
+    - Encountered persistent blocker: `test_create_epub_kant_style_footnotes_content` (and 4 other content tests) fail with `ebooklib.epub.EpubException: 'Can not find container file'`, preceded by `TypeError: Argument must be bytes or unicode, got 'NoneType'` in `epub.write_epub()`.
+    - Issue points to problems with how the EPUB object is constructed by `create_epub_kant_style_footnotes` or related functions, leading to `None` content where `ebooklib` expects bytes/unicode.
+- **Files Affected**: [`tests/generators/epub_components/test_notes.py`](tests/generators/epub_components/test_notes.py:1), [`synth_data_gen/generators/epub_components/notes.py`](synth_data_gen/generators/epub_components/notes.py:1), Memory Bank files.
+- **Next Steps**: Delegate to `debug` mode to investigate the `TypeError` in `epub.write_epub()` for `create_epub_kant_style_footnotes`.
+- **Related Issues**: Follows `tdd` task delegated at `[2025-05-13 10:33:11]` for epub_components. See `tdd` feedback entry `[2025-05-14 00:48:00]` in [`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1).
 ### Progress: Debug of `epub_components/page_numbers.py` Test Completed - 2025-05-13 10:02:04
 - **Status**: Completed by `debug` mode.
 - **Details**:
