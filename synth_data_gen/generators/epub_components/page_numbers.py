@@ -70,7 +70,7 @@ The content here would correspond to page A25 of the first edition.</p>
 <p>Further discussion continues, and here we mark page B40.<a id="page_B40" class="calibre10-kantpage"></a></p>
 """
     chapter_details = [
-        {"title": "Kant Anchor Page Markers", "filename": "c1_kant_pgnum_anchor.xhtml", "content": chapter_content}
+        {"title": "Kant Anchor Page Markers", "filename": "c1_kant_pgnum_anchor.xhtml", "content": chapter_content, "uid": "c1_kant_pgnum_anchor"}
     ]
     chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
@@ -136,7 +136,7 @@ The flows of desire traverse this surface, creating temporary assemblages.</p>
 often a result of OCR or specific conversion processes from PDFs where page numbers were part of the main text block.</p>
 """
     chapter_details = [
-        {"title": "Deleuze Plain Text Page Numbers", "filename": "c1_deleuze_pgnum_plain.xhtml", "content": chapter_content}
+        {"title": "Deleuze Plain Text Page Numbers", "filename": "c1_deleuze_pgnum_plain.xhtml", "content": chapter_content, "uid": "c1_deleuze_pgnum_plain"}
     ]
     chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     

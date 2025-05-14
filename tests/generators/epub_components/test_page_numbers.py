@@ -76,29 +76,81 @@ class TestEpubPageNumbers(unittest.TestCase):
         self.files_to_remove.append(expected_filepath)
         if os.path.exists(expected_filepath):
             os.remove(expected_filepath)
-        # page_numbers.create_epub_pagenum_kant_anchor(filename=filename) # RED
-        self.assertTrue(False, "SUT not called yet, this test should fail.") # RED
+        page_numbers.create_epub_pagenum_kant_anchor(filename=filename)
+        self.assertTrue(os.path.exists(expected_filepath))
 
     def test_create_epub_pagenum_kant_anchor_content(self):
         filename = "pagenum_kant_anchor.epub"
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
-        # page_numbers.create_epub_pagenum_kant_anchor(filename=filename) # RED
-        # book = epub.read_epub(expected_filepath) # RED
+        page_numbers.create_epub_pagenum_kant_anchor(filename=filename)
+        book = epub.read_epub(expected_filepath)
 
-        # css_item = book.get_item_with_href('style/pgnum_kant_anchor.css')
-        # self.assertIsNotNone(css_item)
-        # css_content = css_item.get_content().decode('utf-8')
-        # self.assertIn("a.calibre10-kantpage", css_content)
+        css_item = book.get_item_with_href('style/pgnum_kant_anchor.css')
+        self.assertIsNotNone(css_item, "CSS file 'style/pgnum_kant_anchor.css' not found.")
+        css_content = css_item.get_content().decode('utf-8')
+        self.assertIn("a.calibre10-kantpage", css_content)
 
-        # chapter_item = book.get_item_with_id("c1_kant_pgnum_anchor") # Assuming UID is c1_kant_pgnum_anchor
-        # self.assertIsNotNone(chapter_item)
-        # html_content = chapter_item.get_content().decode('utf-8')
-        # self.assertIn('<a id="page_A25" class="calibre10-kantpage"></a>', html_content)
-        # self.assertIn('<a id="page_B40" class="calibre10-kantpage"></a>', html_content)
-        self.assertTrue(False, "SUT not called yet, this test should fail.") # RED
+        chapter_item = book.get_item_with_id("c1_kant_pgnum_anchor")
+        
+        self.assertIsNotNone(chapter_item, "Chapter item with UID 'c1_kant_pgnum_anchor' not found.")
+        html_content = chapter_item.get_content().decode('utf-8')
+        self.assertIn('<a id="page_A25" class="calibre10-kantpage"/>', html_content)
+        self.assertIn('<a id="page_B40" class="calibre10-kantpage"/>', html_content)
 
     # Add initial failing tests here based on functions in page_numbers.py
+    def test_create_epub_pagenum_taylor_anchor_creates_file(self):
+        filename = "pagenum_taylor_anchor.epub"
+        expected_filepath = os.path.join(self.output_dir, filename)
+        self.files_to_remove.append(expected_filepath)
+        if os.path.exists(expected_filepath):
+            os.remove(expected_filepath)
+        page_numbers.create_epub_pagenum_taylor_anchor(filename=filename)
+        self.assertTrue(os.path.exists(expected_filepath))
+
+    def test_create_epub_pagenum_taylor_anchor_content(self):
+        filename = "pagenum_taylor_anchor.epub"
+        expected_filepath = os.path.join(self.output_dir, filename)
+        self.files_to_remove.append(expected_filepath)
+        page_numbers.create_epub_pagenum_taylor_anchor(filename=filename)
+        book = epub.read_epub(expected_filepath)
+
+        css_item = book.get_item_with_href('style/pgnum_taylor_anchor.css')
+        self.assertIsNotNone(css_item, "CSS file 'style/pgnum_taylor_anchor.css' not found.")
+        css_content = css_item.get_content().decode('utf-8')
+        self.assertIn("a.calibre3-taylorpage", css_content)
+
+        chapter_item = book.get_item_with_id("c1_taylor_pgnum_anchor") # Assuming UID based on SUT
+        self.assertIsNotNone(chapter_item, "Chapter item with UID 'c1_taylor_pgnum_anchor' not found.")
+        html_content = chapter_item.get_content().decode('utf-8')
+        self.assertIn('<a id="page_123" class="calibre3-taylorpage"/>', html_content)
+        self.assertIn('<a id="page_124" class="calibre3-taylorpage"/>', html_content)
+    def test_create_epub_pagenum_deleuze_plain_text_creates_file(self):
+        filename = "pagenum_deleuze_plain_text.epub"
+        expected_filepath = os.path.join(self.output_dir, filename)
+        self.files_to_remove.append(expected_filepath)
+        if os.path.exists(expected_filepath):
+            os.remove(expected_filepath)
+        page_numbers.create_epub_pagenum_deleuze_plain_text(filename=filename)
+        self.assertTrue(os.path.exists(expected_filepath))
+
+    def test_create_epub_pagenum_deleuze_plain_text_content(self):
+        filename = "pagenum_deleuze_plain_text.epub"
+        expected_filepath = os.path.join(self.output_dir, filename)
+        self.files_to_remove.append(expected_filepath)
+        page_numbers.create_epub_pagenum_deleuze_plain_text(filename=filename)
+        book = epub.read_epub(expected_filepath)
+
+        css_item = book.get_item_with_href('style/pgnum_deleuze_plain.css')
+        self.assertIsNotNone(css_item, "CSS file 'style/pgnum_deleuze_plain.css' not found.")
+        # css_content = css_item.get_content().decode('utf-8') # Basic CSS, no specific check needed
+
+        chapter_item = book.get_item_with_id("c1_deleuze_pgnum_plain") # Assuming UID
+        self.assertIsNotNone(chapter_item, "Chapter item with UID 'c1_deleuze_pgnum_plain' not found.")
+        html_content = chapter_item.get_content().decode('utf-8')
+        self.assertIn("This is detailed further as the argument unfolds. xl The schizoanalytic project", html_content)
+        self.assertIn("Consider the body without organs (BwO) as a surface for these processes. xli \nIt is not a pre-existing entity but a limit that is continually approached and repelled.", html_content)
+        self.assertIn("This text simulates page numbers like \"xlii\" or \"45\" appearing directly in the text flow", html_content)
 
 if __name__ == '__main__':
     unittest.main()
