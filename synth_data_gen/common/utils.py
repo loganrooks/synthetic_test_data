@@ -66,6 +66,7 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
     """Helper to add chapters to the book and return chapter objects.
        Can link a default style item to all chapters."""
     chapters = []
+    toc_items = [] # Initialize list for ToC items
     for i, detail in enumerate(chapter_details):
         ch_title = detail.get("title", f"Chapter {i+1}")
         ch_filename = detail.get("filename", f"chap_{i+1:02}.xhtml")
@@ -73,12 +74,16 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
         ch_uid = detail.get("uid", ch_filename.split('.')[0]) # Use filename as uid if not provided
         
         chapter = epub.EpubHtml(title=ch_title, file_name=ch_filename, lang=book.language, uid=ch_uid)
-        chapter.content = ch_content.encode('utf-8') # Ensure content is bytes
+        if isinstance(ch_content, str):
+            chapter.content = ch_content.encode('utf-8')
+        else:
+            chapter.content = ch_content # Assume it's already bytes
         if default_style_item:
             chapter.add_item(default_style_item)
         book.add_item(chapter)
         chapters.append(chapter)
-    return chapters
+        toc_items.append(epub.Link(ch_filename, ch_title, ch_uid)) # Create a Link for ToC
+    return chapters, toc_items
 
 def _write_epub_file(book, filepath):
     """Helper function to write the EPUB file, with basic custom file handling."""
