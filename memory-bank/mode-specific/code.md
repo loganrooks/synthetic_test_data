@@ -1,4 +1,54 @@
+### [2025-05-15 05:34:27] Intervention: Fix Indentation in `test_epub_generator.py`
+...
+---
+(Prepending to Technical Debt section, assuming it starts after the Intervention Log) <!-- This comment is now misleading -->
+### [2025-05-15 05:34:27] Technical Debt Item: `test_epub_generator.py` Sensitivity
+...
+### [2025-05-15 05:34:27] Intervention: Fix Indentation in `test_epub_generator.py`
+- **Trigger**: Task delegation from SPARC to fix indentation blocker reported by `tdd` mode.
+- **Context**: `tdd` mode reported persistent Pylance indentation errors in `test_generate_epub3_with_ncx_only_config` method of [`tests/generators/test_epub_generator.py`](tests/generators/test_epub_generator.py:1), specifically around lines 2430-2465, blocking test execution.
+- **Action Taken**:
+    - Read TDD feedback ([`memory-bank/feedback/tdd-feedback.md`](memory-bank/feedback/tdd-feedback.md:1) entry `[2025-05-15 05:29:00]`).
+    - Read lines 2425-2470 of [`tests/generators/test_epub_generator.py`](tests/generators/test_epub_generator.py:2425-2470).
+    - Identified unindented lines 2430-2431 and an improperly indented blank line at 2432.
+    - Used `apply_diff` to indent lines 2430-2431 by 4 spaces and make line 2432 a blank line.
+    - Verified syntactic correctness with `python3 -m py_compile tests/generators/test_epub_generator.py` (command succeeded).
+- **Rationale**: The identified lines were clear indentation violations. `apply_diff` was chosen for a precise fix.
+- **Outcome**: Indentation errors that caused syntax issues in the specified section are resolved. The file [`tests/generators/test_epub_generator.py`](tests/generators/test_epub_generator.py:1) is now syntactically correct. This unblocks the `tdd` agent.
+- **Follow-up**: `tdd` mode can resume its task.
+
+---
+(Prepending to Technical Debt section, assuming it starts after the Intervention Log)
+### [2025-05-15 05:34:27] Technical Debt Item: `test_epub_generator.py` Sensitivity
+- **Location**: [`tests/generators/test_epub_generator.py`](tests/generators/test_epub_generator.py:1)
+- **Nature**: File is very large and has proven sensitive to automated modifications by various tools (`apply_diff`, `write_to_file`), leading to syntax/indentation errors.
+- **Severity**: Medium (can cause significant delays if not handled carefully).
+- **Proposed Resolution**: Exercise extreme caution with automated edits. Prefer highly targeted `apply_diff` operations. Consider refactoring into smaller, more manageable test files if issues persist.
+- **Status**: Identified.
+- **Resolution Date**: N/A
 ## Intervention Log
+### [2025-05-15 04:46:09] Intervention: Repair `SyntaxError` in `test_epub_generator.py`
+### [2025-05-16 02:41:45] Intervention: Fix Indentation in `PdfGenerator._apply_ocr_noise`
+- **Trigger**: Task delegation from SPARC to fix Pylance indentation errors in [`synth_data_gen/generators/pdf.py`](synth_data_gen/generators/pdf.py:1) reported by `tdd` mode.
+- **Context**: `tdd` mode's `apply_diff` operation on `_apply_ocr_noise` (around line 448) resulted in Pylance errors, specifically an "Expected expression" and "Unexpected indentation".
+- **Action Taken**:
+    1. Read the relevant section of [`synth_data_gen/generators/pdf.py`](synth_data_gen/generators/pdf.py:1) (lines 400-500).
+    2. Identified that the previous `apply_diff` had correctly removed erroneous code but resulted in an `elif` block (`elif noise_type == "gaussian":`) being placed *after* a final `else:` block, causing a syntax error.
+    3. Applied a new `apply_diff` to reorder the blocks: the `elif noise_type == "gaussian":` block was moved to be before the final `else:` block in the `if/elif/else` chain for `noise_type`.
+    4. Verified syntactic correctness with `python3 -m py_compile synth_data_gen/generators/pdf.py` (command succeeded).
+- **Rationale**: The Pylance errors were due to an incorrect ordering of `elif` and `else` blocks. Reordering them resolved the syntax issue.
+- **Outcome**: Indentation and structural errors in `_apply_ocr_noise` method in [`synth_data_gen/generators/pdf.py`](synth_data_gen/generators/pdf.py:1) are resolved. The file is syntactically correct. This unblocks the `tdd` agent.
+- **Follow-up**: `tdd` mode can resume its task concerning OCR noise simulation.
+- **Trigger**: Task delegation from SPARC to fix file corruption.
+- **Context**: `debug` mode reported `SyntaxError` in `tests/generators/test_epub_generator.py` after multiple failed automated modification attempts. Blocker: `SyntaxError: ':' expected after dictionary key` at line 1864.
+- **Action Taken**:
+    - Read relevant section (lines 1850-1870) of `tests/generators/test_epub_generator.py`.
+    - Identified an extraneous line of Python code (`mock_book_instance_configured.IDENTIFIER_ID = "BookId"`) at line 1864, misplaced within a dictionary definition.
+    - Used `apply_diff` to remove the extraneous line.
+    - Verified syntactic correctness with `python3 -m py_compile tests/generators/test_epub_generator.py` (command succeeded).
+- **Rationale**: The extraneous line was a clear syntax violation and the likely cause of the reported `SyntaxError`. `apply_diff` was chosen for precise removal.
+- **Outcome**: `SyntaxError` resolved. The file `tests/generators/test_epub_generator.py` is now syntactically correct.
+- **Follow-up**: SPARC can now proceed with debugging the original `TypeError` that was blocked by this `SyntaxError`.
 ### [2025-05-12 01:20:50] Intervention: Test Failures Post-Migration
 - **Trigger**: `pytest` run showed 18 failures after initial migration and `PYTHONPATH` fix.
 - **Context**: Task is to migrate tests to pytest, ensuring known failures persist and new ones are fixed.
@@ -22,6 +72,14 @@
 - **Status**: Implemented.
 - **Dependencies**: `pytest`, `pytest-mock`.
 - **Tests**: All tests converted. 11 known failures persist in `test_markdown_generator.py`.
+## Technical Debt
+### [2025-05-15 04:46:09] File Corruption Repaired: `test_epub_generator.py`
+- **Location**: [`tests/generators/test_epub_generator.py`](tests/generators/test_epub_generator.py:1)
+- **Nature**: File corruption (`SyntaxError`) introduced by previous automated modification attempts. File is large and sensitive to tool-based edits.
+- **Severity**: High (blocked test execution).
+- **Proposed Resolution**: Careful, minimal manual/`apply_diff` based changes. Increased vigilance for future automated edits.
+- **Status**: Resolved.
+- **Resolution Date**: 2025-05-15 04:46:09
 
 ## Dependencies
 ### [2025-05-12 01:20:50] pytest-mock
