@@ -32,12 +32,12 @@ def create_epub_content_dialogue(filename="content_dialogue.epub"):
     chapter_details = [
         {"title": "Dialogue on Consciousness", "filename": "c1_dialogue.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_dialogue_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_content_epigraph(filename="content_epigraph.epub"):
@@ -73,12 +73,12 @@ The epigraph sets a tone or introduces a key theme for the ensuing discussion.</
     chapter_details = [
         {"title": "Chapter with Epigraph", "filename": "c1_epigraph.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_epigraph_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_content_blockquote_styled(filename="content_blockquote_styled.epub"):
@@ -117,12 +117,12 @@ where quotes are visually set apart from the main text using specific classes an
     chapter_details = [
         {"title": "Styled Blockquotes", "filename": "c1_blockquote.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_blockquote_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_content_internal_cross_refs(filename="content_internal_cross_refs.epub"):
@@ -159,15 +159,12 @@ enhancing navigation and coherence in scholarly or complex works.</p>
         {"title": "Chapter 1 (XRef Source)", "filename": "c1_xref.xhtml", "content": chapter1_content},
         {"title": "Chapter 2 (XRef Target)", "filename": "c2_xref.xhtml", "content": chapter2_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (
-        epub.Link(chapters[0].file_name, chapters[0].title, "c1_xref_toc"),
-        epub.Link(chapters[1].file_name, chapters[1].title, "c2_xref_toc")
-    )
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_content_forced_page_breaks(filename="content_forced_page_breaks.epub"):
@@ -198,12 +195,12 @@ This tests the reading system's handling of such CSS-driven pagination control.<
     chapter_details = [
         {"title": "Forced Page Breaks Example", "filename": "c1_forcebreak.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_forcebreak_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_poetry(filename="poetry_formatting.epub"):
@@ -239,9 +236,9 @@ def create_epub_poetry(filename="poetry_formatting.epub"):
 </div>
 <p>This section tests poetry formatting, including stanzas and line indentations.</p>
 """}]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "ode_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)

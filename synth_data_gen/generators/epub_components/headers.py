@@ -44,14 +44,11 @@ def create_epub_taylor_hegel_headers(filename="taylor_hegel_headers.epub"):
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (
-        epub.Link(chapters[0].file_name, "Chapter I: The Aim of the Enterprise", "ch1_taylor_toc"),
-        epub.Link(chapters[1].file_name, "Chapter II: Further Elaborations", "ch2_taylor_toc")
-    )
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
-    book.spine = ['nav'] + chapters
+    book.add_item(epub.EpubNav())
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_sennet_style_headers(filename="sennet_style_headers.epub"):
@@ -90,11 +87,11 @@ def create_epub_sennet_style_headers(filename="sennet_style_headers.epub"):
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, "Part One: The Troubled Craftsman", "part1_sennet_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
-    book.spine = ['nav'] + chapters
+    book.add_item(epub.EpubNav())
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_div_style_headers(filename="div_style_headers.epub"):
@@ -128,11 +125,11 @@ as seen in some philosophical texts like Heidegger's "German Existentialism".</p
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, "The Question of Being", "div_h_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
-    book.spine = ['nav'] + chapters
+    book.add_item(epub.EpubNav())
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_mixed_content(filename="header_mixed_content.epub"):
@@ -161,12 +158,12 @@ def create_epub_header_mixed_content(filename="header_mixed_content.epub"):
 <h3 id="sec1_2_mix">Second Section with a <span class="marker">Red Marker</span></h3>
 <p>Content for section 1.2, with a styled span inside H3.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_mixhead_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_rosenzweig_hegel(filename="header_rosenzweig_hegel.epub"):
@@ -197,15 +194,12 @@ the nature of political obligation, and the historical development of state conc
          "content": """<h1 class="chapter" id="c2_rosen">Ethical Life and World History <span class="cn"><span class="bor">II</span></span></h1>
 <p>The exploration continues into the realm of ethical life (Sittlichkeit) and its manifestation in world history.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (
-        epub.Link(chapters[0].file_name, chapters[0].title, "c1_rosen_toc"),
-        epub.Link(chapters[1].file_name, chapters[1].title, "c2_rosen_toc")
-    )
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_derrida_gift_death(filename="header_derrida_gift_death.epub"):
@@ -236,15 +230,12 @@ where a chapter number might be presented in an H3 tag, followed by the chapter 
 <h2 class="chaptitle-derrida-gd" id="c2_title_gd">Whither the Political?</h2>
 <p>A subsequent chapter continuing the thematic exploration with a similar heading structure.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (
-        epub.Link(chapters[0].file_name, chapters[0].title, "c1_derrida_gd_toc"),
-        epub.Link(chapters[1].file_name, chapters[1].title, "c2_derrida_gd_toc")
-    )
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_bch_p_strong(filename="header_bch_p_strong.epub"):
@@ -273,15 +264,12 @@ a style observed in works by Byung-Chul Han.</p>
          "content": """<p class="c9-bch" id="bch_title2"><strong class="calibre3-bch">THE AGONY OF EROS</strong></p>
 <p>Another section employing the same paragraph-based header style.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (
-        epub.Link(chapters[0].file_name, chapters[0].title, "c1_bch_toc"),
-        epub.Link(chapters[1].file_name, chapters[1].title, "c2_bch_toc")
-    )
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_derrida_specters_p(filename="header_derrida_specters_p.epub"):
@@ -310,12 +298,12 @@ def create_epub_header_derrida_specters_p(filename="header_derrida_specters_p.ep
 is reminiscent of formatting found in Derrida's "Specters of Marx".</p>
 <p>The text would explore themes of spectrality, inheritance, and the enduring legacy of Marxian thought.</p>"""},
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (epub.Link(chapters[0].file_name, "1. Injunctions of Marx", "c1_derrida_sp_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_kaplan_div(filename="header_kaplan_div.epub"):
@@ -342,12 +330,12 @@ def create_epub_header_kaplan_div(filename="header_kaplan_div.epub"):
 <p>This chapter uses div elements for chapter numbering and titles, a style seen in works like Kaplan's "Beyond Post-Zionism".</p>
 <p>The content would typically analyze political and social shifts in relevant contexts.</p>"""},
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (epub.Link(chapters[0].file_name, "ONE: The End of Oslow", "c1_kaplan_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_foucault_style(filename="header_foucault_style.epub"):
@@ -385,14 +373,12 @@ featuring a number, a horizontal rule (simulated with underscores), and the titl
             "content": chapter_content
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (
-        epub.Link(chapters[0].file_name + "#p23", "1. The Unities of Discourse", "foucault_ch1_toc"),
-    )
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
-    book.spine = ['nav'] + chapters
+    book.add_item(epub.EpubNav())
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_header_descartes_dict_p(filename="header_descartes_dict_p.epub"):
@@ -421,12 +407,12 @@ def create_epub_header_descartes_dict_p(filename="header_descartes_dict_p.epub")
 <p class="BHead-dd" id="bhead_thinking"><strong><em>The Nature of Thinking</em></strong></p>
 <p>Thinking, for Descartes, encompasses doubting, understanding, affirming, denying, willing, refusing, imagining, and sensing...</p>"""},
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (epub.Link(chapters[0].file_name, "MIND (Mens)", "entry_mind_dd_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_p_tag_headers(filename="p_tag_headers.epub"):
@@ -458,11 +444,11 @@ def create_epub_p_tag_headers(filename="p_tag_headers.epub"):
 <p>Another paragraph of standard text.</p>
 """}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0]) for ch in chapters)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_headers_with_edition_markers(filename="headers_edition_markers.epub"):
@@ -486,12 +472,12 @@ def create_epub_headers_with_edition_markers(filename="headers_edition_markers.e
 <p>More B edition text... [B 39 / A 24]</p>
 """}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
-    book.toc = (epub.Link(chapters[0].file_name, "Critique A Section", "kant_a"), epub.Link(chapters[1].file_name, "Critique B Section", "kant_b"))
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     style = 'BODY {color: darkred;}'
     nav_css = epub.EpubItem(uid="style_nav", file_name="style/nav.css", media_type="text/css", content=style)
     book.add_item(nav_css)
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)

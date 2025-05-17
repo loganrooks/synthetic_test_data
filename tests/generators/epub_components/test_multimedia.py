@@ -47,15 +47,13 @@ class TestEpubMultimedia(unittest.TestCase):
         self.assertEqual(img_item.media_type, "image/png")
 
         # Check for chapter content
-        chapter_found = False
-        for item in book.get_items_of_type(epub.EpubHtml):
-            # print(f"DEBUG: Item name in image_as_special_text: {item.get_name()}") # DEBUG
-            if "c1_img_special_text.xhtml" in item.get_name():
-                html_content = item.get_content().decode('utf-8')
-                self.assertIn('<img alt="[special operator]" src="../images/special_char_placeholder.png" class="calibre18-hegel-img"/>', html_content)
-                chapter_found = True
-                break
-        self.assertTrue(chapter_found, "Chapter content with special image not found.")
+        chapter_item = book.get_item_with_href('c1_img_special_text.xhtml')
+        self.assertIsNotNone(chapter_item, "Chapter c1_img_special_text.xhtml not found by Href.")
+        if chapter_item:
+            html_content = chapter_item.get_content().decode('utf-8')
+            self.assertIn('<img alt="[special operator]" src="../images/special_char_placeholder.png" class="calibre18-hegel-img"/>', html_content)
+        else:
+            self.fail("Chapter item c1_img_special_text.xhtml was None.")
 
     def test_create_epub_font_obfuscated_creates_file(self):
         filename = "font_obfuscated.epub"
@@ -93,16 +91,14 @@ class TestEpubMultimedia(unittest.TestCase):
         self.assertEqual(font_item.media_type, "application/x-font-truetype")
         
         # Check for chapter content
-        chapter_found = False
-        for item in book.get_items_of_type(epub.EpubHtml):
-            # print(f"DEBUG: Item name in font_obfuscated: {item.get_name()}") # DEBUG
-            if "c1_font_obf.xhtml" in item.get_name():
-                html_content = item.get_content().decode('utf-8')
-                self.assertIn("Text with Obfuscated Font", html_content)
-                self.assertIn("encryption.xml", html_content) # Text mentions it
-                chapter_found = True
-                break
-        self.assertTrue(chapter_found, "Chapter content for obfuscated font test not found.")
+        chapter_item = book.get_item_with_href('c1_font_obf.xhtml')
+        self.assertIsNotNone(chapter_item, "Chapter c1_font_obf.xhtml not found by Href.")
+        if chapter_item:
+            html_content = chapter_item.get_content().decode('utf-8')
+            self.assertIn("Text with Obfuscated Font", html_content)
+            self.assertIn("encryption.xml", html_content) # Text mentions it
+        else:
+            self.fail("Chapter item c1_font_obf.xhtml was None.")
 
         # Check for encryption.xml (this is the tricky part as ebooklib doesn't directly support it)
         # The SUT adds it to a custom attribute `book.custom_files_to_add`.

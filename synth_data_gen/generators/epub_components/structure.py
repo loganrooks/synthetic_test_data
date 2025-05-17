@@ -219,13 +219,73 @@ def create_epub_structure_calibre_artifacts(filename="calibre_artifacts.epub", w
         _write_epub_file(book, filename)
     return book
 
-def create_epub_structure_adobe_artifacts(filename="adobe_artifacts.epub"):
-    # Placeholder for SUT
-    pass
+def create_epub_structure_adobe_artifacts(filename="adobe_artifacts.epub", write_file=True):
+    book = epub.EpubBook()
+    book.set_identifier("urn:uuid:sample-adobe-artifacts")
+    book.set_title("Sample EPUB with Adobe Artifacts")
+    book.set_language("en")
 
-def create_epub_accessibility_epub_type(filename="accessibility_epub_type.epub"):
-    # Placeholder for SUT
-    pass
+    # Minimal content to make it a valid EPUB
+    # In a real scenario, Adobe DRM would involve adding an encryption.xml file
+    # and encrypting content files. For this placeholder, we'll just create a basic book.
+    chapter1_content = "<h1>Chapter 1</h1><p>Content for Adobe artifacts test.</p>"
+    chapter1_details = {
+        "title": "Chapter 1",
+        "file_name": "chap_adobe.xhtml",
+        "content": chapter1_content.encode('utf-8'),
+        "uid": "chap_adobe_uid"
+    }
+    epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
+    
+    book.toc = tuple(toc_links)
+    book.spine = [epub_chapters[0].id]
+    book.add_item(epub.EpubNcx())
+
+    # Placeholder for adding actual Adobe artifacts like encryption.xml
+    # For example:
+    # encryption_xml_content = b"..." # XML content for encryption.xml
+    # encryption_item = epub.EpubItem(
+    #     uid="encryption",
+    #     file_name="META-INF/encryption.xml",
+    #     media_type="application/xml",
+    #     content=encryption_xml_content
+    # )
+    # book.add_item(encryption_item)
+    # book.add_item(epub.EpubNav()) # Might be needed depending on EPUB version and structure
+
+    if write_file:
+        _write_epub_file(book, filename)
+    return book
+
+def create_epub_accessibility_epub_type(filename="accessibility_epub_type.epub", write_file=True):
+    book = epub.EpubBook()
+    book.set_identifier("urn:uuid:sample-accessibility-epub")
+    book.set_title("Sample EPUB with Accessibility Features")
+    book.set_language("en")
+
+    # Minimal content to make it a valid EPUB
+    chapter1_content = "<h1>Chapter 1</h1><p epub:type=\"footnote\">A footnote with epub:type.</p>"
+    chapter1_details = {
+        "title": "Chapter 1",
+        "file_name": "chap_accessibility.xhtml",
+        "content": chapter1_content.encode('utf-8'),
+        "uid": "chap_access_uid"
+    }
+    epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
+    
+    book.toc = tuple(toc_links)
+    book.spine = [epub_chapters[0].id]
+    book.add_item(epub.EpubNcx())
+    
+    # Example of adding accessibility metadata (schema.org via link)
+    # book.add_metadata(None, 'link', None, {'rel': 'dcterms:conformsTo', 'href': 'http://www.idpf.org/epub/a11y/accessibility-20170105.html#wcag-a'})
+    # book.add_metadata(None, 'meta', None, {'property': 'schema:accessMode', 'content': 'textual'})
+    # book.add_metadata(None, 'meta', None, {'property': 'schema:accessibilityFeature', 'content': 'alternativeText'})
+
+
+    if write_file:
+        _write_epub_file(book, filename)
+    return book
 
 def create_epub_minimal_metadata(filename="minimal_metadata.epub"):
     # Placeholder for SUT

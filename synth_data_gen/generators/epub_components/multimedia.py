@@ -37,12 +37,12 @@ rather than purely illustrative figures. Another instance: <img alt="[another sy
     chapter_details = [
         {"title": "Image as Special Text", "filename": "c1_img_special_text.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_img_special_text_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
 
 def create_epub_font_obfuscated(filename="font_obfuscated.epub"):
@@ -79,7 +79,7 @@ in the <code>META-INF</code> directory, referencing font files.</p>
     chapter_details = [
         {"title": "Obfuscated Font Test", "filename": "c1_font_obf.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
     # Create a dummy encryption.xml content
     # This is a simplified example. Real encryption.xml can be more complex.
@@ -109,8 +109,8 @@ in the <code>META-INF</code> directory, referencing font files.</p>
         book.custom_files_to_add = {}
     book.custom_files_to_add["META-INF/encryption.xml"] = encryption_xml_content.encode('utf-8')
 
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_font_obf_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath) # _write_epub_file would need modification to handle custom_files_to_add

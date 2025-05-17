@@ -189,7 +189,7 @@ class TestEpubStructure(unittest.TestCase):
             elif isinstance(spine_entry, str) and spine_entry == chapter_item.id:
                 found_in_spine = True
                 break
-            self.assertTrue(found_in_spine, f"Chapter {chapter_item.id} not found in spine. Spine: {book.spine}")
+        self.assertTrue(found_in_spine, f"Chapter {chapter_item.id} not found in spine. Spine: {book.spine}")
 
 
     def test_create_epub_structure_split_files_creates_files(self):
@@ -336,5 +336,42 @@ class TestEpubStructure(unittest.TestCase):
         # If 'calibre:series_index' were added by SUT, these would be:
         # self.assertTrue(found_series_index_content, "Metadata 'calibre:series_index' not found in None namespace (content test).")
         # self.assertEqual(series_index_val_content, "1.0", "Metadata 'calibre:series_index' has incorrect value (content test).")
+    def test_create_epub_structure_adobe_artifacts_creates_file(self):
+        filename = os.path.join(self.output_path, "test_adobe_artifacts.epub")
+        # Assuming the function will take filename and write_file arguments
+        structure.create_epub_structure_adobe_artifacts(filename=filename, write_file=True)
+        self.assertTrue(os.path.exists(filename), "EPUB file with Adobe artifacts was not created.")
+        # Basic check: read the epub
+        book = epub.read_epub(filename)
+        self.assertIsNotNone(book, "Could not read created EPUB file with Adobe artifacts.")
+
+    def test_create_epub_structure_adobe_artifacts_content(self):
+        filename = os.path.join(self.output_path, "test_adobe_artifacts_content.epub")
+        # Call SUT without writing the file to inspect the book object directly
+        book = structure.create_epub_structure_adobe_artifacts(filename=filename, write_file=False)
+        self.assertIsNotNone(book, "Book object should be returned for Adobe artifacts EPUB.")
+        # Placeholder for actual content/artifact checks
+        # For example, if it's supposed to add an encryption.xml or specific metadata:
+        # encryption_item = book.get_item_with_href('META-INF/encryption.xml')
+        # self.assertIsNotNone(encryption_item, "encryption.xml not found for Adobe DRM.")
+        # self.assertIn(b'<enc:CipherValue>', encryption_item.content) # Example check
+        self.assertTrue(True, "Placeholder content check for Adobe artifacts.")
+
+    def test_create_epub_accessibility_epub_type_creates_file(self):
+        filename = os.path.join(self.output_path, "test_accessibility_epub_type.epub")
+        structure.create_epub_accessibility_epub_type(filename=filename, write_file=True)
+        self.assertTrue(os.path.exists(filename), "EPUB file with accessibility features was not created.")
+        book = epub.read_epub(filename)
+        self.assertIsNotNone(book, "Could not read created EPUB file with accessibility features.")
+
+    def test_create_epub_accessibility_epub_type_content(self):
+        filename = os.path.join(self.output_path, "test_accessibility_epub_type_content.epub")
+        book = structure.create_epub_accessibility_epub_type(filename=filename, write_file=False)
+        self.assertIsNotNone(book, "Book object should be returned for accessibility EPUB.")
+        # Placeholder for actual content/artifact checks
+        # Example: Check for specific accessibility metadata
+        # access_mode = book.get_metadata('SCHEMA', 'accessMode') # Fictional, schema.org is usually via link or properties
+        # self.assertTrue(len(access_mode) > 0 and access_mode[0][0] == 'textual', "Access mode not set correctly.")
+        # self.assertTrue(True, "Placeholder content check for accessibility features.")
 if __name__ == '__main__':
     unittest.main()

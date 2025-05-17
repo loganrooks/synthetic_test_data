@@ -543,11 +543,9 @@ def create_epub_html_toc_non_linked(filename="html_toc_non_linked.epub"):
 
     html_toc_content = """<h1>Table of Contents (Non-Linked)</h1>
 <ul>
-    <li>Chapter 1: The Unlinked Beginning</li>
-    <li>Chapter 2: Further Unlinked Thoughts
-        <ul><li>Section 2.1: A Detail</li></ul>
-    </li>
-    <li>Chapter 3: Final Unlinked Words</li>
+    <li>Chapter 1: The Adventure Begins</li>
+    <li>Chapter 2: The Plot Thickens</li>
+    <li>Chapter 3: The Grand Finale</li>
 </ul>"""
     html_toc_page = epub.EpubHtml(title="Table of Contents (Non-Linked)", file_name="toc_non_linked.xhtml", lang="en")
     html_toc_page.content = html_toc_content
@@ -575,34 +573,168 @@ def create_epub_html_toc_non_linked(filename="html_toc_non_linked.epub"):
     book.spine = [html_toc_page] + chapters # HTML ToC often first after cover (if any)
     # _write_epub_file was removed by a previous diff, adding it back
     _write_epub_file(book, filepath)
-def create_ncx(book, chapters_content, toc_settings):
+def create_ncx(book, chapters_data, toc_settings):
     """
-    Placeholder for NCX creation logic.
-    This function will be called by EpubGenerator.
-    It should use toc_settings to customize NCX generation.
+    Creates an NCX document (EpubNcx object) and populates the book.toc.
+    
+    Args:
+        book (epub.EpubBook): The book object to add NCX to.
+        chapters_data (list): A list of dictionaries, where each dictionary
+                              represents a chapter or section and contains
+                              'title', 'href', 'uid', and 'children' (list of child dicts).
+        toc_settings (dict): Configuration for ToC generation.
     """
-    # For now, to allow tests to proceed, just add a basic NCX.
-    # Actual implementation will use chapters_content and toc_settings.
-    ncx = epub.EpubNcx()
-    book.add_item(ncx)
-    # book.toc should be set appropriately by this function or a wrapper
-    # For basic passing of some tests, we might set a simple book.toc here if not handled by EpubGenerator
-    if not book.toc and chapters_content: # Avoid overwriting if already set
-        book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0] + "_ncx_id") for ch in chapters_content)
+    
+    def _create_toc_links_recursive(items_data):
+        links = []
+        for item_data in items_data: # item_data can be an EpubHtml object or a dict
+            if isinstance(item_data, epub.EpubHtml):
+                href = item_data.file_name
+                title = item_data.title
+                # Attempt to create a UID from file_name, similar to how EpubHtml might do it
+                uid = href.split('.')[0] if href else (title.lower().replace(' ', '_') if title else 'link')
+                children = None # EpubHtml items from chapters_content are flat for now
+            elif isinstance(item_data, dict):
+                href = item_data.get('href', '')
+                title = item_data.get('title', 'Untitled')
+                uid = item_data.get('uid', href.split('.')[0] if href else title.lower().replace(' ', '_'))
+                children = item_data.get('children')
+            else: # Skip unknown item types
+                continue
+
+            link = epub.Link(href, title, uid)
+            
+            if children:
+                children_links = _create_toc_links_recursive(children)
+                links.append((link, tuple(children_links)))
+            else:
+                links.append(link)
+        return links
+
+    if chapters_data:
+        book.toc = tuple(_create_toc_links_recursive(chapters_data))
+
+    ncx = epub.EpubNcx() # This creates an NCX item with default file_name 'toc.ncx'
+    book.add_item(ncx) # Add the NCX item to the book
+    return ncx
 
 
-def create_nav_document(book, chapters_content, toc_settings, epub_version):
+def create_nav_document(book, chapters_data, toc_settings, epub_version):
     """
-    Placeholder for NavDoc (EPUB 3 Navigation Document) creation logic.
-    This function will be called by EpubGenerator.
-    It should use toc_settings and epub_version to customize NavDoc generation.
+    Creates an EPUB 3 Navigation Document (EpubNav object or EpubHtml with nav properties).
+    
+    Args:
+        book (epub.EpubBook): The book object.
+        chapters_data (list): Structured data for chapters/sections.
+        toc_settings (dict): Configuration for ToC.
+        epub_version (str): EPUB version string (e.g., "3.0").
     """
-    # For now, to allow tests to proceed, just add a basic EpubNav.
-    # Actual implementation will use chapters_content, toc_settings, and epub_version.
-    nav = epub.EpubNav()
-    # nav.file_name = 'nav.xhtml' # Default, but can be set
-    book.add_item(nav)
-    # Similar to NCX, book.toc might be set here or by a wrapper if not already handled.
-    # The 'nav' item is usually automatically added to spine if it has 'nav' property.
-    # Ensure nav.properties.append('nav') if creating a custom EpubHtml for nav.
-    # EpubNav from ebooklib handles this.
+    # NAV document is primarily for EPUB 3. Accept "3" or "3.0" or "3.x"
+    if not str(epub_version).startswith("3"):
+        return None
+
+    # Helper to generate HTML list items for ToC
+    def _generate_html_list_items(items_data, current_depth, max_depth):
+        """
+        Recursively generates HTML list items for NAV document.
+        items_data is expected to be a list or tuple of epub.Link objects or nested tuples
+        like (epub.Link, (child_epub.Link, ...)) or (epub.Link, ((grandchild_epub.Link, ...), ...)).
+        """
+        if not items_data or (max_depth is not None and current_depth > max_depth): # Check current_depth against max_depth for the current level
+            return ""
+
+        html_parts = []
+        for item_data in items_data:
+            link_object = None
+            children_tuple = None
+
+            if isinstance(item_data, epub.Link):
+                link_object = item_data
+            elif isinstance(item_data, tuple) and len(item_data) > 0:
+                if isinstance(item_data[0], epub.Link):
+                    link_object = item_data[0]
+                if len(item_data) > 1 and isinstance(item_data[1], (list, tuple)):
+                    children_tuple = item_data[1]
+            
+            if link_object:
+                # Item should only be added if its own level (current_depth) is within max_depth
+                # The initial check (current_depth > max_depth) handles pruning deeper branches entirely.
+                # This check is redundant if the initial check is correct, but kept for clarity.
+                # if max_depth is not None and current_depth > max_depth:
+                #     continue
+
+                list_item_html = f'<li><a href="{link_object.href}">{link_object.title}</a>'
+                
+                # Recursively call for children if they exist and the *next* level is within max_depth
+                if children_tuple and (max_depth is None or (current_depth + 1) <= max_depth):
+                    children_html_str = _generate_html_list_items(children_tuple, current_depth + 1, max_depth)
+                    if children_html_str: # Only append if children actually generated HTML (weren't pruned)
+                        list_item_html += f"\n<ol>\n{children_html_str}</ol>\n"
+                
+                list_item_html += "</li>"
+                html_parts.append(list_item_html)
+        
+        if not html_parts:
+            return ""
+        return "\n".join(html_parts)
+
+    # Generate ToC HTML using book.toc
+    toc_max_depth = toc_settings.get("max_depth", 3) # Default to 3 if not specified
+    # Use book.toc which is expected to be a tuple of Links or (Link, children_tuple)
+    toc_items_source = book.toc if hasattr(book, 'toc') and book.toc else []
+    toc_html_items = _generate_html_list_items(toc_items_source, 1, toc_max_depth)
+    
+    nav_content_parts = [
+        f'<?xml version="1.0" encoding="utf-8"?>\n',
+        f'<!DOCTYPE html>\n',
+        # Retrieve language from book metadata
+        f'<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{book.get_metadata("DC", "language")[0][0] if book.get_metadata("DC", "language") else "en"}">\n',
+        f'<head>\n  <title>{book.title} - Navigation</title>\n</head>\n',
+        f'<body>\n',
+        f'  <nav epub:type="toc" id="toc">\n',
+        f'    <h1>Table of Contents</h1>\n', # Default title, can be configured
+        f'    <ol>\n{toc_html_items}\n    </ol>\n',
+        f'  </nav>\n'
+    ]
+
+    # Landmarks
+    if toc_settings.get("include_landmarks", False) and chapters_data:
+        nav_content_parts.append('  <nav epub:type="landmarks" hidden="">\n')
+        nav_content_parts.append('    <h1>Landmarks</h1>\n    <ol>\n')
+        # Basic landmark: link to the start of content (first chapter)
+        first_chapter_href = chapters_data[0].file_name if hasattr(chapters_data[0], 'file_name') else '#'
+        nav_content_parts.append(f'      <li><a epub:type="bodymatter" href="{first_chapter_href}">Start of Content</a></li>\n')
+        # More landmarks can be added based on configuration (e.g., cover, titlepage, toc itself)
+        nav_content_parts.append('    </ol>\n  </nav>\n')
+
+    # Page List (Placeholder for now, as it requires more complex generation)
+    if toc_settings.get("include_page_list_in_toc", False):
+        nav_content_parts.append('  <nav epub:type="page-list" hidden="">\n')
+        nav_content_parts.append('    <h1>Page List</h1>\n    <ol>\n      <!-- Page list items go here -->\n    </ol>\n  </nav>\n')
+        
+    nav_content_parts.append('</body>\n</html>')
+    
+    final_nav_content = "".join(nav_content_parts)
+
+    # ebooklib's EpubNav can take content directly, or it generates from book.toc
+    # For more control, we create an EpubHtml item and mark it as 'nav'
+    book_lang = book.get_metadata("DC", "language")[0][0] if book.get_metadata("DC", "language") else "en"
+    nav_item = epub.EpubHtml(title="Navigation", file_name="nav.xhtml", lang=book_lang, media_type='application/xhtml+xml')
+    nav_item.content = final_nav_content.encode('utf-8') # Ensure bytes
+    nav_item.properties.append('nav') # Crucial for EPUB3 NavDoc identification
+
+    # Set book.toc based on chapters_data for consistency with NCX and test expectations,
+    # ONLY if book.toc is not already set (e.g., by a test or a more sophisticated SUT setup).
+    # The test for max_depth relies on book.toc being pre-populated with a nested structure.
+    if not hasattr(book, 'toc') or not book.toc:
+        simple_toc_links = []
+        if chapters_data:
+            for chap_item_obj in chapters_data: # Expecting list of EpubHtml objects
+                if hasattr(chap_item_obj, 'file_name') and hasattr(chap_item_obj, 'title'):
+                    uid = chap_item_obj.file_name.split('.')[0] + "_nav_link_id"
+                    simple_toc_links.append(epub.Link(chap_item_obj.file_name, chap_item_obj.title, uid))
+        if simple_toc_links:
+            book.toc = tuple(simple_toc_links)
+    
+    # The EpubGenerator will be responsible for adding this item to the book.
+    return nav_item

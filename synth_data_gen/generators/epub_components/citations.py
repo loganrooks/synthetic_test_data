@@ -23,11 +23,11 @@ def create_epub_citation_kant_intext(filename="citation_kant_intext.epub"):
 <p>Kant's works are often cited using academy pagination, like <span class="kant-citation">(KrV, A 73 / B 98)</span>.</p>
 <p>Another example might be <span class="kant-citation">(GMS, 4:421)</span> for the Groundwork.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_kant_cite_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = tuple(toc_links) # Use the generated toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters # Use epub_chapters here
     _write_epub_file(book, filepath)
 
 
@@ -57,12 +57,12 @@ This contrasts with Kant’s position in the <em class="calibre8-taylor">Critiqu
     chapter_details = [
         {"title": "Taylor In-Text Citations", "filename": "c1_taylor_cite.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_taylor_cite_toc"),)
+    epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    book.toc = tuple(toc_links) # Use the generated toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapters # Use epub_chapters here
     _write_epub_file(book, filepath)
 
 def create_epub_citation_rosenzweig_biblioref(filename="citation_rosenzweig_biblioref.epub"):
