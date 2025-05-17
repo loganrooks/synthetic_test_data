@@ -1,4 +1,5 @@
 import os
+import zipfile
 from ebooklib import epub
 
 # Define output base directory relative to the project root
@@ -88,50 +89,22 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
 def _write_epub_file(book, filepath):
     """Helper function to write the EPUB file, with basic custom file handling."""
     
-    # Attempt to handle custom files that need to be added to the archive
-    # Note: ebooklib places items in OEBPS by default. For META-INF or root files,
-    # this approach is a simulation; true placement would require ZIP manipulation.
-    # if hasattr(book, 'custom_files_to_add'):
-    #     for rel_path, content_bytes in book.custom_files_to_add.items():
-    #         # Determine uid and media_type based on common cases or make them generic
-    #         uid = os.path.splitext(os.path.basename(rel_path))[0].replace('.', '_') + "_custom"
-    #         media_type = "application/xml" # Default, adjust if more types needed
-    #         if rel_path.endswith(".txt"):
-    #             media_type = "text/plain"
-            
-    #         # Create an EpubItem. file_name here will be relative to OEBPS or root of content items.
-    #         # This won't correctly place META-INF/encryption.xml at META-INF/encryption.xml
-    #         # It will likely be OEBPS/META-INF/encryption.xml or similar.
-    #         # This is a known limitation for this synthetic data generator using only ebooklib.
-    #         custom_item = epub.EpubItem(uid=uid, file_name=rel_path, media_type=media_type, content=content_bytes)
-    #         book.add_item(custom_item)
-    #         print(f"Note: Added custom file '{rel_path}' as item '{custom_item.file_name}' (actual EPUB path may vary due to ebooklib structure).")
+    # Standard EPUB writing
+    epub.write_epub(filepath, book, {})
 
-    # # Add extra manifest items if specified (e.g., for .xpgt files not directly handled as content)
-    # if hasattr(book, 'manifest_extra_items'):
-    #     for item_attrs in book.manifest_extra_items:
-    #         # These items are primarily for manifest inclusion. Content might be dummy or not added to zip by ebooklib if href is unusual.
-    #         # This is a simulation of manifest entries.
-    #         uid = item_attrs.get('id', os.path.splitext(os.path.basename(item_attrs['href']))[0] + "_manifest_extra")
-    #         # Create a minimal EpubItem to get it into the manifest.
-    #         # Content is not strictly necessary if it's just a manifest reference to an externally placed file (like META-INF).
-    #         # However, ebooklib requires content for EpubItem.
-    #         extra_item = epub.EpubItem(uid=uid,
-    #                                    file_name=item_attrs['href'], # This path will be relative to OEBPS
-    #                                    media_type=item_attrs['media_type'],
-    #                                    content=b'<!-- Placeholder for manifest-only item -->')
-    #         book.add_item(extra_item)
-    #         print(f"Note: Added manifest extra item for '{item_attrs['href']}'.")
-
-    # ebooklib should handle book.guide for EPUB 2 if set.
-    # No special handling needed here for book.guide beyond ensuring it's set on the book object
-    # in the calling function (e.g., create_epub2_with_guide).
-
-    try:
-        epub.write_epub(filepath, book, {})
-        print(f"Successfully created EPUB: {filepath}")
-    except Exception as e:
-        print(f"Error creating EPUB {filepath}: {e}")
+    # Post-process to add files to META-INF or other non-OEBPS locations
+    if hasattr(book, 'custom_files_to_add'):
+        try:
+            with zipfile.ZipFile(filepath, 'a') as epub_zip:  # Open in append mode
+                for rel_path, content_bytes in book.custom_files_to_add.items():
+                    # Ensure the path is treated as relative to the ZIP root
+                    # For META-INF, rel_path should be e.g., "META-INF/encryption.xml"
+                    epub_zip.writestr(rel_path, content_bytes)
+            # print(f"Successfully added custom files to EPUB: {filepath}") # Optional: for debugging
+        except Exception as e:
+            print(f"Error adding custom files to EPUB {filepath}: {e}")
+            # Consider re-raising or more specific error handling
+    print(f"Successfully created EPUB: {filepath}")
 
 # Call this once if common.py is imported, or ensure main runner calls it.
 # For now, let's assume the main runner will call ensure_output_directories().

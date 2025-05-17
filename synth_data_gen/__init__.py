@@ -10,76 +10,15 @@ from .generators.epub import EpubGenerator
 from .generators.pdf import PdfGenerator
 from .generators.markdown import MarkdownGenerator
 from .common.utils import ensure_output_directories
+from .core.config_loader import ConfigLoader # Import the real ConfigLoader
 
 # Placeholder for custom exceptions (as defined in spec)
-class InvalidConfigError(ValueError): pass
+class InvalidConfigError(ValueError): pass # This might be superseded by ConfigLoader's exceptions
 class GeneratorError(RuntimeError): pass
 class EpubGenerationError(GeneratorError): pass
 class PdfGenerationError(GeneratorError): pass
 class MarkdownGenerationError(GeneratorError): pass
 class PluginError(RuntimeError): pass
-
-
-# Stub for ConfigLoader class
-class ConfigLoader:
-    def __init__(self, config_path: Optional[str] = None, config_obj: Optional[Dict[str, Any]] = None):
-        self.config_path = config_path
-        self.config_obj = config_obj
-        self.config: Dict[str, Any] = {}
-
-    def load_config(self) -> Dict[str, Any]:
-        if self.config_obj:
-            self.config = self.config_obj
-            print("Loaded configuration from object.")
-        elif self.config_path:
-            if not os.path.exists(self.config_path):
-                raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
-            try:
-                with open(self.config_path, 'r', encoding='utf-8') as f:
-                    if self.config_path.endswith(".yaml") or self.config_path.endswith(".yml"):
-                        self.config = yaml.safe_load(f)
-                    elif self.config_path.endswith(".json"):
-                        self.config = json.load(f)
-                    else:
-                        raise InvalidConfigError(f"Unsupported configuration file format: {self.config_path}. Use YAML or JSON.")
-                print(f"Loaded configuration from file: {self.config_path}")
-            except Exception as e:
-                raise InvalidConfigError(f"Error parsing configuration file {self.config_path}: {e}")
-        else:
-            # Default configuration logic (simplified)
-            print("No configuration provided, using default settings for generation.")
-            self.config = {
-                "output_directory_base": "synthetic_output_default",
-                "global_settings": {
-                    "default_author": "Default Synth Author",
-                    "default_language": "en"
-                },
-                "file_types": [
-                    {
-                        "type": "epub", "count": 1, "output_subdir": "default_epubs",
-                        "epub_specific_settings": EpubGenerator().get_default_specific_config()
-                    },
-                    {
-                        "type": "pdf", "count": 1, "output_subdir": "default_pdfs",
-                        "pdf_specific_settings": PdfGenerator().get_default_specific_config()
-                    },
-                    {
-                        "type": "markdown", "count": 1, "output_subdir": "default_markdown",
-                        "markdown_specific_settings": MarkdownGenerator().get_default_specific_config()
-                    }
-                ]
-            }
-        
-        self._validate_root_config()
-        return self.config
-
-    def _validate_root_config(self):
-        if not isinstance(self.config, dict):
-            raise InvalidConfigError("Root configuration must be a dictionary.")
-        if "file_types" not in self.config or not isinstance(self.config["file_types"], list):
-            raise InvalidConfigError("'file_types' must be a list in the configuration.")
-        if not self.config["file_types"]:
-            print("Warning: 'file_types' list is empty. No files will be generated.")
 
 
 # Mapping of type strings to generator classes
@@ -96,12 +35,35 @@ def generate_data(config_path: Optional[str] = None, config_obj: Optional[Dict[s
     """
     print(f"Starting synthetic data generation (config_path='{config_path}', config_obj provided: {config_obj is not None}, output_dir_override='{output_dir_override}')...")
 
-    loader = ConfigLoader(config_path=config_path, config_obj=config_obj)
+    # Instantiate the real ConfigLoader
+    # The schema path might be handled internally by ConfigLoader or passed here
+    # For now, assuming ConfigLoader uses its default schema if schema_path is None
+    loader = ConfigLoader() # ConfigLoader handles its own default schema path
+    
     try:
-        config = loader.load_config()
-    except (FileNotFoundError, InvalidConfigError) as e:
-        print(f"Configuration error: {e}") # Or re-raise specific exceptions
-        raise # Re-raise for now as per original spec for generate_data
+        # Use load_and_validate_config
+        # If config_obj is provided, it should take precedence or be handled by ConfigLoader
+        if config_obj:
+            # ConfigLoader's current load_and_validate_config doesn't directly take config_obj.
+            # This part might need adjustment based on how ConfigLoader is designed to handle this.
+            # For now, we'll assume if config_obj is given, config_path might be None or ignored.
+            # This is a simplification and might need refinement.
+            # A more robust ConfigLoader might have a load_from_object_and_validate method.
+            # OR, the test setup needs to ensure config_path is always primary for this integration.
+            # For this TDD step, we focus on config_path.
+            if config_path:
+                 print(f"Warning: Both config_path ('{config_path}') and config_obj provided. Prioritizing config_path for loading.")
+            config = loader.load_and_validate_config(config_path=config_path, config_override_object=config_obj)
+
+        elif config_path:
+            config = loader.load_and_validate_config(config_path=config_path)
+        else:
+            # Load default config if neither path nor object is provided
+            config = loader.load_and_validate_config()
+
+    except Exception as e: # Catching a broader exception as ConfigLoader might raise various types
+        print(f"Configuration error: {e}")
+        raise # Re-raise for now
 
     global_settings = config.get("global_settings", {})
     base_output_dir = output_dir_override if output_dir_override else config.get("output_directory_base", "synthetic_output")
@@ -129,16 +91,25 @@ def generate_data(config_path: Optional[str] = None, config_obj: Optional[Dict[s
             print(f"Warning: Invalid 'count' for type '{generator_type_str}': {count}. Defaulting to 1.")
             count = 1
             
-        specific_settings_key = f"{generator_type_str.lower()}_specific_settings"
-        specific_config = file_type_config.get(specific_settings_key, {})
+        # Get generator-specific config from the main loaded_config
+        # The loader instance is 'loader', the full config is 'config'
+        specific_config = loader.get_generator_config(config, generator_type_str.lower())
         
-        # If specific settings are empty, use generator's defaults
-        if not specific_config:
+        # If specific settings are empty after trying to load from main config,
+        # then use generator's defaults.
+        if not specific_config: # and generator_type_str.lower() in GENERATOR_MAP: # Check if it's a known type
+            # This check for GENERATOR_MAP might be redundant if specific_config is already empty
             specific_config = generator_instance.get_default_specific_config()
-            print(f"Using default specific settings for {generator_type_str}")
+            print(f"Using default specific settings for {generator_type_str} as none were found in the main config.")
 
         # Validate the specific config using the generator's method
         try:
+            # Ensure specific_config is a dict before validation,
+            # as get_default_specific_config should return a dict.
+            if not isinstance(specific_config, dict):
+                print(f"Warning: Specific configuration for {generator_type_str} is not a dictionary. Using defaults.")
+                specific_config = generator_instance.get_default_specific_config()
+
             if not generator_instance.validate_config(specific_config, global_settings):
                 print(f"Warning: Invalid specific configuration for {generator_type_str}. Skipping.")
                 # Or raise InvalidConfigError
