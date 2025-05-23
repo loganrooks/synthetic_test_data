@@ -1,0 +1,38 @@
+# Default configuration for Synthetic Data Generator
+output_directory_base: "synthetic_output_default"
+
+file_types:
+  - type: "epub"
+    count: 2
+  - type: "pdf"
+    count: 2
+  - type: "markdown"
+    count: 2
+
+global_settings:
+  max_files_per_type: 10
+
+epub:
+  title: "Synthetic EPUB Document"
+  author: "Synthetic Data Generator"
+  language: "en-US"
+  chapters_config: 3
+  sections_per_chapter_config: 2
+  toc_config:
+    enable: true
+    type: "html_nav"
+
+pdf:
+  title: "Synthetic PDF Document"
+  author: "Synthetic Data Generator"
+  orientation: "portrait"
+  page_size: "letter"
+  page_count_config: 5
+  chapters_config: 3
+
+markdown:
+  title: "Synthetic Markdown Document"
+  frontmatter:
+    enable: true
+  headings_config: 3
+  table_config: 1
