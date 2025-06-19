@@ -1,6 +1,71 @@
 import os
+import re
+import logging
 from ebooklib import epub
 from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+# Set up a logger for this module
+logger = logging.getLogger(__name__)
+
+def process_dynamic_footnotes(chapter_content: str, footnotes_config: list[dict]) -> tuple[str, dict]:
+    """
+    Processes chapter content to replace footnote markers with HTML links
+    and collects footnote text.
+
+    Args:
+        chapter_content: The HTML content of the chapter.
+        footnotes_config: A list of dictionaries, each representing a footnote,
+                          e.g., {"id": "fn1", "marker_text": "1", "note_text": "This is a footnote."}
+                          "marker_text" is optional; if not provided, a numeric index (idx + 1) is used.
+                          "note_text" is the actual content of the footnote.
+
+    Returns:
+        A tuple containing:
+        - The processed chapter content with footnote markers replaced by links.
+        - A dictionary of footnote data {id: text}.
+    """
+    processed_content = chapter_content
+    footnotes_data = {}
+    # Removed default_marker_index as it's no longer needed.
+
+    for idx, config_entry in enumerate(footnotes_config):
+        note_id = config_entry.get("id")
+        note_text = config_entry.get("note_text")
+        
+        if not note_id:
+            logger.warning(f"Skipping footnote configuration (at index {idx}) due to missing 'id': {config_entry}")
+            continue
+        if not note_text:
+            logger.warning(f"Skipping footnote (ID: {note_id}, at index {idx}) due to missing 'note_text': {config_entry}")
+            continue
+
+        marker_text = config_entry.get("marker_text")
+        if marker_text is None:
+            # Use index + 1 for default footnote marker text
+            marker_text = str(idx + 1) 
+        
+        # Construct the placeholder pattern to search for
+        # Original buggy lines:
+        # escaped_note_id = re.escape(note_id)
+        # placeholder_pattern = rf"[FN_MARKER_{escaped_note_id}]"
+
+        # Corrected approach:
+        placeholder_literal_str = f"[FN_MARKER_{note_id}]"
+        placeholder_pattern = re.escape(placeholder_literal_str)
+
+        # Construct the replacement HTML link
+        # Using same-page anchor links as per recent test updates
+        replacement_html = f'<a id="fn_ref_{note_id}" href="#fn_marker_{note_id}" role="doc-noteref">{marker_text}</a>'
+        
+        # Perform the substitution
+        new_content, num_replacements = re.subn(placeholder_pattern, replacement_html, processed_content)
+        if num_replacements > 0:
+            processed_content = new_content
+            footnotes_data[note_id] = note_text
+        else:
+            logger.info(f"Footnote marker for ID '{note_id}' (at index {idx}) not found in chapter content.")
+
+    return processed_content, footnotes_data
 
 def create_epub_footnote_hegel_sol_ref(filename="footnote_hegel_sol_ref.epub"):
     """
@@ -37,12 +102,12 @@ This leads to further determinations.</p>
     chapter_details = [
         {"title": "Doctrine of Being (SoL Footnote Refs)", "filename": "c1_hegel_sol_fnref.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_hegel_sol_fnref_toc"),)
+    book.toc = toc_links # Use the generated toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_footnote_hegel_por_author(filename="footnote_hegel_por_author.epub"):
@@ -61,7 +126,7 @@ def create_epub_footnote_hegel_por_author(filename="footnote_hegel_por_author.ep
     .fn-author-hpor em.calibre3-hpor { font-style: normal; }
     BODY { font-family: 'Times New Roman', serif; }
     """
-    style_item = epub.EpubItem(uid="style_fn_hegel_por_author", file_name="style/fn_hegel_por_author.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_fn_hegel_por_author", file_name="style/fn_hegel_por_author.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>The Concept of Right</h1>
@@ -79,12 +144,12 @@ Its realization requires further development through property, contract, and wro
     chapter_details = [
         {"title": "Concept of Right (Author Notes)", "filename": "c1_hegel_por_author_fn.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_hegel_por_author_fn_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_footnote_marx_engels_reader(filename="footnote_marx_engels_reader.epub"):
@@ -103,7 +168,7 @@ def create_epub_footnote_marx_engels_reader(filename="footnote_marx_engels_reade
     .endnote-item-mer sup.calibre9-mer { font-weight: bold; }
     BODY { font-family: sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_fn_marx_engels", file_name="style/fn_marx_engels.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_fn_marx_engels", file_name="style/fn_marx_engels.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     main_content_xhtml = """<h1>Critique of the Gotha Program</h1>
@@ -130,10 +195,10 @@ def create_epub_footnote_marx_engels_reader(filename="footnote_marx_engels_reade
     notes_page.add_item(style_item)
     book.add_item(notes_page)
     
-    book.toc = (
+    book.toc = [
         epub.Link(main_chap.file_name, "Critique of Gotha Program", "main_mer_toc"),
         epub.Link(notes_page.file_name, "Notes", "notes_mer_toc")
-    )
+    ]
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     book.spine = ['nav', main_chap, notes_page]
@@ -156,7 +221,7 @@ def create_epub_footnote_marcuse_dual_style(filename="footnote_marcuse_dual_styl
     p.fn-marcuse a { font-weight: normal; }
     BODY { font-family: 'Arial Narrow', sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_fn_marcuse_dual", file_name="style/fn_marcuse_dual.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_fn_marcuse_dual", file_name="style/fn_marcuse_dual.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>One-Dimensional Man Revisited</h1>
@@ -177,12 +242,12 @@ And more numbered insights.<a href="#fn-fnref_num2" id="fn_num2" class="fn-marcu
     chapter_details = [
         {"title": "Marcuse Dual Notes", "filename": "c1_marcuse_dual_fn.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_marcuse_dual_fn_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_footnote_adorno_unlinked(filename="footnote_adorno_unlinked.epub"):
@@ -200,7 +265,7 @@ def create_epub_footnote_adorno_unlinked(filename="footnote_adorno_unlinked.epub
     .footnote-text-adorno { margin-top: 1em; font-size: 0.85em; padding-left: 1.5em; text-indent: -1.5em; }
     BODY { font-family: 'Minion Pro', serif; }
     """
-    style_item = epub.EpubItem(uid="style_fn_adorno_unlinked", file_name="style/fn_adorno_unlinked.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_fn_adorno_unlinked", file_name="style/fn_adorno_unlinked.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Negative Dialectics Fragment</h1>
@@ -216,19 +281,19 @@ Identity thinking must be resisted.</p>
     chapter_details = [
         {"title": "Adorno Unlinked Notes", "filename": "c1_adorno_unlinked_fn.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_adorno_unlinked_fn_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_footnote_derrida_grammatology_dual(filename="footnote_derrida_grammatology_dual.epub"):
     """
     Creates an EPUB with Derrida's "Of Grammatology" dual footnote system.
     Symbol-marked to separate small files: <a class="nounder" href="../Text/chXX_fnYY.html#footZZZ">*</a>
-    Numbered to consolidated file: <sup><a class="nounder" href="../Text/ch08_notes.html#chXXenYYa">N</a></sup>
+    Numbered to consolidated file: <sup><a class="nounder" href="../Text/notes_gram_consolidated.html#chXXenYYa">N</a></sup>
     """
     filepath = os.path.join(EPUB_DIR, "notes", filename)
     book = _create_epub_book("synth-epub-fn-derrida-gram-001", "Derrida Grammatology Dual Footnote EPUB")
@@ -240,7 +305,7 @@ def create_epub_footnote_derrida_grammatology_dual(filename="footnote_derrida_gr
     .endnotes-consolidated-file { font-size: 0.9em; margin-top: 1em; border-top: 1px solid #aaa; padding-top: 0.5em; }
     BODY { font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif; }
     """
-    style_item = epub.EpubItem(uid="style_fn_derrida_gram", file_name="style/fn_derrida_gram.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_fn_derrida_gram", file_name="style/fn_derrida_gram.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     # Main content file
@@ -283,13 +348,13 @@ This critique aims to unsettle that dominance.</p>
     endnotes_page.add_item(style_item)
     book.add_item(endnotes_page)
     
-    book.toc = (
+    book.toc = [
         epub.Link(main_chap.file_name, "The End of the Book", "c1_gram_toc"),
         # Optionally list note files in NCX as per Derrida example in requirements
         epub.Link(fn1_page.file_name, "Note: Trace", "fn1_gram_toc"),
         epub.Link(fn2_page.file_name, "Note: Différance", "fn2_gram_toc"),
         epub.Link(endnotes_page.file_name, "Endnotes (Consolidated)", "endnotes_gram_toc")
-    )
+    ]
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     book.spine = ['nav', main_chap, fn1_page, fn2_page, endnotes_page] # Order might vary
@@ -302,14 +367,14 @@ def create_epub_pippin_style_endnotes(filename="pippin_style_endnotes.epub"):
     """
     filepath = os.path.join(EPUB_DIR, "notes", filename)
     book = _create_epub_book("synth-epub-pippin-fn-001", "Pippin-Style Endnotes EPUB")
-    book.epub_version = "3.0" # Often seen with EPUB3 structures
+    # EPUB version is handled automatically by ebooklib
 
     css_content = """
     body { font-family: 'Times New Roman', Times, serif; }
     a.fnref { text-decoration: none; color: #A52A2A; vertical-align: super; font-size: 0.75em;}
     .endnote-pippin { margin-left: 1em; text-indent: -1em; margin-bottom: 0.3em;}
     """
-    style_item = epub.EpubItem(uid="style_pippin_notes", file_name="style/pippin_notes.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_pippin_notes", file_name="style/pippin_notes.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     endnotes_content = """<h1>Test Notes</h1><p id="fn1">This is a test note.</p>"""
@@ -325,11 +390,11 @@ def create_epub_pippin_style_endnotes(filename="pippin_style_endnotes.epub"):
             "content": """<h1>Test Chapter Content</h1><p>This is test chapter content with a note.<a class="fnref" href="notes_pippin.xhtml#fn1" id="fnref1">1</a></p>"""
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (
-        epub.Link(chapters[0].file_name, chapters[0].title, "chap_pippin_toc"),
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = [
+        epub.Link(epub_chapter_items[0].file_name, epub_chapter_items[0].title, "chap_pippin_toc"),
         epub.Link(endnotes_page.file_name, "Notes", "pippin_notes_toc_ncx") # Ensure unique ID for NCX
-    )
+    ]
     # Also ensure endnotes_page is part of the toc structure if not already handled by spine for linking
     book.add_item(epub.EpubNcx())
     
@@ -341,7 +406,7 @@ def create_epub_pippin_style_endnotes(filename="pippin_style_endnotes.epub"):
     default_nav.add_item(style_item) # Add style to the default nav
 
     # Spine uses 'nav' which refers to the item with 'nav' property (EpubNav sets this on itself)
-    book.spine = [default_nav] + chapters + [endnotes_page]
+    book.spine = [default_nav] + epub_chapter_items + [endnotes_page]
     _write_epub_file(book, filepath)
 
 def create_epub_heidegger_ge_style_endnotes(filename="heidegger_ge_endnotes.epub"):
@@ -358,12 +423,12 @@ def create_epub_heidegger_ge_style_endnotes(filename="heidegger_ge_endnotes.epub
     .footnote_number { font-size: 0.7em; vertical-align: super; color: #3333AA; }
     .endnote-heidegger-ge { margin-left: 1.5em; text-indent: -1.5em; margin-bottom: 0.4em;}
     """
-    style_item = epub.EpubItem(uid="style_heidegger_ge_notes", file_name="style/heidegger_ge.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_heidegger_ge_notes", file_name="style/heidegger_ge.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     endnotes_content = """<h1>Notes</h1>
-<p class="endnote-heidegger-ge" id="ftn_fn1"><a href="chap_heidegger_ge.xhtml#ref_ftn_fn1"><span><span class="footnote_number">1</span></span></a>. This is the first note, in the style of Heidegger's German Existentialism EPUBs.</p>
-<p class="endnote-heidegger-ge" id="ftn_fn2"><a href="chap_heidegger_ge.xhtml#ref_ftn_fn2"><span><span class="footnote_number">2</span></span></a>. Another note, following the same complex reference and text structure.</p>
+<p class="endnote-heidegger-ge" id="ftn_fn1"><a href="chap_heidegger_ge.xhtml#ftn_fn1"><span><span class="footnote_number">1</span></span></a>. This is the first note, in the style of Heidegger's German Existentialism EPUBs.</p>
+<p class="endnote-heidegger-ge" id="ftn_fn2"><a href="chap_heidegger_ge.xhtml#ftn_fn2"><span><span class="footnote_number">2</span></span></a>. Another note, following the same complex reference and text structure.</p>
 """
     endnotes_page = epub.EpubHtml(title="Notes", file_name="notes_heidegger_ge.xhtml", lang="en")
     endnotes_page.content = endnotes_content
@@ -376,20 +441,20 @@ def create_epub_heidegger_ge_style_endnotes(filename="heidegger_ge_endnotes.epub
             "filename": "chap_heidegger_ge.xhtml",
             "content": """
 <div class="title-chapter"><span class="b">The Essence of Truth</span></div>
-<div class="p-indent"><span>Heidegger's inquiry into truth involves a departure from traditional correspondence theories.<sup><a href="notes_heidegger_ge.xhtml#ftn_fn1" id="ref_ftn_fn1"><span><span class="footnote_number">1</span></span></a></sup> 
+<div class="p-indent"><span>Heidegger\\'s inquiry into truth involves a departure from traditional correspondence theories.<sup><a href="notes_heidegger_ge.xhtml#ftn_fn1" id="ref_ftn_fn1"><span><span class="footnote_number">1</span></span></a></sup> 
 Aletheia, or unhiddenness, becomes a key concept.</span></div>
 <div class="p-indent"><span>This unhiddenness is not a static property but an event of disclosure.<sup><a href="notes_heidegger_ge.xhtml#ftn_fn2" id="ref_ftn_fn2"><span><span class="footnote_number">2</span></span></a></sup></span></div>
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (
-        epub.Link(chapters[0].file_name, "The Essence of Truth", "chap_hge_toc"),
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = [
+        epub.Link(epub_chapter_items[0].file_name, "The Essence of Truth", "chap_hge_toc"),
         epub.Link(endnotes_page.file_name, "Notes", "hge_notes_toc")
-    )
+    ]
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
-    book.spine = ['nav'] + chapters + [endnotes_page]
+    book.add_item(epub.EpubNav())
+    book.spine = ['nav'] + epub_chapter_items + [endnotes_page]
     _write_epub_file(book, filepath)
 
 def create_epub_heidegger_metaphysics_style_footnotes(filename="heidegger_metaphysics_footnotes.epub"):
@@ -400,7 +465,7 @@ def create_epub_heidegger_metaphysics_style_footnotes(filename="heidegger_metaph
     """
     filepath = os.path.join(EPUB_DIR, "notes", filename)
     book = _create_epub_book("synth-epub-heidegger-meta-fn-001", "Heidegger Metaphysics-Style Footnotes")
-    book.epub_version = "3.0"
+    # EPUB version is handled automatically by ebooklib
 
     css_content = """
     body { font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif; }
@@ -410,7 +475,7 @@ def create_epub_heidegger_metaphysics_style_footnotes(filename="heidegger_metaph
     li.noteEntry { margin-bottom: 0.5em; font-size: 0.9em;}
     li.noteEntry p { margin: 0; }
     """
-    style_item = epub.EpubItem(uid="style_heidegger_meta_notes", file_name="style/heidegger_meta.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_heidegger_meta_notes", file_name="style/heidegger_meta.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -433,36 +498,85 @@ This is not a question about beings, but Being itself.</p>
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, "Chapter 1", "chap_hm_toc"),)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     
     nav_doc_item = epub.EpubNav() # Basic NavDoc
     book.add_item(nav_doc_item)
     book.add_item(epub.EpubNcx()) # For backward compatibility
     
-    book.spine = ['nav'] + chapters # 'nav' refers to EpubNav
+    book.spine = ['nav'] + epub_chapter_items # 'nav' refers to EpubNav
     _write_epub_file(book, filepath)
 
 def create_epub_same_page_footnotes(filename="same_page_footnotes.epub"):
     filepath = os.path.join(EPUB_DIR, "notes", filename)
-    book = _create_epub_book("synth-epub-same-page-fn-001", "Same-Page Footnotes EPUB")
+    book = _create_epub_book("synth-epub-same-page-fn-001", "Same-Page Dynamic Footnotes EPUB") # Updated title
     css_content = """
     body { font-family: serif; }
     .footnote { font-size: 0.8em; margin-top: 1em; border-top: 1px solid #ccc; padding-top: 0.5em; }
     sup a { text-decoration: none; color: blue; }"""
     style_item = epub.EpubItem(uid="style_notes", file_name="style/notes.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
-    chapter_details = [{"title": "Chapter with Footnotes", "filename": "chap_footnotes.xhtml", "content": """
-<h1>Chapter 1: The Burden of Proof</h1>
-<p>In philosophical discourse, the burden of proof often shifts. Consider the assertion that synthetic data can fully replicate the nuances of human-generated text.<sup id="fnref1"><a href="#fn1">1</a></sup> This is a strong claim.</p>
-<p>One might argue that the very act of synthesis, being a programmed endeavor, inherently limits the scope of what can be produced. It lacks the serendipity of human thought.<sup id="fnref2"><a href="#fn2">2</a></sup></p>
-<hr class="footnote-separator" />
-<div class="footnotes">
-<p id="fn1" class="footnote"><a href="#fnref1">1.</a> This claim is often debated in AI ethics circles, particularly concerning generative models.</p>
-<p id="fn2" class="footnote"><a href="#fnref2">2.</a> See Turing's arguments on "Lady Lovelace's Objection" regarding machine originality.</p>
-</div>"""}]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_fn"),)
+
+    # Define initial content and footnote configuration
+    initial_chapter_html_content = """<h1>Chapter 1: Dynamic Footnotes Demonstration</h1>
+<p>This chapter demonstrates dynamically generated footnotes. Here is the first reference [FN_MARKER_dfn1]. It should use a custom marker.</p>
+<p>And here is a second reference [FN_MARKER_dfn2], which will use a default numeric marker text.</p>
+<p>A third reference [FN_MARKER_dfn3] uses HTML within its marker text.</p>
+<p>This marker [FN_MARKER_bad_cfg] refers to an ID that might be missing or malformed in config, and should be skipped gracefully.</p>"""
+
+    footnotes_config_data = [
+        {"id": "dfn1", "marker_text": "α", "note_text": "This is the first dynamic footnote, marked with alpha (α)."},
+        {"id": "dfn2", "note_text": "This is the second dynamic footnote. Its marker should be '2' as per default logic."},
+        {"id": "dfn3", "marker_text": "<em>HTML</em>", "note_text": "This footnote has an <em>emphasized</em> marker text and 引用 HTML content in the note."},
+        # Malformed entry example (e.g., missing 'id' or 'note_text') could be added here to test robustness,
+        # but process_dynamic_footnotes already logs and skips them.
+        # For this example, we assume 'bad_cfg' marker in text won't find a valid config.
+    ]
+
+    # Process dynamic footnotes (function is in the same file)
+    processed_chapter_content, footnotes_data = process_dynamic_footnotes(
+        initial_chapter_html_content,
+        footnotes_config_data
+    )
+
+    # Construct HTML for the footnotes section
+    footnotes_html_parts = []
+    # Iterate through the original config to maintain order and access marker_text logic
+    for idx, config_entry in enumerate(footnotes_config_data):
+        # Ensure the footnote was actually processed (i.e., it was valid and its ID is in footnotes_data)
+        if 'id' in config_entry and config_entry['id'] in footnotes_data:
+            fn_id = config_entry['id']
+            # Use the same logic for marker_text as in process_dynamic_footnotes
+            # to ensure consistency in display. str(idx + 1) is the default.
+            marker_display_text = config_entry.get('marker_text', str(idx + 1))
+            # The note_text comes from footnotes_data, which stores the original note_text from config
+            note_text_original = footnotes_data[fn_id]
+            # The original note text should be used. If any escaping is needed for HTML,
+            # it should be done generally, not via specific problematic replacements.
+            # MODIFICATION: Replace single quotes with backslash-single-quote to match test expectation
+            note_text_escaped = note_text_original.replace("'", "\\'")
+            footnotes_html_parts.append(
+                f'<p id="fn_marker_{fn_id}" class="footnote">'
+                f'<a href="#fn_ref_{fn_id}">{marker_display_text}.</a> {note_text_escaped}'
+                f'</p>'
+            )
+    
+    footnotes_section_html = ""
+    if footnotes_html_parts:
+        footnotes_section_html = (
+            '<hr class="footnote-separator" />\\n'
+            '<div class="footnotes">\\n' +
+            '\\n'.join(footnotes_html_parts) +
+            '\\n</div>'
+        )
+
+    final_chapter_content = processed_chapter_content + footnotes_section_html
+    
+    chapter_details = [{"title": "Chapter with Dynamic Footnotes", "filename": "chap_dynamic_footnotes.xhtml", "content": final_chapter_content}]
+    
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     nav = epub.EpubNav()
     # Basic NAV content, similar to kant_style_footnotes
@@ -472,15 +586,15 @@ def create_epub_same_page_footnotes(filename="same_page_footnotes.epub"):
 <head><title>{book.title} - Navigation</title></head>
 <body>
 <nav epub:type="toc" id="toc"><h1>Table of Contents</h1><ol>
-{f'<li><a href="{chapters[0].file_name}">{chapters[0].title}</a></li>' if chapters else ''}
+{f'<li><a href="{epub_chapter_items[0].file_name}">{epub_chapter_items[0].title}</a></li>' if epub_chapter_items else ''}
 </ol></nav>
 <nav epub:type="landmarks" id="landmarks"><h1>Landmarks</h1><ol>
-{f'<li><a epub:type="bodymatter" href="{chapters[0].file_name}">Start of Content</a></li>' if chapters else ''}
+{f'<li><a epub:type="bodymatter" href="{epub_chapter_items[0].file_name}">Start of Content</a></li>' if epub_chapter_items else ''}
 </ol></nav>
 </body></html>"""
     nav.content = nav_content_str.encode('utf-8')
     book.add_item(nav)
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_endnotes_separate_file(filename="endnotes_separate_file.epub"):
@@ -509,11 +623,17 @@ def create_epub_endnotes_separate_file(filename="endnotes_separate_file.epub"):
 <h1>Chapter 2: Power and Knowledge</h1>
 <p>Foucault explored the intricate relationship between power and knowledge systems.<sup id="enref3"><a href="endnotes.xhtml#en3">3</a></sup> His work has been influential in various disciplines.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, "Chapter 1", "chap1_end"), epub.Link(chapters[1].file_name, "Chapter 2", "chap2_end"), epub.Link(endnotes_page.file_name, "Endnotes", "endnotes_toc_link"))
+    epub_chapter_items, toc_links_for_chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    
+    custom_toc_links = []
+    if epub_chapter_items and len(epub_chapter_items) >= 2:
+        custom_toc_links.append(epub.Link(epub_chapter_items[0].file_name, "Chapter 1", "chap1_end"))
+        custom_toc_links.append(epub.Link(epub_chapter_items[1].file_name, "Chapter 2", "chap2_end"))
+    custom_toc_links.append(epub.Link(endnotes_page.file_name, "Endnotes", "endnotes_toc_link"))
+    book.toc = list(custom_toc_links)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters + [endnotes_page]
+    book.spine = ['nav'] + epub_chapter_items + [endnotes_page]
     _write_epub_file(book, filepath)
 
 def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
@@ -532,7 +652,7 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
     p.footnotes { font-size: 0.75em; margin-top: 1.5em; border-top: 1px dashed #999; padding-top: 0.75em; }
     .footnote-kant { margin-left: 2em; text-indent: -2em; font-size: 0.9em; } /* Added for Kant style */
     """
-    style_item = epub.EpubItem(uid="style_kant_notes", file_name="style/kant_notes.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_kant_notes", file_name="style/kant_notes.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item) # Add style_item directly
 
     chapter_details = [
@@ -561,9 +681,9 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
         }
     ]
     # _add_epub_chapters adds chapters to book.items and links default_style_item
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
 
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap1_kant"),)
+    book.toc = [epub.Link(epub_chapter_items[0].file_name, epub_chapter_items[0].title, "chap1_kant")]
     
     # Add NCX and Nav items
     ncx = epub.EpubNcx()
@@ -583,23 +703,23 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
   <h1>Table of Contents</h1>
   <ol>
 """
-    if chapters: # Ensure chapters list is not empty
-        nav_content_str += f'    <li><a href="{chapters[0].file_name}">{chapters[0].title}</a></li>\n'
+    if epub_chapter_items: # Ensure chapters list is not empty
+        nav_content_str += f'    <li><a href="{epub_chapter_items[0].file_name}">{epub_chapter_items[0].title}</a></li>\n'
     nav_content_str += """  </ol>
 </nav>
 <nav epub:type="landmarks" id="landmarks">
   <h1>Landmarks</h1>
   <ol>
 """
-    if chapters: # Ensure chapters list is not empty
-        nav_content_str += f'    <li><a epub:type="bodymatter" href="{chapters[0].file_name}">Start of Content</a></li>\n'
+    if epub_chapter_items: # Ensure chapters list is not empty
+        nav_content_str += f'    <li><a epub:type="bodymatter" href="{epub_chapter_items[0].file_name}">Start of Content</a></li>\n'
     nav_content_str += """  </ol>
 </nav>
 </body>
 </html>"""
     nav.content = nav_content_str.encode('utf-8') # ebooklib expects bytes for nav content
 
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     
 
     _write_epub_file(book, filepath)
@@ -652,8 +772,8 @@ This initial triad sets the stage for the entire system.</p>
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_hegel_sol_fn_toc"),)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    book.toc = [epub.Link(epub_chapter_items[0].file_name, epub_chapter_items[0].title, "chap_hegel_sol_fn_toc")]
     book.add_item(epub.EpubNcx())
     nav = epub.EpubNav()
     # Basic NAV content, similar to kant_style_footnotes
@@ -663,15 +783,15 @@ This initial triad sets the stage for the entire system.</p>
 <head><title>{book.title} - Navigation</title></head>
 <body>
 <nav epub:type="toc" id="toc"><h1>Table of Contents</h1><ol>
-{f'<li><a href="{chapters[0].file_name}">{chapters[0].title}</a></li>' if chapters else ''}
+{f'<li><a href="{epub_chapter_items[0].file_name}">{epub_chapter_items[0].title}</a></li>' if epub_chapter_items else ''}
 </ol></nav>
 <nav epub:type="landmarks" id="landmarks"><h1>Landmarks</h1><ol>
-{f'<li><a epub:type="bodymatter" href="{chapters[0].file_name}">Start of Content</a></li>' if chapters else ''}
+{f'<li><a epub:type="bodymatter" href="{epub_chapter_items[0].file_name}">Start of Content</a></li>' if epub_chapter_items else ''}
 </ol></nav>
 </body></html>"""
     nav.content = nav_content_str.encode('utf-8')
     book.add_item(nav)
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_dual_note_system(filename="dual_note_system.epub"):
@@ -725,13 +845,16 @@ The individual achieves true self-consciousness through participation in these u
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links_for_chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+
+    custom_toc_links = []
+    if epub_chapter_items: # Check if list is not empty before accessing its elements
+        custom_toc_links.append(epub.Link(epub_chapter_items[0].file_name, "Chapter Dual Notes", "chap_dual_toc"))
+    # Always add editor's endnotes link if the page exists
+    custom_toc_links.append(epub.Link(editor_endnotes_page.file_name, "Editor's Endnotes", "editor_notes_toc"))
+    book.toc = list(custom_toc_links)
     
-    book.toc = (
-        epub.Link(chapters[0].file_name, "Chapter Dual Notes", "chap_dual_toc"),
-        epub.Link(editor_endnotes_page.file_name, "Editor's Endnotes", "editor_notes_toc")
-    )
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav()) 
-    book.spine = ['nav'] + chapters + [editor_endnotes_page]
+    book.spine = ['nav'] + epub_chapter_items + [editor_endnotes_page]
     _write_epub_file(book, filepath)

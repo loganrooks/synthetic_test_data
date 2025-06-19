@@ -35,3 +35,10 @@ venv.bak/
 .idea/
 *.swp
 *.swo
+
+.roo/
+.roomodes
+
+aggregate_files.py
+workspace_content*
+export_pylance_issues.py

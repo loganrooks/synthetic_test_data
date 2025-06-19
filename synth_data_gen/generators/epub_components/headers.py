@@ -17,7 +17,7 @@ def create_epub_taylor_hegel_headers(filename="taylor_hegel_headers.epub"):
     h3.h3a { font-size: 1.2em; text-align: center; margin-bottom: 1em;}
     h3.h3a em { font-style: italic; font-weight: bold;}
     """
-    style_item = epub.EpubItem(uid="style_taylor_h", file_name="style/taylor_h.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_taylor_h", file_name="style/taylor_h.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -69,7 +69,7 @@ def create_epub_sennet_style_headers(filename="sennet_style_headers.epub"):
     h3.title3 { font-size: 1.1em; font-weight: bold; }
     h3.title4 span.em { font-style: italic; }
     """
-    style_item = epub.EpubItem(uid="style_sennet_h", file_name="style/sennet_h.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_sennet_h", file_name="style/sennet_h.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -109,7 +109,7 @@ def create_epub_div_style_headers(filename="div_style_headers.epub"):
     .subtitle-chapter { font-size: 1.3em; margin-bottom: 1em; text-align: center; }
     .subtitle-chapter span.i { font-style: italic; }
     """
-    style_item = epub.EpubItem(uid="style_div_h", file_name="style/div_h.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_div_h", file_name="style/div_h.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -146,7 +146,7 @@ def create_epub_header_mixed_content(filename="header_mixed_content.epub"):
     h3 span.marker { color: red; font-weight: bold; }
     BODY { font-family: sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_mix", file_name="style/header_mix.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_mix", file_name="style/header_mix.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -180,7 +180,7 @@ def create_epub_header_rosenzweig_hegel(filename="header_rosenzweig_hegel.epub")
     h1.chapter span.cn span.bor { border: 1px solid black; padding: 0.1em 0.3em; font-weight: normal; }
     BODY { font-family: 'Times New Roman', serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_rosen", file_name="style/header_rosen.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_rosen", file_name="style/header_rosen.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -215,7 +215,7 @@ def create_epub_header_derrida_gift_death(filename="header_derrida_gift_death.ep
     h2.chaptitle-derrida-gd { font-size: 1.4em; font-style: italic; text-align: center; margin-bottom: 1.5em; }
     BODY { font-family: serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_derrida_gd", file_name="style/header_derrida_gd.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_derrida_gd", file_name="style/header_derrida_gd.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -251,7 +251,7 @@ def create_epub_header_bch_p_strong(filename="header_bch_p_strong.epub"):
     p.c9-bch strong.calibre3-bch { font-weight: bold; letter-spacing: 0.05em; }
     BODY { font-family: Arial, sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_bch", file_name="style/header_bch.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_bch", file_name="style/header_bch.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -287,7 +287,7 @@ def create_epub_header_derrida_specters_p(filename="header_derrida_specters_p.ep
     p.chapter-number_1-sp a, p.chapter-title_2-sp a { text-decoration: none; color: inherit; }
     BODY { font-family: 'Georgia', serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_derrida_sp", file_name="style/header_derrida_sp.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_derrida_sp", file_name="style/header_derrida_sp.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -320,7 +320,7 @@ def create_epub_header_kaplan_div(filename="header_kaplan_div.epub"):
     div.chapter-title-kaplan { font-size: 1.5em; font-style: italic; text-align: center; margin-bottom: 1.5em; }
     BODY { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_kaplan", file_name="style/header_kaplan.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_kaplan", file_name="style/header_kaplan.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -357,7 +357,7 @@ def create_epub_header_foucault_style(filename="header_foucault_style.epub"):
         color: inherit; 
     }
     """
-    style_item = epub.EpubItem(uid="style_foucault_h", file_name="style/foucault_h.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_foucault_h", file_name="style/foucault_h.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """
@@ -395,7 +395,7 @@ def create_epub_header_descartes_dict_p(filename="header_descartes_dict_p.epub")
     p.BHead-dd { font-size: 1.1em; font-style: italic; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.3em; }
     BODY { font-family: 'Garamond', serif; }
     """
-    style_item = epub.EpubItem(uid="style_header_descartes_dict", file_name="style/header_descartes_dict.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_header_descartes_dict", file_name="style/header_descartes_dict.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_details = [
@@ -424,7 +424,7 @@ def create_epub_p_tag_headers(filename="p_tag_headers.epub"):
     p.h2-style { font-size: 1.5em; font-weight: bold; margin-top: 0.8em; margin-bottom: 0.4em; }
     p.h3-style { font-size: 1.2em; font-weight: bold; margin-top: 0.6em; margin-bottom: 0.3em; }
     """
-    style_item = epub.EpubItem(uid="style_main", file_name="style/main.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_main", file_name="style/main.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
     chapter_details = [
         {"title": "Chapter 1 with P-Tag Headers", "filename": "chap_01_p_headers.xhtml", "content": """
@@ -477,7 +477,7 @@ def create_epub_headers_with_edition_markers(filename="headers_edition_markers.e
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     style = 'BODY {color: darkred;}'
-    nav_css = epub.EpubItem(uid="style_nav", file_name="style/nav.css", media_type="text/css", content=style)
+    nav_css = epub.EpubItem(uid="style_nav", file_name="style/nav.css", media_type="text/css", content=style.encode('utf-8'))
     book.add_item(nav_css)
     book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath)
