@@ -1,8 +1,9 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open # Added mock_open
+import json # Added json
 
 from synth_data_gen import generate_data
-from synth_data_gen.generators.epub import EpubGenerator # Import EpubGenerator
+# from synth_data_gen.generators.epub import EpubGenerator # Import EpubGenerator
 # Assuming ConfigLoader will be imported in synth_data_gen.__init__
 # from synth_data_gen.core.config_loader import ConfigLoader
 
@@ -26,51 +27,26 @@ def mock_config_loader_instance():
     mock_instance = MagicMock()
     mock_instance.load_and_validate_config.return_value = {
         "project_name": "TestProject",
-        "output_directory": "test_output",
-        "file_types": [
-            {"type": "epub", "count": 1, "output_subdir": "epubs", "epub_specific_settings": {"title": "Test EPUB"}},
-            {"type": "pdf", "count": 1, "output_subdir": "pdfs", "pdf_specific_settings": {"author": "Test PDF Author"}}
-        ],
-        # The generator-specific settings are now part of the file_types items
-        # So, we don't need separate top-level epub_settings and pdf_settings here
-        # for the mock load_and_validate_config.
-        # However, get_generator_config will still need to extract them from the main loaded config.
-        # The main `config` object that `get_generator_config` receives will be the one above.
+        "output_directory_base": "test_output", # Used by MainGenerator
+        "output_formats": {
+            "epub": {
+                "enabled": True, "count": 1, "output_subdir": "epubs",
+                # Specific epub settings directly here
+                "title": "Test EPUB From Mock", "author": "Test Author EPUB"
+            },
+            "pdf": {
+                "enabled": True, "count": 1, "output_subdir": "pdfs",
+                # Specific pdf settings
+                "author": "Test PDF Author From Mock", "page_size": "A4"
+            },
+            "markdown": { # Example for markdown
+                "enabled": True, "count": 1, "output_subdir": "mds",
+                "flavor": "commonmark" # Specific markdown setting
+            }
+        },
+        "global_settings": {"default_language": "en"}
     }
-    # Adjusting get_generator_config mock to reflect that generator settings are nested
-    # within the main config, typically under keys like "epub_settings", "pdf_settings" etc.
-    # The test's `generate_data` will call `loader.get_generator_config(config, "epub")`
-    # So, the mock should look for "epub_settings" in the `config` passed to it.
-    # The `config` passed to it will be the one returned by `load_and_validate_config`.
-    # Let's make the mock config simpler for get_generator_config to work with the test structure
-    # The actual config loaded by ConfigLoader will have these nested.
-    # The test calls generate_data -> which calls loader.load_and_validate_config (returns the above)
-    # -> then calls loader.get_generator_config(returned_config, "epub")
-    
-    # Simpler approach for the mock:
-    # The mock_config_loader_instance.load_and_validate_config.return_value IS the 'full_config'
-    # that get_generator_config will receive.
-    # So, the side_effect should extract from that structure.
-    
-    # Let's refine the return_value of load_and_validate_config to include top-level settings
-    # that get_generator_config would expect, based on how ConfigLoader is implemented.
-    # The ConfigLoader.get_generator_config(self, full_config, generator_id)
-    # expects full_config to have keys like 'epub_settings', 'pdf_settings'.
-    
-    # Corrected mock return value for load_and_validate_config
-    mock_instance.load_and_validate_config.return_value = {
-        "project_name": "TestProject",
-        "output_directory": "test_output",
-        "file_types": [ # This is what generate_data iterates over
-            {"type": "epub", "count": 1, "output_subdir": "epubs"},
-            {"type": "pdf", "count": 1, "output_subdir": "pdfs"}
-        ],
-        # These are the top-level sections ConfigLoader.get_generator_config expects
-        "epub_settings": {"title": "Test EPUB From Mock"},
-        "pdf_settings": {"author": "Test PDF Author From Mock"}
-    }
-
-    mock_instance.get_generator_config.side_effect = lambda conf, gen_id: conf.get(f"{gen_id}_settings", {})
+    # get_generator_config is not directly called by generate_data on the loader instance anymore.
     return mock_instance
 
 @pytest.fixture
@@ -88,331 +64,294 @@ def test_generate_data_calls_config_loader_load_and_validate(tmp_path, mock_conf
     config_file.write_text("""
 project_name: TestProject
 output_directory: test_output
-file_types:
-  - epub
-  - pdf
-epub_settings:
-  title: Test EPUB
-pdf_settings:
-  author: Test PDF Author
+# ... content to match what load_and_validate_config would process ...
+output_formats:
+  epub:
+    enabled: true
+    count: 1
+    title: Test EPUB
+  pdf:
+    enabled: true
+    count: 1
+    author: Test PDF Author
+global_settings:
+  default_language: "en"
 """)
     
-    # Mock individual generators to prevent actual file generation
-    with patch('synth_data_gen.EpubGenerator') as mock_epub_gen, \
-         patch('synth_data_gen.PdfGenerator') as mock_pdf_gen, \
-         patch('synth_data_gen.MarkdownGenerator') as mock_md_gen:
+    mocked_schema = {"type": "object", "description": "Mocked Schema for test"}
 
-        generate_data(config_path=str(config_file))
+    # Patch open and json.load in the scope of synth_data_gen module
+    # Also patch os.path.exists for schema file checking
+    with patch('synth_data_gen.os.path.exists') as mock_path_exists, \
+         patch('synth_data_gen.open', mock_open(read_data=json.dumps(mocked_schema))) as mock_file_open, \
+         patch('synth_data_gen.json.load', return_value=mocked_schema) as mock_json_load, \
+         patch('synth_data_gen.generators.main_generator.EpubGenerator'), \
+         patch('synth_data_gen.generators.main_generator.PdfGenerator'), \
+         patch('synth_data_gen.generators.main_generator.MarkdownGenerator'):
 
-        # Assert ConfigLoader was instantiated with the default schema path
-        # This part of the assertion might need adjustment based on how ConfigLoader
-        # actually gets its schema (e.g., if it's hardcoded or passed differently)
-        # For now, we assume it's instantiated and then load_and_validate_config is called.
-        mock_config_loader_class.assert_called_once() 
-        
-        # Assert load_and_validate_config was called with the correct path
-        # If ConfigLoader uses an internal default schema when schema is None,
-        # the call from generate_data might not explicitly pass schema=None.
-        # The mock should expect the call as it's made by the SUT.
-        mock_config_loader_instance.load_and_validate_config.assert_called_once_with(
-            config_path=str(config_file) # Schema is not passed if default is used
-        )
+            mock_path_exists.return_value = True # Assume schema file exists for loading
+
+            generate_data(config_file_path=str(config_file)) # Changed config_path to config_file_path
+
+            mock_config_loader_class.assert_called_once() 
+            
+            # Check that schema loading was attempted
+            # Import the actual variable from the synth_data_gen module for assertion
+            from synth_data_gen import _DEFAULT_SCHEMA_PATH as DEFAULT_SCHEMA_PATH_IN_SUT
+            mock_path_exists.assert_any_call(DEFAULT_SCHEMA_PATH_IN_SUT)
+            mock_file_open.assert_called_once_with(DEFAULT_SCHEMA_PATH_IN_SUT, 'r')
+            mock_json_load.assert_called_once_with(mock_file_open())
+            
+            mock_config_loader_instance.load_and_validate_config.assert_called_once_with(
+                file_path=str(config_file),
+                schema=mocked_schema,
+                config_override_object=None
+            )
 
 def test_generate_data_dispatches_epub_config_correctly(tmp_path, mock_config_loader_class, mock_config_loader_instance):
     """
-    Test that generate_data calls get_generator_config for 'epub'
-    and passes the result to EpubGenerator.
+    Test that generate_data, through MainGenerator, correctly uses EpubGenerator
+    with the appropriate configuration.
     """
     config_file = tmp_path / "test_config_epub_dispatch.yaml"
+    # This file content is less critical now as mock_config_loader_instance dictates the loaded config.
+    # However, it's good practice for it to be plausible.
     config_file.write_text("""
 project_name: EpubDispatchTest
-output_directory: epub_dispatch_output
-file_types:
-  - type: epub
+output_directory_base: epub_dispatch_output
+output_formats:
+  epub:
+    enabled: true
     count: 1
-# epub_settings are at the top level of the loaded config in the mock
-epub_settings:
-  title: "Dispatched EPUB Title"
-  author: "Dispatched Author"
+    output_subdir: epubs
+    title: "Dispatched EPUB Title" # Specific setting
+    author: "Dispatched Author"   # Specific setting
+global_settings:
+  default_language: "en"
 """)
 
-    # The mock_config_loader_instance.load_and_validate_config.return_value is already set up
-    # in the fixture to include "epub_settings".
-    # The mock_config_loader_instance.get_generator_config side_effect will use this.
-    
-    expected_epub_config = {"title": "Test EPUB From Mock", "author": "Dispatched Author"} # This should match what get_generator_config returns
-    # Update expected_epub_config to match the mock_config_loader_instance setup
-    expected_epub_config = mock_config_loader_instance.load_and_validate_config.return_value["epub_settings"]
+    full_mock_loaded_config = mock_config_loader_instance.load_and_validate_config.return_value
+    # Ensure the fixture provides what we expect for "epub"
+    assert "epub" in full_mock_loaded_config["output_formats"], "Fixture mock_config_loader_instance needs epub in output_formats"
+    expected_epub_format_config = full_mock_loaded_config["output_formats"]["epub"]
 
-    MockEpubGeneratorClass = MagicMock(spec=EpubGenerator) # Use the actual class for spec if available
+    MockEpubGeneratorClass = MagicMock()
     mock_epub_generator_instance = MockEpubGeneratorClass.return_value
 
-    # Patch the GENERATOR_MAP directly for this test
-    # Need to import EpubGenerator, PdfGenerator, MarkdownGenerator if they are part of the original map
-    # For this specific test, we only care about 'epub' being mocked.
-    
-    original_generator_map = {}
-    try:
-        # Attempt to import the original map to preserve other generators if needed
-        # This import might fail if the test environment is tricky, so guard it.
-        from synth_data_gen import GENERATOR_MAP as SUT_GENERATOR_MAP
-        original_generator_map = SUT_GENERATOR_MAP.copy()
-    except ImportError:
-        # Fallback if direct import is an issue in test setup,
-        # though for this test, we only need to ensure 'epub' is our mock.
-        # This might mean other generators won't be in the map if not explicitly added.
-        pass
-
-    test_generator_map = original_generator_map.copy()
-    test_generator_map["epub"] = MockEpubGeneratorClass
-    
-    # Patch where EpubGenerator is defined and also where it's used in the map
-    with patch('synth_data_gen.generators.epub.EpubGenerator', MockEpubGeneratorClass), \
-         patch('synth_data_gen.GENERATOR_MAP', test_generator_map):
+    # Patch EpubGenerator where MainGenerator imports it.
+    # Also patch other generators that might be in the mocked config to avoid their actual execution.
+    with patch('synth_data_gen.generators.main_generator.EpubGenerator', MockEpubGeneratorClass), \
+         patch('synth_data_gen.generators.main_generator.PdfGenerator', MagicMock()), \
+         patch('synth_data_gen.generators.main_generator.MarkdownGenerator', MagicMock()):
         
-        generate_data(config_path=str(config_file))
-
-        mock_config_loader_instance.get_generator_config.assert_any_call(
-            mock_config_loader_instance.load_and_validate_config.return_value,
-            "epub"
-        )
-        
-        # Check that EpubGenerator was instantiated and its generate method was called
-        # with the specific config.
-        MockEpubGeneratorClass.assert_called_once()
-        mock_epub_generator_instance.generate.assert_called_once()
-        
-        # Get the actual arguments passed to the generate method
-        actual_call_args = mock_epub_generator_instance.generate.call_args
-        assert actual_call_args is not None, "EpubGenerator.generate was not called"
-        
-        # The generate method signature is generate(self, specific_config, global_settings, output_file_path)
-        # So, the specific_config is the first positional argument (index 0)
-        # or the 'specific_config' keyword argument.
-        
-        passed_specific_config = None
-        if actual_call_args.args:
-            passed_specific_config = actual_call_args.args[0]
-        elif 'specific_config' in actual_call_args.kwargs:
-            passed_specific_config = actual_call_args.kwargs['specific_config']
+        # We need to ensure that generate_data uses the schema loading logic correctly,
+        # so we mock those parts as in the previous test.
+        mocked_schema = {"type": "object", "description": "Mocked Schema for dispatch test"}
+        with patch('synth_data_gen.os.path.exists') as mock_path_exists, \
+             patch('synth_data_gen.open', mock_open(read_data=json.dumps(mocked_schema))) as mock_file_open, \
+             patch('synth_data_gen.json.load', return_value=mocked_schema) as mock_json_load:
             
-        assert passed_specific_config == expected_epub_config, \
-            f"EpubGenerator.generate called with incorrect specific_config. Expected {expected_epub_config}, got {passed_specific_config}"
+            mock_path_exists.return_value = True # Assume schema file exists
+
+            generate_data(config_file_path=str(config_file)) # Changed config_path to config_file_path
+
+            # Verify EpubGenerator was instantiated correctly by MainGenerator
+            MockEpubGeneratorClass.assert_called_once_with(
+                full_mock_loaded_config,     # This is the 'global_config' (entire loaded config)
+                expected_epub_format_config  # This is the 'format_config' for epub
+            )
+            
+            # Verify its generate method was called (now takes no args other than self)
+            mock_epub_generator_instance.generate.assert_called_once_with()
+            
+            # Ensure schema loading was also done as expected
+            mock_json_load.assert_called_once()
+
 
 def test_generate_data_handles_missing_epub_config_gracefully(tmp_path, mock_config_loader_class, mock_config_loader_instance):
     """
-    Test that if 'epub_settings' is missing from the main config,
-    EpubGenerator is still called, and it likely receives an empty dict or its defaults.
-    The SUT's `generate_data` should ensure `get_generator_config` is called,
-    and if it returns empty, the generator's own default logic should kick in.
+    Test how MainGenerator handles a format if its specific config details are sparse
+    or if the format is requested but not deeply configured in output_formats.
+    MainGenerator will pass the format_config as is; the individual generator
+    is responsible for its own defaults if format_config is minimal.
+    If 'enabled' is false or the format is not in output_formats, it's skipped.
     """
-    config_file = tmp_path / "test_config_no_epub_settings.yaml"
+    config_file = tmp_path / "test_config_minimal_epub.yaml"
     config_file.write_text("""
-project_name: NoEpubSettingsTest
-output_directory: no_epub_settings_output
-file_types:
-  - type: epub # We still ask for an epub
+project_name: MinimalEpubTest
+output_directory_base: minimal_epub_output
+output_formats:
+  epub: # EPUB is requested
+    enabled: true
     count: 1
-# Note: no epub_settings section here
-pdf_settings:
-  author: "Some PDF Author"
+    # Deliberately sparse, e.g., no title or author here
+    # The EpubGenerator itself should handle defaults.
+global_settings:
+  default_language: "en"
 """)
 
-    # Adjust the mock_config_loader_instance for this test case:
-    # load_and_validate_config should return a config *without* 'epub_settings'
-    # get_generator_config for 'epub' should then return {}
-    
-    config_without_epub_settings = {
-        "project_name": "NoEpubSettingsTest",
-        "output_directory": "no_epub_settings_output",
-        "file_types": [{"type": "epub", "count": 1}],
-        "pdf_settings": {"author": "Some PDF Author"}
-        # "epub_settings" is deliberately missing
+    # Adjust the mock_config_loader_instance for this specific test case
+    # to return a config with a sparse "epub" entry in "output_formats".
+    config_with_minimal_epub = {
+        "project_name": "MinimalEpubTest",
+        "output_directory_base": "minimal_epub_output",
+        "output_formats": {
+            "epub": { # Enabled, but sparse
+                "enabled": True, 
+                "count": 1,
+                "output_subdir": "epubs_minimal" 
+                # Missing title, author etc. that were in the main fixture
+            },
+            "pdf": { # Include another to ensure it doesn't interfere
+                "enabled": True, "count": 1, "output_subdir": "pdfs_minimal",
+                "author": "Test PDF Author"
+            }
+        },
+        "global_settings": {"default_language": "en"}
     }
-    mock_config_loader_instance.load_and_validate_config.return_value = config_without_epub_settings
+    mock_config_loader_instance.load_and_validate_config.return_value = config_with_minimal_epub
     
-    # get_generator_config for 'epub' will return {} due to the side_effect and missing key
-    # The generator's own get_default_specific_config() should be used by generate_data
-    
-    # We need to know what EpubGenerator's default config is to assert it's passed.
-    # For now, let's assume the SUT will pass an empty dict if get_generator_config returns empty,
-    # and the generator itself handles merging with its internal defaults.
-    # Or, the SUT (generate_data) will call generator_instance.get_default_specific_config().
-    # The current SUT logic:
-    # specific_config = loader.get_generator_config(config, generator_type_str.lower())
-    # if not specific_config:
-    #     specific_config = generator_instance.get_default_specific_config()
-    
-    # So, we expect generator_instance.get_default_specific_config() to be called and its result passed.
-    
-    MockEpubGeneratorClass = MagicMock(spec=EpubGenerator)
+    expected_epub_format_config_minimal = config_with_minimal_epub["output_formats"]["epub"]
+
+    MockEpubGeneratorClass = MagicMock()
     mock_epub_generator_instance = MockEpubGeneratorClass.return_value
-    
-    # Mock the default config that EpubGenerator would return
-    default_epub_specific_config = {"title": "Default EPUB Title", "epub_version": "3.0"}
-    mock_epub_generator_instance.get_default_specific_config.return_value = default_epub_specific_config
+    # We don't mock get_default_specific_config on the generator instance anymore,
+    # as MainGenerator doesn't call it. The generator's __init__ should handle defaults.
 
-    test_generator_map = {"epub": MockEpubGeneratorClass} # Keep it simple for this test
+    with patch('synth_data_gen.generators.main_generator.EpubGenerator', MockEpubGeneratorClass), \
+         patch('synth_data_gen.generators.main_generator.PdfGenerator', MagicMock()), \
+         patch('synth_data_gen.generators.main_generator.MarkdownGenerator', MagicMock()):
 
-    with patch('synth_data_gen.generators.epub.EpubGenerator', MockEpubGeneratorClass), \
-         patch('synth_data_gen.GENERATOR_MAP', test_generator_map):
-
-        generate_data(config_path=str(config_file))
-
-        mock_config_loader_instance.get_generator_config.assert_any_call(
-            config_without_epub_settings,
-            "epub"
-        )
-        MockEpubGeneratorClass.assert_called_once() # Generator class instantiated
-        mock_epub_generator_instance.get_default_specific_config.assert_called_once() # Default config method called
-        
-        # Assert that generate method was called with the default specific config
-        mock_epub_generator_instance.generate.assert_called_once()
-        actual_call_args = mock_epub_generator_instance.generate.call_args
-        assert actual_call_args is not None
-        
-        passed_specific_config = None
-        if actual_call_args.args:
-            passed_specific_config = actual_call_args.args[0]
-        elif 'specific_config' in actual_call_args.kwargs:
-            passed_specific_config = actual_call_args.kwargs['specific_config']
+        mocked_schema = {"type": "object", "description": "Mocked Schema for minimal epub test"}
+        with patch('synth_data_gen.os.path.exists') as mock_path_exists, \
+             patch('synth_data_gen.open', mock_open(read_data=json.dumps(mocked_schema))), \
+             patch('synth_data_gen.json.load', return_value=mocked_schema):
             
-        assert passed_specific_config == default_epub_specific_config, \
-            f"EpubGenerator.generate called with incorrect specific_config when main config section is missing. Expected defaults {default_epub_specific_config}, got {passed_specific_config}"
+            mock_path_exists.return_value = True
+            generate_data(config_file_path=str(config_file)) # Changed config_path to config_file_path
+
+            MockEpubGeneratorClass.assert_called_once_with(
+                config_with_minimal_epub,
+                expected_epub_format_config_minimal 
+            )
+            mock_epub_generator_instance.generate.assert_called_once_with()
+
 
 def test_generate_data_end_to_end_with_mocked_generators(tmp_path, mock_config_loader_class, mock_config_loader_instance):
     """
-    Test generate_data end-to-end with mocked generators, focusing on config flow.
-    It verifies that ConfigLoader is used, and specific configs are passed to generators.
+    Test generate_data end-to-end with mocked generators, focusing on config flow
+    through MainGenerator.
     """
     config_content = """
 project_name: EndToEndTest
-output_directory: e2e_output
-file_types:
-  - type: epub
+output_directory_base: e2e_output # Corrected key for MainGenerator
+output_formats:
+  epub:
+    enabled: true
     count: 1
     output_subdir: epubs
-  - type: pdf
-    count: 2
+    title: "E2E EPUB Title"
+    epub_version: "2.0"
+  pdf:
+    enabled: true
+    count: 2 # PDF to be generated twice
     output_subdir: pdfs
-    # pdf_specific_settings are NOT in file_types, they are top-level in the loaded config
-  - type: markdown # No specific settings for markdown in this test config
+    author: "E2E PDF Author"
+    page_size: "A4"
+  markdown:
+    enabled: true
     count: 1
     output_subdir: mds
-
+    # No specific markdown settings here, generator should use defaults
+    flavor: "gfm" 
 global_settings:
   default_language: "fr"
-
-epub_settings:
-  title: "E2E EPUB Title"
-  epub_version: "2.0"
-
-pdf_settings:
-  author: "E2E PDF Author"
-  page_size: "A4"
 """
     config_file = tmp_path / "e2e_test_config.yaml"
     config_file.write_text(config_content)
 
-    # Configure the mock ConfigLoader instance for this test
+    # Use the mock_config_loader_instance fixture's return value for assertions
+    # but ensure the test's config_content aligns with what the fixture provides
+    # if we were to load it for real. For this test, we'll use a dedicated
+    # loaded_config that matches the config_content.
+    
     loaded_config_for_e2e = {
         "project_name": "EndToEndTest",
-        "output_directory_base": "e2e_output", # Corrected key
-        "file_types": [
-            {"type": "epub", "count": 1, "output_subdir": "epubs"},
-            {"type": "pdf", "count": 2, "output_subdir": "pdfs"},
-            {"type": "markdown", "count": 1, "output_subdir": "mds"}
-        ],
+        "output_directory_base": "e2e_output",
+        "output_formats": {
+            "epub": {
+                "enabled": True, "count": 1, "output_subdir": "epubs",
+                "title": "E2E EPUB Title", "epub_version": "2.0"
+            },
+            "pdf": {
+                "enabled": True, "count": 2, "output_subdir": "pdfs",
+                "author": "E2E PDF Author", "page_size": "A4"
+            },
+            "markdown": {
+                "enabled": True, "count": 1, "output_subdir": "mds",
+                "flavor": "gfm"
+            }
+        },
         "global_settings": {"default_language": "fr"},
-        "epub_settings": {"title": "E2E EPUB Title", "epub_version": "2.0"},
-        "pdf_settings": {"author": "E2E PDF Author", "page_size": "A4"},
-        # Markdown settings will be empty from get_generator_config,
-        # so generator's default will be used.
     }
     mock_config_loader_instance.load_and_validate_config.return_value = loaded_config_for_e2e
-    # get_generator_config side_effect is already set up in the fixture
-
-    # Expected specific configs
-    expected_epub_specific_config = loaded_config_for_e2e["epub_settings"]
-    expected_pdf_specific_config = loaded_config_for_e2e["pdf_settings"]
-    # For markdown, get_generator_config will return {}, so its default will be used.
     
-    MockEpubGeneratorClass = MagicMock(spec=EpubGenerator)
+    expected_epub_format_config = loaded_config_for_e2e["output_formats"]["epub"]
+    expected_pdf_format_config = loaded_config_for_e2e["output_formats"]["pdf"]
+    expected_md_format_config = loaded_config_for_e2e["output_formats"]["markdown"]
+    
+    MockEpubGeneratorClass = MagicMock()
     mock_epub_gen_instance = MockEpubGeneratorClass.return_value
-    mock_epub_gen_instance.get_default_specific_config.return_value = {"default_epub": True} # Dummy default
-    mock_epub_gen_instance.generate.return_value = "path/to/epub_1.epub"
+    mock_epub_gen_instance.generate.return_value = ["path/to/epub_1.epub"] # MainGenerator expects a list
 
-    MockPdfGeneratorClass = MagicMock() # spec=PdfGenerator (need to import PdfGenerator)
+    MockPdfGeneratorClass = MagicMock()
     mock_pdf_gen_instance = MockPdfGeneratorClass.return_value
-    mock_pdf_gen_instance.get_default_specific_config.return_value = {"default_pdf": True}
-    mock_pdf_gen_instance.generate.side_effect = lambda sc, gs, op: op # Return output path
+    # MainGenerator calls generate() once per format, but the generator's internal logic
+    # handles the 'count'. So, the generator's generate() should return a list of 'count' files.
+    mock_pdf_gen_instance.generate.return_value = ["path/to/pdf_1.pdf", "path/to/pdf_2.pdf"]
 
-    MockMarkdownGeneratorClass = MagicMock() # spec=MarkdownGenerator (need to import MarkdownGenerator)
+    MockMarkdownGeneratorClass = MagicMock()
     mock_md_gen_instance = MockMarkdownGeneratorClass.return_value
-    expected_md_default_config = {"default_markdown": True, "another_setting": "value"}
-    mock_md_gen_instance.get_default_specific_config.return_value = expected_md_default_config
-    mock_md_gen_instance.generate.return_value = "path/to/md_1.md"
+    mock_md_gen_instance.generate.return_value = ["path/to/md_1.md"]
 
-    test_generator_map = {
-        "epub": MockEpubGeneratorClass,
-        "pdf": MockPdfGeneratorClass,
-        "markdown": MockMarkdownGeneratorClass
-    }
+    # Patch generator classes where MainGenerator imports them
+    with patch('synth_data_gen.generators.main_generator.EpubGenerator', MockEpubGeneratorClass), \
+         patch('synth_data_gen.generators.main_generator.PdfGenerator', MockPdfGeneratorClass), \
+         patch('synth_data_gen.generators.main_generator.MarkdownGenerator', MockMarkdownGeneratorClass):
 
-    with patch('synth_data_gen.generators.epub.EpubGenerator', MockEpubGeneratorClass), \
-         patch('synth_data_gen.generators.pdf.PdfGenerator', MockPdfGeneratorClass), \
-         patch('synth_data_gen.generators.markdown.MarkdownGenerator', MockMarkdownGeneratorClass), \
-         patch('synth_data_gen.GENERATOR_MAP', test_generator_map):
+        mocked_schema = {"type": "object", "description": "Mocked Schema for e2e test"}
+        with patch('synth_data_gen.os.path.exists') as mock_path_exists, \
+             patch('synth_data_gen.open', mock_open(read_data=json.dumps(mocked_schema))), \
+             patch('synth_data_gen.json.load', return_value=mocked_schema):
+            
+            mock_path_exists.return_value = True
+            generated_files_details = generate_data(config_file_path=str(config_file)) # Changed config_path to config_file_path
 
-        generated_files = generate_data(config_path=str(config_file))
+            # Verify ConfigLoader calls
+            mock_config_loader_class.assert_called_once()
+            mock_config_loader_instance.load_and_validate_config.assert_called_once_with(
+                file_path=str(config_file),
+                schema=mocked_schema,
+                config_override_object=None
+            )
+            
+            # Verify EpubGenerator
+            MockEpubGeneratorClass.assert_called_once_with(loaded_config_for_e2e, expected_epub_format_config)
+            mock_epub_gen_instance.generate.assert_called_once_with()
 
-        # Verify ConfigLoader calls
-        mock_config_loader_class.assert_called_once()
-        mock_config_loader_instance.load_and_validate_config.assert_called_once_with(config_path=str(config_file))
-        
-        mock_config_loader_instance.get_generator_config.assert_any_call(loaded_config_for_e2e, "epub")
-        mock_config_loader_instance.get_generator_config.assert_any_call(loaded_config_for_e2e, "pdf")
-        mock_config_loader_instance.get_generator_config.assert_any_call(loaded_config_for_e2e, "markdown")
+            # Verify PdfGenerator
+            MockPdfGeneratorClass.assert_called_once_with(loaded_config_for_e2e, expected_pdf_format_config)
+            mock_pdf_gen_instance.generate.assert_called_once_with()
 
-        # Verify EpubGenerator
-        MockEpubGeneratorClass.assert_called_once()
-        mock_epub_gen_instance.generate.assert_called_once()
-        epub_args, _ = mock_epub_gen_instance.generate.call_args
-        assert epub_args[0] == expected_epub_specific_config
-        assert epub_args[1] == loaded_config_for_e2e["global_settings"]
-        assert "e2e_output/epubs/epub_1.epub" in epub_args[2] # Check output path
+            # Verify MarkdownGenerator
+            MockMarkdownGeneratorClass.assert_called_once_with(loaded_config_for_e2e, expected_md_format_config)
+            mock_md_gen_instance.generate.assert_called_once_with()
 
-        # Verify PdfGenerator (called twice)
-        assert MockPdfGeneratorClass.call_count == 1 # Instantiated once
-        assert mock_pdf_gen_instance.generate.call_count == 2
-        pdf_call_args_list = mock_pdf_gen_instance.generate.call_args_list
-        
-        # Call 1 for PDF
-        pdf_args_1, _ = pdf_call_args_list[0]
-        assert pdf_args_1[0] == expected_pdf_specific_config
-        assert pdf_args_1[1] == loaded_config_for_e2e["global_settings"]
-        assert "e2e_output/pdfs/pdf_1.pdf" in pdf_args_1[2]
-        
-        # Call 2 for PDF
-        pdf_args_2, _ = pdf_call_args_list[1]
-        assert pdf_args_2[0] == expected_pdf_specific_config # Same specific config
-        assert pdf_args_2[1] == loaded_config_for_e2e["global_settings"]
-        assert "e2e_output/pdfs/pdf_2.pdf" in pdf_args_2[2]
-
-        # Verify MarkdownGenerator
-        MockMarkdownGeneratorClass.assert_called_once()
-        mock_md_gen_instance.get_default_specific_config.assert_called_once() # Because markdown_settings is missing
-        mock_md_gen_instance.generate.assert_called_once()
-        md_args, _ = mock_md_gen_instance.generate.call_args
-        assert md_args[0] == expected_md_default_config # Should use its default
-        assert md_args[1] == loaded_config_for_e2e["global_settings"]
-        assert "e2e_output/mds/markdown_1.md" in md_args[2]
-        
-        assert len(generated_files) == 4 # 1 epub, 2 pdf, 1 md
-        assert "path/to/epub_1.epub" in generated_files
-        assert "e2e_output/pdfs/pdf_1.pdf" in generated_files # Since generate returns output_path
-        assert "e2e_output/pdfs/pdf_2.pdf" in generated_files
-        assert "path/to/md_1.md" in generated_files
+            # Verify returned paths from generate_data
+            assert generated_files_details is not None
+            assert generated_files_details["epub_files"] == ["path/to/epub_1.epub"]
+            assert generated_files_details["pdf_files"] == ["path/to/pdf_1.pdf", "path/to/pdf_2.pdf"]
+            assert generated_files_details["markdown_files"] == ["path/to/md_1.md"]
 
 # def test_generate_data_dispatches_pdf_config_correctly():
 #     pass

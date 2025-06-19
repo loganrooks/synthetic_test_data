@@ -2,6 +2,7 @@ import os
 import unittest
 from ebooklib import epub
 import zipfile
+import logging
 
 from synth_data_gen.generators.epub_components import notes
 from synth_data_gen.common.utils import EPUB_DIR
@@ -439,21 +440,40 @@ class TestEpubNotes(unittest.TestCase):
 
         chapter_found = False
         found_item_content = None
-        chap_filename = "chap_footnotes.xhtml" 
-        for item in book.get_items(): # Changed from get_items_of_type
-            if isinstance(item, epub.EpubHtml) and item.file_name == chap_filename: # Check type here
+        # Updated chapter filename to match the one used in the modified SUT
+        chap_filename = "chap_dynamic_footnotes.xhtml" 
+        for item in book.get_items():
+            if isinstance(item, epub.EpubHtml) and item.file_name == chap_filename:
                 found_item_content = item.get_content().decode('utf-8')
                 chapter_found = True
                 break
         self.assertTrue(chapter_found, f"Chapter item '{chap_filename}' not found.")
+        
         if chapter_found and found_item_content:
-            self.assertIn('<h1>Chapter 1: The Burden of Proof</h1>', found_item_content)
-            self.assertIn('<sup id="fnref1"><a href="#fn1">1</a></sup>', found_item_content) 
-            self.assertIn('<sup id="fnref2"><a href="#fn2">2</a></sup>', found_item_content) 
+            # Check for the main title
+            self.assertIn('<h1>Chapter 1: Dynamic Footnotes Demonstration</h1>', found_item_content)
+
+            # Check for processed footnote markers in the main content
+            self.assertIn('<a id="fn_ref_dfn1" href="#fn_marker_dfn1" role="doc-noteref">α</a>', found_item_content)
+            self.assertIn('<a id="fn_ref_dfn2" href="#fn_marker_dfn2" role="doc-noteref">2</a>', found_item_content) # Default marker text is index + 1
+            self.assertIn('<a id="fn_ref_dfn3" href="#fn_marker_dfn3" role="doc-noteref"><em>HTML</em></a>', found_item_content)
+            
+            # Check that the unprocessed marker (due to missing config) is still there
+            self.assertIn('[FN_MARKER_bad_cfg]', found_item_content)
+
+            # Check for the footnotes section structure
             self.assertIn('<hr class="footnote-separator"/>', found_item_content)
-            self.assertIn('<div class="footnotes">', found_item_content) 
-            self.assertIn('<p id="fn1" class="footnote"><a href="#fnref1">1.</a> This claim is often debated in AI ethics circles, particularly concerning generative models.</p>', found_item_content) 
-            self.assertIn('<p id="fn2" class="footnote"><a href="#fnref2">2.</a> See Turing\'s arguments on "Lady Lovelace\'s Objection" regarding machine originality.</p>', found_item_content) 
+            self.assertIn('<div class="footnotes">', found_item_content)
+            
+            # Check for individual footnote entries
+            self.assertIn('<p id="fn_marker_dfn1" class="footnote"><a href="#fn_ref_dfn1">α.</a> This is the first dynamic footnote, marked with alpha (α).</p>', found_item_content)
+            # Corrected assertion: to look for '2' (literal single quotes around 2)
+            self.assertIn('<p id="fn_marker_dfn2" class="footnote"><a href="#fn_ref_dfn2">2.</a> This is the second dynamic footnote. Its marker should be \\\'2\\\' as per default logic.</p>', found_item_content)
+            self.assertIn('<p id="fn_marker_dfn3" class="footnote"><a href="#fn_ref_dfn3"><em>HTML</em>.</a> This footnote has an <em>emphasized</em> marker text and 引用 HTML content in the note.</p>', found_item_content)
+            
+            # Ensure the bad_cfg footnote is NOT in the generated footnotes section
+            self.assertNotIn('id="fn_marker_bad_cfg"', found_item_content)
+            self.assertNotIn('href="#fn_ref_bad_cfg"', found_item_content)
 
     def test_create_epub_endnotes_separate_file_creates_file(self):
         filename = "endnotes_separate_file.epub"
@@ -526,26 +546,48 @@ class TestEpubNotes(unittest.TestCase):
         
         book = epub.read_epub(expected_filepath)
         
+        # # Check for CSS
+        # css_item = book.get_item_with_href('style/kant_notes.css')
+        # self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")
+        # if css_item:
+        #     css_content = css_item.get_content().decode('utf-8')
+        #     self.assertIn(".footnote-kant", css_content) # Placeholder CSS class
+
+        # # Check for chapter content
+        # chapter_found = False
+        # chap_filename = "chap_kant_fn.xhtml" # Placeholder chapter filename
+        # for item in book.get_items_of_type(epub.EpubHtml):
+        #     if item.file_name == chap_filename:
+        #         html_content = item.get_content().decode('utf-8')
+        #         # Add specific assertions for Kant-style footnote references and content
+        #         self.assertIn("Placeholder Kant footnote reference", html_content)
+        #         self.assertIn("Placeholder Kant footnote text", html_content)
+        #         chapter_found = True
+        #         break
+        # self.assertTrue(chapter_found, f"Chapter content for Kant style footnotes ('{chap_filename}') not found.")
+        
+        # Check for CSS
         css_item = book.get_item_with_href('style/kant_notes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")
         if css_item:
             css_content = css_item.get_content().decode('utf-8')
-            self.assertIn(".calibre9 {", css_content)
-            self.assertIn("p.footnotes {", css_content) 
+            self.assertIn(".footnote-kant", css_content) # Placeholder CSS class
 
+        # Check for chapter content
         chapter_found = False
-        chap_filename = "chap_kant_fn.xhtml" 
-        for item in book.get_items(): 
-            if not isinstance(item, epub.EpubHtml): 
-                continue
-            
-            if item.file_name == chap_filename: 
+        chap_filename = "chap_kant_fn.xhtml" # Placeholder chapter filename
+        for item in book.get_items(): # Changed from get_items_of_type
+            if isinstance(item, epub.EpubHtml) and item.file_name == chap_filename: # Check type here
                 html_content = item.get_content().decode('utf-8')
-                self.assertIn('<sup class="calibre18"><em class="calibre1"><a id="Fkantfn1" href="#Fkantfr1" class="calibre9">1</a></em></sup>', html_content)
-                self.assertIn('<p id="Fkantfr1" class="footnotes"><sup class="calibre18"><em class="calibre1"><a href="#Fkantfn1" class="calibre9">1.</a></em></sup> See Critique of Pure Reason, B19.</p>', html_content)
+                # Add specific assertions for Kant-style footnote references and content
+                self.assertIn('<a href="#fn1_kant" id="fnref1_kant" epub:type="noteref">1</a>', html_content)
+                # Break down the assertion for the footnote div to be less whitespace sensitive
+                self.assertIn('<div class="footnote-kant" id="fn1_kant" epub:type="footnote">', html_content)
+                self.assertIn('<p><a href="#fnref1_kant" epub:type="backlink">1.</a> This is a Kant-style footnote. It appears on the same page, typically separated by a rule.</p>', html_content)
+                self.assertIn('</div>', html_content) # Ensure the div closes after the paragraph
                 chapter_found = True
                 break
-        self.assertTrue(chapter_found, f"Chapter content for Kant style footnotes ('{chap_filename}') not found or content incorrect.")
+        self.assertTrue(chapter_found, f"Chapter content for Kant style footnotes ('{chap_filename}') not found.")
 
     def test_create_epub_dual_note_system_creates_file(self):
         filename = "dual_note_system.epub"
@@ -632,68 +674,94 @@ class TestEpubNotes(unittest.TestCase):
                 chapter_found = True
                 break
         self.assertTrue(chapter_found, f"Chapter content for Hegel SoL style footnotes ('{chap_filename}') not found or content incorrect.")
-    def test_create_epub_kant_style_footnotes_creates_file(self):
-        filename = "kant_style_footnotes.epub"
-        expected_filepath = os.path.join(self.output_dir, filename)
-        self.files_to_remove.append(expected_filepath)
-        if os.path.exists(expected_filepath):
-            os.remove(expected_filepath)
-        notes.create_epub_kant_style_footnotes(filename=filename)
-        self.assertTrue(os.path.exists(expected_filepath))
 
-    def test_create_epub_kant_style_footnotes_content(self):
-        filename = "kant_style_footnotes.epub"
-        expected_filepath = os.path.join(self.output_dir, filename)
-        self.files_to_remove.append(expected_filepath)
-        notes.create_epub_kant_style_footnotes(filename=filename)
+    def test_process_dynamic_footnotes_basic_replacement(self):
+        chapter_content = "<p>Text with a note [FN_MARKER_1]. More text.</p><p>Another note [FN_MARKER_alpha].</p>"
+        footnotes_config = [
+            {"id": "1", "marker_text": "1", "note_text": "This is the first footnote."}, # Changed "text" to "note_text"
+            {"id": "alpha", "marker_text": "α", "note_text": "This is the alpha footnote."} # Changed "text" to "note_text"
+        ]
+        # Corrected expected href for same-page links
+        expected_processed_content = '<p>Text with a note <a id="fn_ref_1" href="#fn_marker_1" role="doc-noteref">1</a>. More text.</p><p>Another note <a id="fn_ref_alpha" href="#fn_marker_alpha" role="doc-noteref">α</a>.</p>'
+        expected_footnotes_data = {
+            "1": "This is the first footnote.",
+            "alpha": "This is the alpha footnote."
+        }
+
+        # This is the new function we will create in notes.py
+        # It will take the raw chapter content and a list of footnote configurations
+        # It should return the processed chapter content and a dictionary of footnote_id: footnote_text
+        processed_content, footnotes_data = notes.process_dynamic_footnotes(chapter_content, footnotes_config)
+
+        self.assertEqual(processed_content, expected_processed_content)
+        self.assertEqual(footnotes_data, expected_footnotes_data)
+
+    def test_process_dynamic_footnotes_html_marker_text(self):
+        chapter_content = "<p>Note with <b>bold</b> marker [FN_MARKER_bold_note].</p>"
+        footnotes_config = [
+            {"id": "bold_note", "marker_text": "<b>B</b>", "note_text": "Footnote for bold marker."} # Changed "text" to "note_text"
+        ]
+        # Corrected expected href for same-page links
+        expected_processed_content = '<p>Note with <b>bold</b> marker <a id="fn_ref_bold_note" href="#fn_marker_bold_note" role="doc-noteref"><b>B</b></a>.</p>'
+        expected_footnotes_data = {
+            "bold_note": "Footnote for bold marker."
+        }
+
+        processed_content, footnotes_data = notes.process_dynamic_footnotes(chapter_content, footnotes_config)
+
+        self.assertEqual(processed_content, expected_processed_content)
+        self.assertEqual(footnotes_data, expected_footnotes_data)
+
+    def test_process_dynamic_footnotes_no_markers(self):
+        chapter_content = "<p>Text with no footnote markers.</p>"
+        footnotes_config = []
+        expected_processed_content = "<p>Text with no footnote markers.</p>"
+        expected_footnotes_data = {}
+
+        processed_content, footnotes_data = notes.process_dynamic_footnotes(chapter_content, footnotes_config)
+
+        self.assertEqual(processed_content, expected_processed_content)
+        self.assertEqual(footnotes_data, expected_footnotes_data)
+
+    def test_process_dynamic_footnotes_marker_not_in_config(self):
+        chapter_content = "<p>Text with a note [FN_MARKER_1] and an unconfigured one [FN_MARKER_2].</p>"
+        footnotes_config = [
+            {"id": "1", "marker_text": "1", "note_text": "This is the first footnote."} # Changed "text" to "note_text"
+        ]
+        # Corrected expected href for same-page links
+        expected_processed_content = '<p>Text with a note <a id="fn_ref_1" href="#fn_marker_1" role="doc-noteref">1</a> and an unconfigured one [FN_MARKER_2].</p>'
+        expected_footnotes_data = {
+            "1": "This is the first footnote."
+        }
+
+        processed_content, footnotes_data = notes.process_dynamic_footnotes(chapter_content, footnotes_config)
+
+        self.assertEqual(processed_content, expected_processed_content)
+        self.assertEqual(footnotes_data, expected_footnotes_data)
+
+    def test_process_dynamic_footnotes_malformed_config_entry(self):
+        chapter_content = "<p>Text with a note [FN_MARKER_1]. Another note [FN_MARKER_2].</p>"
+        footnotes_config = [
+            {"id": "1", "marker_text": "1"},  # Missing "note_text"
+            {"id": "2", "marker_text": "2", "note_text": "Second footnote."}, # Changed "text" to "note_text"
+            {"marker_text": "3", "note_text": "Third footnote."} # Missing "id", changed "text" to "note_text"
+        ]
+        # Corrected expected href for same-page links
+        expected_processed_content = '<p>Text with a note [FN_MARKER_1]. Another note <a id="fn_ref_2" href="#fn_marker_2" role="doc-noteref">2</a>.</p>'
+        expected_footnotes_data = {
+            "2": "Second footnote."
+        }
+
+        # Capture logs
+        with self.assertLogs(notes.logger, level='WARNING') as cm:
+            processed_content, footnotes_data = notes.process_dynamic_footnotes(chapter_content, footnotes_config)
         
-        book = epub.read_epub(expected_filepath)
+        self.assertEqual(processed_content, expected_processed_content)
+        self.assertEqual(footnotes_data, expected_footnotes_data)
         
-        # # Check for CSS
-        # css_item = book.get_item_with_href('style/kant_notes.css')
-        # self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")
-        # if css_item:
-        #     css_content = css_item.get_content().decode('utf-8')
-        #     self.assertIn(".footnote-kant", css_content) # Placeholder CSS class
-
-        # # Check for chapter content
-        # chapter_found = False
-        # chap_filename = "chap_kant_fn.xhtml" # Placeholder chapter filename
-        # for item in book.get_items_of_type(epub.EpubHtml):
-        #     if item.file_name == chap_filename:
-        #         html_content = item.get_content().decode('utf-8')
-        #         # Add specific assertions for Kant-style footnote references and content
-        #         self.assertIn("Placeholder Kant footnote reference", html_content)
-        #         self.assertIn("Placeholder Kant footnote text", html_content)
-        #         chapter_found = True
-        #         break
-        # self.assertTrue(chapter_found, f"Chapter content for Kant style footnotes ('{chap_filename}') not found.")
-        
-        # Check for CSS
-        css_item = book.get_item_with_href('style/kant_notes.css')
-        self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")
-        if css_item:
-            css_content = css_item.get_content().decode('utf-8')
-            self.assertIn(".footnote-kant", css_content) # Placeholder CSS class
-
-        # Check for chapter content
-        chapter_found = False
-        chap_filename = "chap_kant_fn.xhtml" # Placeholder chapter filename
-        for item in book.get_items(): # Changed from get_items_of_type
-            if isinstance(item, epub.EpubHtml) and item.file_name == chap_filename: # Check type here
-                html_content = item.get_content().decode('utf-8')
-                # Add specific assertions for Kant-style footnote references and content
-                self.assertIn('<a href="#fn1_kant" id="fnref1_kant" epub:type="noteref">1</a>', html_content)
-                # Break down the assertion for the footnote div to be less whitespace sensitive
-                self.assertIn('<div class="footnote-kant" id="fn1_kant" epub:type="footnote">', html_content)
-                self.assertIn('<p><a href="#fnref1_kant" epub:type="backlink">1.</a> This is a Kant-style footnote. It appears on the same page, typically separated by a rule.</p>', html_content)
-                self.assertIn('</div>', html_content) # Ensure the div closes after the paragraph
-                chapter_found = True
-                break
-        self.assertTrue(chapter_found, f"Chapter content for Kant style footnotes ('{chap_filename}') not found.")
-
-if __name__ == '__main__':
-    unittest.main()
+        # Check for specific log messages
+        self.assertTrue(any("Skipping footnote (ID: 1, at index 0) due to missing \'note_text\': {\'id\': \'1\', \'marker_text\': \'1\'}" in log_msg for log_msg in cm.output))
+        self.assertTrue(any("Skipping footnote configuration (at index 2) due to missing \'id\': {\'marker_text\': \'3\', \'note_text\': \'Third footnote.\'}" in log_msg for log_msg in cm.output))
 
 if __name__ == '__main__':
     unittest.main()

@@ -167,12 +167,12 @@ def test_load_and_validate_config_default_only_valid(temp_config_files):
 
 def test_load_and_validate_config_user_invalid_schema(temp_config_files):
     loader = ConfigLoader()
-    with pytest.raises(jsonschema.exceptions.ValidationError):
+    with pytest.raises(jsonschema.ValidationError):
         loader.load_and_validate_config(str(temp_config_files["invalid_user"]), schema=TEST_SCHEMA)
 
 def test_load_and_validate_config_default_invalid_schema(temp_config_files):
     loader = ConfigLoader(default_config_path=str(temp_config_files["invalid_default"]))
-    with pytest.raises(jsonschema.exceptions.ValidationError):
+    with pytest.raises(jsonschema.ValidationError):
         loader.load_and_validate_config(schema=TEST_SCHEMA)
 
 def test_load_and_validate_config_file_not_found(temp_config_files):
