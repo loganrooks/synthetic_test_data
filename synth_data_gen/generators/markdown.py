@@ -11,6 +11,17 @@ class MarkdownGenerator(BaseGenerator):
     Generator for Markdown files.
     """
     GENERATOR_ID = "markdown"
+    
+    def __init__(self, global_config: dict, specific_config: dict):
+        """
+        Initialize MarkdownGenerator with configuration.
+        
+        Args:
+            global_config (dict): Global configuration settings
+            specific_config (dict): Markdown-specific configuration settings
+        """
+        self.global_config = global_config
+        self.specific_config = specific_config
 
     def get_default_specific_config(self) -> Dict[str, Any]:
         """

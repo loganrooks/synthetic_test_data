@@ -1,6 +1,6 @@
 import os
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file, ensure_output_directories
 
 def create_epub_pagenum_semantic_pagebreak(filename="pagenum_semantic_pagebreak.epub"):
     """
@@ -10,14 +10,14 @@ def create_epub_pagenum_semantic_pagebreak(filename="pagenum_semantic_pagebreak.
     """
     filepath = os.path.join(EPUB_DIR, "page_numbers", filename)
     book = _create_epub_book("synth-epub-pgnum-semantic-001", "EPUB3 Semantic Pagebreaks")
-    book.epub_version = "3.0"
+    # EPUB version is handled automatically by ebooklib
 
     css_content = """
     span[epub|type="pagebreak"] { display: block; text-align: center; margin: 0.5em 0; color: #999; font-size: 0.8em; }
     span[epub|type="pagebreak"]:before { content: "[Page " attr(aria-label) "]"; }
     BODY { font-family: 'Calibri', sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_pgnum_semantic", file_name="style/pgnum_semantic.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_pgnum_semantic", file_name="style/pgnum_semantic.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Being and Time: A New Beginning</h1>
@@ -33,9 +33,9 @@ This marks page 12 of the original print edition.</p>
     chapter_details = [
         {"title": "Semantic Pagebreaks", "filename": "c1_pgnum_semantic.xhtml", "content": chapter_content, "uid": "chapter_semantic_pagebreaks"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_pgnum_semantic_toc"),) # Ensure chapters[0] is the correct item
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav()) # Use default NAV
 
@@ -43,7 +43,7 @@ This marks page 12 of the original print edition.</p>
     # If chapters need to be explicitly added to spine before nav, adjust accordingly.
     # Default spine is usually ['nav'] + chapters or similar.
     # Let ebooklib handle the nav item in spine if it's standard.
-    book.spine = ['nav'] + chapters # 'nav' will refer to the default EpubNav
+    book.spine = ['nav'] + epub_chapter_items # 'nav' will refer to the default EpubNav
     # If there's another item that gets 'nav' property by default (like EpubNav()), remove it or ensure this one takes precedence.
     # Let's check if an EpubNav() is added elsewhere and remove it if so, to avoid conflict.
     # The SUT adds epub.EpubNcx() at line 39, but not epub.EpubNav() apart from this custom one.
@@ -61,7 +61,7 @@ def create_epub_pagenum_kant_anchor(filename="pagenum_kant_anchor.epub"):
     a.calibre10-kantpage { /* Usually invisible, might have specific styling for debug */ }
     BODY { font-family: 'Times New Roman', serif; }
     """
-    style_item = epub.EpubItem(uid="style_pgnum_kant_anchor", file_name="style/pgnum_kant_anchor.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_pgnum_kant_anchor", file_name="style/pgnum_kant_anchor.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Critique of Pure Reason - Page Markers</h1>
@@ -72,12 +72,12 @@ The content here would correspond to page A25 of the first edition.</p>
     chapter_details = [
         {"title": "Kant Anchor Page Markers", "filename": "c1_kant_pgnum_anchor.xhtml", "content": chapter_content, "uid": "c1_kant_pgnum_anchor"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_kant_pgnum_anchor_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_pagenum_taylor_anchor(filename="pagenum_taylor_anchor.epub"):
@@ -92,7 +92,7 @@ def create_epub_pagenum_taylor_anchor(filename="pagenum_taylor_anchor.epub"):
     a.calibre3-taylorpage { /* Usually invisible */ }
     BODY { font-family: 'Georgia', serif; line-height: 1.5; }
     """
-    style_item = epub.EpubItem(uid="style_pgnum_taylor_anchor", file_name="style/pgnum_taylor_anchor.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_pgnum_taylor_anchor", file_name="style/pgnum_taylor_anchor.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>The Structure of Self-Consciousness</h1>
@@ -104,12 +104,12 @@ These markers, like <code><a id="page_125" class="calibre3-taylorpage"></a></cod
     chapter_details = [
         {"title": "Taylor Anchor Page Markers", "filename": "c1_taylor_pgnum_anchor.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_taylor_pgnum_anchor_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)
 
 def create_epub_pagenum_deleuze_plain_text(filename="pagenum_deleuze_plain_text.epub"):
@@ -118,11 +118,13 @@ def create_epub_pagenum_deleuze_plain_text(filename="pagenum_deleuze_plain_text.
     e.g., "xl", "xli" interrupting text flow.
     """
     filepath = os.path.join(EPUB_DIR, "page_numbers", filename)
+    # Create output directories if they don't exist
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     book = _create_epub_book("synth-epub-pgnum-deleuze-plain-001", "Deleuze Plain Text Page Numbers EPUB")
 
     # No specific CSS needed for this feature, but a general one is good.
     css_content = "BODY { font-family: 'Courier New', monospace; color: #222; }"
-    style_item = epub.EpubItem(uid="style_pgnum_deleuze_plain", file_name="style/pgnum_deleuze_plain.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_pgnum_deleuze_plain", file_name="style/pgnum_deleuze_plain.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Desiring-Machines</h1>
@@ -138,10 +140,10 @@ often a result of OCR or specific conversion processes from PDFs where page numb
     chapter_details = [
         {"title": "Deleuze Plain Text Page Numbers", "filename": "c1_deleuze_pgnum_plain.xhtml", "content": chapter_content, "uid": "c1_deleuze_pgnum_plain"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    epub_chapter_items, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
-    book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_deleuze_pgnum_plain_toc"),)
+    book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
-    book.spine = ['nav'] + chapters
+    book.spine = ['nav'] + epub_chapter_items
     _write_epub_file(book, filepath)

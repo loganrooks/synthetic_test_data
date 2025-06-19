@@ -15,7 +15,7 @@ def create_epub_image_as_special_text(filename="image_as_special_text.epub"):
     img.calibre18-hegel-img { height: 1.2em; vertical-align: middle; border: 1px solid lightgray; }
     BODY { font-family: 'Georgia', serif; }
     """
-    style_item = epub.EpubItem(uid="style_img_special_text", file_name="style/img_special_text.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_img_special_text", file_name="style/img_special_text.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     # Create a dummy image file (e.g., a small black square)
@@ -52,7 +52,7 @@ def create_epub_font_obfuscated(filename="font_obfuscated.epub"):
     """
     filepath = os.path.join(EPUB_DIR, "images_fonts", filename)
     book = _create_epub_book("synth-epub-font-obfuscated-001", "Obfuscated Font Structure EPUB")
-    book.epub_version = "2.0" # Often seen with older DRM/obfuscation
+    # EPUB version is handled automatically by ebooklib
 
     css_content = """
     @font-face {
@@ -62,7 +62,7 @@ def create_epub_font_obfuscated(filename="font_obfuscated.epub"):
     body { font-family: 'ObfuscatedSans', sans-serif; color: #333; }
     h1 { font-weight: normal; }
     """
-    style_item = epub.EpubItem(uid="style_font_obf", file_name="style/font_obf.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_font_obf", file_name="style/font_obf.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     # Dummy font file (content doesn't matter for this test, only its manifest entry)
@@ -104,13 +104,37 @@ in the <code>META-INF</code> directory, referencing font files.</p>
     # However, ebooklib doesn't allow specifying paths outside OEBPS for add_item.
     # So, this test will primarily rely on the *concept* and the OPF potentially referencing it if a tool did it.
     # The most direct way to test this is to check for encryption.xml after generation.
-    # We will add a custom attribute to the book to signify this for test validation.
-    if not hasattr(book, 'custom_files_to_add'):
-        book.custom_files_to_add = {}
-    book.custom_files_to_add["META-INF/encryption.xml"] = encryption_xml_content.encode('utf-8')
+    # Note: ebooklib doesn't support adding files to META-INF directly
+    # This would require custom EPUB manipulation post-generation
 
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     book.spine = ['nav'] + epub_chapters
     _write_epub_file(book, filepath) # _write_epub_file would need modification to handle custom_files_to_add
+
+def get_mime_type_from_filename(filename):
+    """
+    Determines the MIME type based on file extension.
+    """
+    ext = os.path.splitext(filename.lower())[1]
+    
+    mime_types = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+        '.ttf': 'application/font-sfnt',
+        '.otf': 'application/vnd.ms-opentype',  # Standards vary, some use application/font-sfnt
+        '.woff': 'application/font-woff',
+        '.woff2': 'application/font-woff2',
+        '.css': 'text/css',
+        '.html': 'text/html',
+        '.xhtml': 'application/xhtml+xml',
+        '.js': 'text/javascript',
+        '.xml': 'application/xml',
+    }
+    
+    return mime_types.get(ext, 'application/octet-stream')

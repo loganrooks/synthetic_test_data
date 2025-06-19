@@ -15,7 +15,7 @@ def create_epub_content_dialogue(filename="content_dialogue.epub"):
     div.scene-description { font-style: italic; color: #555; margin-bottom: 1em; text-align: center; }
     BODY { font-family: 'Verdana', sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_dialogue", file_name="style/dialogue.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_dialogue", file_name="style/dialogue.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>A Philosophical Debate</h1>
@@ -58,7 +58,7 @@ def create_epub_content_epigraph(filename="content_epigraph.epub"):
     p.epf-source-pippin { text-align: right; color: #777; font-size: 0.9em; }
     BODY { font-family: 'Garamond', serif; }
     """
-    style_item = epub.EpubItem(uid="style_epigraph", file_name="style/epigraph.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_epigraph", file_name="style/epigraph.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Chapter One: Beginnings</h1>
@@ -101,7 +101,7 @@ def create_epub_content_blockquote_styled(filename="content_blockquote_styled.ep
     blockquote.calibre14-hegelsol p { margin-top: 0.3em; margin-bottom: 0.3em; }
     BODY { font-family: 'Arial', sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_blockquote", file_name="style/blockquote.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_blockquote", file_name="style/blockquote.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Quoting Authorities</h1>
@@ -138,7 +138,7 @@ def create_epub_content_internal_cross_refs(filename="content_internal_cross_ref
     h2#target_section { background-color: #f0f0f0; padding: 0.2em; }
     BODY { font-family: 'Lucida Grande', sans-serif; }
     """
-    style_item = epub.EpubItem(uid="style_xref", file_name="style/xref.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_xref", file_name="style/xref.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter1_content = """<h1>Chapter One: Introducing Concepts</h1>
@@ -177,7 +177,7 @@ def create_epub_content_forced_page_breaks(filename="content_forced_page_breaks.
 
     # No specific CSS needed for the break itself, but general styling is good.
     css_content = "BODY { font-family: 'Arial', sans-serif; line-height: 1.4; }"
-    style_item = epub.EpubItem(uid="style_forcebreak", file_name="style/forcebreak.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_forcebreak", file_name="style/forcebreak.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Chapter with Forced Breaks</h1>
@@ -215,7 +215,7 @@ def create_epub_poetry(filename="poetry_formatting.epub"):
     p.poemline.indent1 { margin-left: 2em; text-indent: -1em; }
     p.poemline.indent2 { margin-left: 3em; text-indent: -1em; }
     """
-    style_item = epub.EpubItem(uid="style_poetry", file_name="style/poetry.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_poetry", file_name="style/poetry.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
     chapter_details = [{"title": "Ode to a Synthetic Text", "filename": "ode_synthetic.xhtml", "content": """
 <h1>Ode to a Synthetic Text</h1>

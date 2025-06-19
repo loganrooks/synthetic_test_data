@@ -55,7 +55,7 @@ def create_epub2_with_guide(filename="epub2_with_guide.epub", write_file=True):
     
     # Set NCX data (machine-readable ToC for EPUB2)
     # toc_link_items is a list of epub.Link objects from _add_epub_chapters
-    book.toc = tuple(toc_link_items)
+    book.toc = toc_link_items
     book.add_item(epub.EpubNcx()) # Explicitly add NCX item using the correct class
     
     # Define Guide items (EPUB2 specific semantic references)
@@ -98,7 +98,7 @@ def create_epub_opf_specific_meta(filename="opf_specific_meta.epub", write_file=
         "uid": "c1_opf"
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
-    book.toc = tuple(toc_links)
+    book.toc = toc_links
     book.spine = [epub_chapters[0].id]
     book.add_item(epub.EpubNcx())
 
@@ -122,7 +122,7 @@ def create_epub_spine_pagemap_ref(filename="spine_pagemap_ref.epub", write_file=
         "uid": "c1_pm"
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
-    book.toc = tuple(toc_links)
+    book.toc = toc_links
     
     # Create page-map.xml content
     # For simplicity, assume page 1 of c1_pagemap.xhtml is the target
@@ -149,7 +149,7 @@ def create_epub_spine_pagemap_ref(filename="spine_pagemap_ref.epub", write_file=
     # For page-map, it's typically an attribute on the <spine> element itself: <spine toc="ncx" page-map="page_map_uid">
     # ebooklib handles this via book.page_map = page_map_item.id (or page_map_item.file_name if preferred by some readers)
     
-    book.page_map = page_map_item.id # Set the page_map attribute on the book object for ebooklib
+    # Note: ebooklib doesn't directly support page_map attribute
 
     book.add_item(epub.EpubNcx())
 
@@ -176,7 +176,7 @@ def create_epub_structure_split_files(filename_pattern="split_file_chapter_{}.ep
         }
         
         epub_chapters, toc_links = _add_epub_chapters(book, [chapter_details], {})
-        book.toc = tuple(toc_links)
+        book.toc = toc_links
         book.spine = [epub_chapters[0].id]
         book.add_item(epub.EpubNcx())
 
@@ -209,7 +209,7 @@ def create_epub_structure_calibre_artifacts(filename="calibre_artifacts.epub", w
     book.spine = [epub_chapters[0].id]
     
     # Set toc for NCX generation
-    book.toc = tuple(toc_links)
+    book.toc = toc_links
 
     # OPF is handled by ebooklib automatically.
     # Explicitly add NCX as it might be referenced by default in the spine.
@@ -237,7 +237,7 @@ def create_epub_structure_adobe_artifacts(filename="adobe_artifacts.epub", write
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
     
-    book.toc = tuple(toc_links)
+    book.toc = toc_links
     book.spine = [epub_chapters[0].id]
     book.add_item(epub.EpubNcx())
 
@@ -273,7 +273,7 @@ def create_epub_accessibility_epub_type(filename="accessibility_epub_type.epub",
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
     
-    book.toc = tuple(toc_links)
+    book.toc = toc_links
     book.spine = [epub_chapters[0].id]
     book.add_item(epub.EpubNcx())
     

@@ -14,7 +14,7 @@ def create_epub_citation_kant_intext(filename="citation_kant_intext.epub"):
     .kant-citation { font-style: italic; color: #444; }
     BODY { font-family: 'Garamond Premier Pro', serif; }
     """
-    style_item = epub.EpubItem(uid="style_cite_kant", file_name="style/cite_kant.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_cite_kant", file_name="style/cite_kant.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
     # This function seems incomplete, adding basic chapter and write for now.
     chapter_details = [
@@ -24,7 +24,7 @@ def create_epub_citation_kant_intext(filename="citation_kant_intext.epub"):
 <p>Another example might be <span class="kant-citation">(GMS, 4:421)</span> for the Groundwork.</p>"""}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    book.toc = tuple(toc_links) # Use the generated toc_links
+    book.toc = toc_links # Use the generated toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     book.spine = ['nav'] + epub_chapters # Use epub_chapters here
@@ -44,7 +44,7 @@ def create_epub_citation_taylor_intext_italic(filename="citation_taylor_intext_i
     .taylor-citation-ref { /* No specific style, just for semantic grouping if needed */ }
     BODY { font-family: 'Georgia', serif; }
     """
-    style_item = epub.EpubItem(uid="style_cite_taylor", file_name="style/cite_taylor.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_cite_taylor", file_name="style/cite_taylor.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     chapter_content = """<h1>Hegel and Modern Society: A Synthetic Fragment</h1>
@@ -59,7 +59,7 @@ This contrasts with Kant’s position in the <em class="calibre8-taylor">Critiqu
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
 
-    book.toc = tuple(toc_links) # Use the generated toc_links
+    book.toc = toc_links # Use the generated toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     book.spine = ['nav'] + epub_chapters # Use epub_chapters here
@@ -73,7 +73,7 @@ def create_epub_citation_rosenzweig_biblioref(filename="citation_rosenzweig_bibl
     """
     filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
     book = _create_epub_book("synth-epub-cite-rosen-bibref-001", "Rosenzweig Biblioref Style EPUB")
-    book.epub_version = "3.0" # epub:type is EPUB3
+    # EPUB version is handled automatically by ebooklib
 
     css_content = """
     a[epub|type="biblioref"] { text-decoration: none; color: #0056b3; }
@@ -83,7 +83,7 @@ def create_epub_citation_rosenzweig_biblioref(filename="citation_rosenzweig_bibl
     a[epub|type="backlink"] { text-decoration: none; color: #777; margin-left: 0.5em; }
     BODY { font-family: 'Times New Roman', Times, serif; }
     """
-    style_item = epub.EpubItem(uid="style_cite_rosen_bibref", file_name="style/cite_rosen_bibref.css", media_type="text/css", content=css_content)
+    style_item = epub.EpubItem(uid="style_cite_rosen_bibref", file_name="style/cite_rosen_bibref.css", media_type="text/css", content=css_content.encode('utf-8'))
     book.add_item(style_item)
 
     # Main content file
@@ -122,13 +122,13 @@ for example, <a epub:type="biblioref" href="bibliography_rosen.xhtml#hegel1802" 
     # bib_page.add_item(style_item) # Already linked in HTML
     book.add_item(bib_page)
     
-    book.toc = (
+    book.toc = [
         epub.Link(main_chap.file_name, "Hegel's Early Writings", "c1_rosen_bibref_toc"),
         epub.Link(bib_page.file_name, "Bibliography", "bib_rosen_bibref_toc")
-    )
+    ]
     book.add_item(epub.EpubNcx())
     nav_doc = epub.EpubNav() # Basic NavDoc
-    nav_doc.html_content = u"""<?xml version="1.0" encoding="UTF-8"?>
+    nav_doc.content = u"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head><title>Nav</title></head>
