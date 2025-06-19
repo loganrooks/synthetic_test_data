@@ -1,5 +1,21 @@
 ### Progress: `PdfGenerator` Failing Tests (Round 2) - Fixes Applied - [2025-05-16 14:17:00]
 - **Status**: Fixes applied by `debug` mode. Verification pending test execution.
+### System Pattern Update: Function Return Value Contract Enforcement - [2025-05-18 13:37:35]
+- **Context**: Recurring bug pattern identified in EPUB components where tuple unpacking issues caused AttributeError.
+- **Pattern**: Functions returning tuples should clearly document their return value structure and enforce consistent usage.
+- **Implementation**:
+  1. Add explicit type hints for all functions returning tuples
+  2. Document return value structure in docstrings
+  3. Consider using namedtuples or dataclasses for complex return values
+  4. Add runtime checks or warnings for incorrect usage patterns
+- **Affected Components**: 
+  - `_add_epub_chapters` utility function and its callers
+  - Any future functions with tuple returns
+- **Benefits**:
+  - Prevents subtle bugs from incorrect tuple unpacking
+  - Makes code more maintainable and self-documenting
+  - Easier to catch issues at development time
+- **Related**: Issue "EPUB _add_epub_chapters unpacking bug" [2025-05-18 13:35:04]
 - **Details**:
     - **Probabilistic Tests (Table &amp; Figure Scenario 2)**:
         - Tests affected: `test_single_column_with_probabilistic_table_occurrence` (Scenario 2), `test_single_column_with_probabilistic_figure_occurrence` (Scenario 2).

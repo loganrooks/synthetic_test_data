@@ -1,7 +1,37 @@
 # Debug Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### Issue: EPUB _add_epub_chapters unpacking bug - [Status: Resolved] - [2025-05-18 13:35:04]
+- **Reported**: 2025-05-18 13:25:33 / **Severity**: High / **Symptoms**: AttributeError: 'list' object has no attribute 'file_name' in multiple EPUB component tests
+- **Investigation**: 
+    1. [2025-05-18 13:28:00] Identified all functions in notes.py using _add_epub_chapters with old unpacking
+    2. [2025-05-18 13:32:52] Applied batch diff to update unpacking and TOC/spine usage in create_epub_pippin_style_endnotes, create_epub_heidegger_ge_style_endnotes, and create_epub_same_page_footnotes
+- **Root Cause**: Functions were not unpacking the tuple returned by _add_epub_chapters (epub_chapter_items, toc_links), leading to list attribute errors when accessing .file_name directly on the first tuple element
+- **Fix Applied**: All affected functions in notes.py now correctly unpack _add_epub_chapters return value and use epub_chapter_items for spine assignments and toc_links for TOC generation
+- **Verification**: Ready for retest with all tests in notes.py and page_numbers.py
+- **Related Issues**: Similar unpacking bug exists in page_numbers.py (pending fix)
 ### Issue: PDF_PROBABILISTIC_RANDOM_CALL_COUNT - Probabilistic tests asserting `random.random` called once, but mock reports 2 calls - Mitigated - 2025-05-16 14:17:00
 - **Reported**: 2025-05-16 (Current Task & previous) / **Severity**: Medium (Failing Tests)
+### Issue: TOC-001 - Visual ToC Test Failures Due to Missing PDF Variant - Resolved - [2025-05-17 19:08:25]
+## Recurring Bug Patterns
+### Pattern: Function Return Tuple Unpacking - [2025-05-18 13:36:52]
+- **Identification**: Multiple functions calling `_add_epub_chapters` failed to unpack returned tuple (epub_chapter_items, toc_links) and attempted to access .file_name on the tuple directly
+- **Causes**: 
+  1. Function signature change in `_add_epub_chapters` to return tuple not properly propagated
+  2. Lack of type hints or documentation about return value structure
+  3. Code review missed examining all call sites
+- **Components**: 
+  - synth_data_gen/generators/epub_components/notes.py (multiple functions)
+  - synth_data_gen/generators/epub_components/page_numbers.py (pending)
+- **Resolution**: Update all callers to use correct tuple unpacking pattern: `epub_chapter_items, toc_links = _add_epub_chapters(...)`
+- **Related**: Current issue EPUB _add_epub_chapters unpacking bug [2025-05-18 13:35:04]
+- **Last Seen**: 2025-05-18 13:25:33
+- **Reported**: [2025-05-17 19:05:00] / **Severity**: Medium / **Symptoms**: Test failures in visual ToC tests due to missing pdf_variant configuration
+- **Investigation**: 
+  1. [19:06:00] Compared working tests to identify required config structure
+  2. [19:07:00] Found missing `pdf_variant: "visual_toc_hyperlinked"` in failing test
+- **Root Cause**: [19:07:30] ToC generation requires specific pdf_variant but test config omitted it
+- **Fix Applied**: [19:07:45] Added required `pdf_variant` config to test / **Verification**: Tests pass after fix
+- **Related Issues**: None
 - **Symptoms**: Tests `test_generate_single_column_unified_chapters_probabilistic`, `test_generate_single_column_page_count_probabilistic`, `test_single_column_with_probabilistic_table_occurrence`, `test_single_column_with_probabilistic_figure_occurrence` in [`tests/generators/test_pdf_generator.py`](tests/generators/test_pdf_generator.py:1) fail with `AssertionError: Expected 'random' to have been called once. Called 2 times. Calls: [call(), call()].` The mock targets `synth_data_gen.core.base.random.random`.
 - **Investigation**:
     - (Previous investigation notes remain valid)
