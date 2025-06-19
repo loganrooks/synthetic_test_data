@@ -10,7 +10,9 @@ import json # For JSON frontmatter test
 
 @pytest.fixture
 def markdown_generator_test_setup():
-    generator = MarkdownGenerator()
+    global_config = {"test": "global"}
+    specific_config = {"test": "specific"}
+    generator = MarkdownGenerator(global_config, specific_config)
     output_dir = "test_output_markdown"
     os.makedirs(output_dir, exist_ok=True)
     yield generator, output_dir # Provide the instance and output_dir
