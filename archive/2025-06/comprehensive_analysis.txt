@@ -1,0 +1,175 @@
+Python Type Checking Issues Report (Pyright (mode: strict))
+Generated: 2025-06-14T07:35:30.902553
+==================================================
+
+Total Issues: 44
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_notes.py
+----------------------------------------------------------------------------------------------
+  Line 42, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 52, Col 57 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 92, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 133, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 178, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 217, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 266, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 316, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 361, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 406, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 447, Col 57 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 511, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 532, Col 9 [error]: Method declaration "test_create_epub_kant_style_footnotes_creates_file" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 541, Col 9 [error]: Method declaration "test_create_epub_kant_style_footnotes_content" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 581, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 625, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 670, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 726, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_page_numbers.py
+-----------------------------------------------------------------------------------------------------
+  Line 91, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 97, Col 37 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 120, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 125, Col 37 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 150, Col 37 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/test_epub_generator.py
+---------------------------------------------------------------------------------------
+  Line 10, Col 12 [error]: Arguments missing for parameters "global_config", "specific_config"
+    Rule: reportCallIssue
+
+  Line 52, Col 56 [error]: Argument of type "Literal['not_a_dict']" cannot be assigned to parameter "specific_config" of type "Dict[str, Any]" in function "validate_config"
+  "Literal['not_a_dict']" is not assignable to "Dict[str, Any]"
+    Rule: reportArgumentType
+
+  Line 58, Col 73 [error]: Argument of type "Literal['not_a_dict']" cannot be assigned to parameter "global_config" of type "Dict[str, Any]" in function "validate_config"
+  "Literal['not_a_dict']" is not assignable to "Dict[str, Any]"
+    Rule: reportArgumentType
+
+  Line 576, Col 5 [error]: Function declaration "test_generate_font_embedding_enabled" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 640, Col 5 [error]: Function declaration "test_generate_unified_quantity_chapters_exact" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 672, Col 5 [error]: Function declaration "test_generate_unified_quantity_chapters_range" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 707, Col 5 [error]: Function declaration "test_generate_unified_quantity_chapters_probabilistic" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 745, Col 5 [error]: Function declaration "test_generate_epub_with_basic_config_integrates_toc" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 826, Col 5 [error]: Function declaration "test_generate_epub2_with_basic_config_integrates_ncx" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 859, Col 5 [error]: Function declaration "test_generate_font_embedding_enabled" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 923, Col 5 [error]: Function declaration "test_generate_unified_quantity_chapters_exact" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 955, Col 5 [error]: Function declaration "test_generate_unified_quantity_chapters_range" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 990, Col 5 [error]: Function declaration "test_generate_unified_quantity_chapters_probabilistic" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 1028, Col 5 [error]: Function declaration "test_generate_epub_with_basic_config_integrates_toc" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+  Line 1109, Col 5 [error]: Function declaration "test_generate_epub2_with_basic_config_integrates_ncx" is obscured by a declaration of the same name
+    Rule: reportRedeclaration
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/test_markdown_generator.py
+-------------------------------------------------------------------------------------------
+  Line 13, Col 17 [error]: Arguments missing for parameters "global_config", "specific_config"
+    Rule: reportCallIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/test_pdf_generator.py
+--------------------------------------------------------------------------------------
+  Line 18, Col 12 [error]: Arguments missing for parameters "global_config", "specific_config"
+    Rule: reportCallIssue
+
+  Line 78, Col 55 [error]: Argument of type "Literal['not_a_dict']" cannot be assigned to parameter "specific_config" of type "Dict[str, Any]" in function "validate_config"
+  "Literal['not_a_dict']" is not assignable to "Dict[str, Any]"
+    Rule: reportArgumentType
+
+  Line 84, Col 72 [error]: Argument of type "Literal['not_a_dict']" cannot be assigned to parameter "global_config" of type "Dict[str, Any]" in function "validate_config"
+  "Literal['not_a_dict']" is not assignable to "Dict[str, Any]"
+    Rule: reportArgumentType
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/test_config_loader.py
+---------------------------------------------------------------------------
+  Line 170, Col 35 [error]: "exceptions" is not a known attribute of module "jsonschema"
+    Rule: reportAttributeAccessIssue
+
+  Line 175, Col 35 [error]: "exceptions" is not a known attribute of module "jsonschema"
+    Rule: reportAttributeAccessIssue
+
+

@@ -1,0 +1,300 @@
+Python Type Checking Issues Report (Pyright (mode: basic))
+Generated: 2025-06-15T06:39:37.179595
+==================================================
+
+Total Issues: 69
+
+FILE: /home/loganrooks/Code/synthetic_test_data/synth_data_gen/generators/epub_components/citations.py
+------------------------------------------------------------------------------------------------------
+  Line 125, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/synth_data_gen/generators/epub_components/multimedia.py
+-------------------------------------------------------------------------------------------------------
+  Line 18, Col 133 [error]: Argument of type "Literal['\n    img.calibre18-hegel-img { height: 1.2em; vert…']" cannot be assigned to parameter "content" of type "bytes" in function "__init__"
+  "Literal['\n    img.calibre18-hegel-img { height: 1.2em; vert…']" is not assignable to "bytes"
+    Rule: reportArgumentType
+
+  Line 65, Col 117 [error]: Argument of type "Literal['\n    @font-face {\n        font-family: \'Obfuscated…']" cannot be assigned to parameter "content" of type "bytes" in function "__init__"
+  "Literal['\n    @font-face {\n        font-family: \'Obfuscated…']" is not assignable to "bytes"
+    Rule: reportArgumentType
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/synth_data_gen/generators/epub_components/notes.py
+--------------------------------------------------------------------------------------------------
+  Line 198, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 351, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link, Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link, Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 394, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 451, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 633, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Unknown, ...]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Unknown, ...]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 686, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 776, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 855, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Unknown, ...]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Unknown, ...]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/synth_data_gen/generators/epub_components/page_numbers.py
+---------------------------------------------------------------------------------------------------------
+  Line 20, Col 129 [error]: Argument of type "Literal['\n    span[epub|type="pagebreak"] { display: block;…']" cannot be assigned to parameter "content" of type "bytes" in function "__init__"
+  "Literal['\n    span[epub|type="pagebreak"] { display: block;…']" is not assignable to "bytes"
+    Rule: reportArgumentType
+
+  Line 64, Col 135 [error]: Argument of type "Literal['\n    a.calibre10-kantpage { /* Usually invisible, …']" cannot be assigned to parameter "content" of type "bytes" in function "__init__"
+  "Literal['\n    a.calibre10-kantpage { /* Usually invisible, …']" is not assignable to "bytes"
+    Rule: reportArgumentType
+
+  Line 95, Col 139 [error]: Argument of type "Literal['\n    a.calibre3-taylorpage { /* Usually invisible …']" cannot be assigned to parameter "content" of type "bytes" in function "__init__"
+  "Literal['\n    a.calibre3-taylorpage { /* Usually invisible …']" is not assignable to "bytes"
+    Rule: reportArgumentType
+
+  Line 127, Col 139 [error]: Argument of type "Literal['BODY { font-family: \'Courier New\', monospace; colo…']" cannot be assigned to parameter "content" of type "bytes" in function "__init__"
+  "Literal['BODY { font-family: \'Courier New\', monospace; colo…']" is not assignable to "bytes"
+    Rule: reportArgumentType
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/synth_data_gen/generators/epub_components/toc.py
+------------------------------------------------------------------------------------------------
+  Line 219, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[tuple[Link, tuple[tuple[Link, tuple[tuple[Link, tuple[Link]], Link]], Link]]]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[tuple[Link, tuple[tuple[Link, tuple[tuple[Link, tuple[Link]], Link]], Link]]]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 404, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 459, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[tuple[Link, tuple[Link, Link]], tuple[Link, tuple[Link]]]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[tuple[Link, tuple[Link, Link]], tuple[Link, tuple[Link]]]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 494, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 582, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[Link, Link, Link]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[Link, Link, Link]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+  Line 654, Col 10 [error]: Cannot assign to attribute "toc" for class "EpubBook"
+  Expression of type "tuple[tuple[Link, tuple[tuple[Link, tuple[Link]], Link]], tuple[Link, tuple[Link]]]" cannot be assigned to attribute "toc" of class "EpubBook"
+    "tuple[tuple[Link, tuple[tuple[Link, tuple[Link]], Link]], tuple[Link, tuple[Link]]]" is not assignable to "list[Unknown]"
+    Rule: reportAttributeAccessIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_headers.py
+------------------------------------------------------------------------------------------------
+  Line 500, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_multimedia.py
+---------------------------------------------------------------------------------------------------
+  Line 41, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 47, Col 35 [error]: "media_type" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 84, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 91, Col 36 [error]: "media_type" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_notes.py
+----------------------------------------------------------------------------------------------
+  Line 42, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 52, Col 57 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 92, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 133, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 178, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 217, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 266, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 316, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 361, Col 47 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 406, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 447, Col 57 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 511, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 581, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 625, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 670, Col 51 [error]: Cannot access attribute "decode" for class "Literal['']"
+  Attribute "decode" is unknown
+    Rule: reportAttributeAccessIssue
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_page_numbers.py
+-----------------------------------------------------------------------------------------------------
+  Line 91, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 97, Col 37 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 120, Col 32 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 125, Col 37 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 150, Col 37 [error]: "get_content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+
+FILE: /home/loganrooks/Code/synthetic_test_data/tests/generators/epub_components/test_structure.py
+--------------------------------------------------------------------------------------------------
+  Line 37, Col 40 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 38, Col 59 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 71, Col 40 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 72, Col 55 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 73, Col 93 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 78, Col 39 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 79, Col 68 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 80, Col 85 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 101, Col 38 [error]: "id" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 101, Col 145 [error]: "id" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 146, Col 49 [error]: "media_type" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 156, Col 40 [error]: "get_name" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 157, Col 40 [error]: "media_type" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 165, Col 40 [error]: "content" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 168, Col 35 [error]: Cannot access attribute "page_map" for class "EpubBook"
+  Attribute "page_map" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 169, Col 31 [error]: Cannot access attribute "page_map" for class "EpubBook"
+  Attribute "page_map" is unknown
+    Rule: reportAttributeAccessIssue
+
+  Line 169, Col 55 [error]: "id" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 182, Col 82 [error]: "id" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 189, Col 79 [error]: "id" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 192, Col 65 [error]: "id" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 256, Col 52 [error]: "get" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+  Line 265, Col 51 [error]: Argument of type "str | None" cannot be assigned to parameter "name" of type "str | ZipInfo" in function "read"
+  Type "str | None" is not assignable to type "str | ZipInfo"
+    Type "None" is not assignable to type "str | ZipInfo"
+      "None" is not assignable to "str"
+      "None" is not assignable to "ZipInfo"
+    Rule: reportArgumentType
+
+  Line 296, Col 46 [error]: "findall" is not a known attribute of "None"
+    Rule: reportOptionalMemberAccess
+
+
