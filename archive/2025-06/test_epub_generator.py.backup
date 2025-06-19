@@ -1,0 +1,1425 @@
+import pytest
+from pytest_mock import MockerFixture
+from ebooklib import epub
+from synth_data_gen.generators.epub import EpubGenerator
+import random # For patching random.randint and random.random
+import os # For os.path.basename in font test
+
+@pytest.fixture
+def epub_generator_instance():
+    global_config = {"test": "global"}
+    specific_config = {"test": "specific"}
+    return EpubGenerator(global_config, specific_config)
+
+def test_get_default_specific_config(epub_generator_instance: EpubGenerator):
+    """Test that get_default_specific_config returns the expected structure."""
+    defaults = epub_generator_instance.get_default_specific_config()
+    assert isinstance(defaults, dict)
+    assert "chapters_config" in defaults
+    assert defaults["chapters_config"] == 5
+    assert "author" in defaults
+    assert defaults["author"] == "Default EPUB Author"
+    assert "epub_version" in defaults
+    assert defaults["epub_version"] == 3
+    assert "toc_settings" in defaults
+    assert isinstance(defaults["toc_settings"], dict)
+    assert "style" in defaults["toc_settings"]
+    assert defaults["toc_settings"]["style"] == "navdoc_full"
+    assert "font_embedding" in defaults
+    assert isinstance(defaults["font_embedding"], dict)
+    assert "enable" in defaults["font_embedding"]
+    assert not defaults["font_embedding"]["enable"]
+    assert "content_elements" in defaults
+    assert isinstance(defaults["content_elements"], dict)
+    assert "paragraph_styles" in defaults["content_elements"]
+    assert isinstance(defaults["content_elements"]["paragraph_styles"], list)
+
+def test_validate_config_valid(epub_generator_instance: EpubGenerator):
+    """Test validate_config with valid specific and global configs."""
+    specific_config = epub_generator_instance.get_default_specific_config()
+    global_config = {"default_language": "en"}
+    assert epub_generator_instance.validate_config(specific_config, global_config)
+
+def test_validate_config_missing_epub_version(epub_generator_instance: EpubGenerator):
+    """Test validate_config when epub_version is missing (should still pass due to current implementation)."""
+    specific_config = epub_generator_instance.get_default_specific_config()
+    del specific_config["epub_version"]
+    global_config = {"default_language": "en"}
+    assert epub_generator_instance.validate_config(specific_config, global_config)
+
+def test_validate_config_invalid_base_specific_config(epub_generator_instance: EpubGenerator):
+    """Test validate_config when the specific_config is not a dict (handled by super)."""
+    specific_config = "not_a_dict"
+    global_config = {"default_language": "en"}
+    assert not epub_generator_instance.validate_config(specific_config, global_config)
+
+def test_validate_config_invalid_base_global_config(epub_generator_instance: EpubGenerator):
+    """Test validate_config when the global_config is not a dict (handled by super)."""
+    specific_config = epub_generator_instance.get_default_specific_config()
+    global_config = "not_a_dict"
+    assert not epub_generator_instance.validate_config(specific_config, global_config)
+
+def test_generate_minimal_epub(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test the basic flow of the generate method for a minimal EPUB."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    specific_config = {
+        "title": "Test Book", "author": "Test Author", "language": "fr",
+        "chapters_config": 1, "sections_per_chapter_config": 0
+    }
+    global_config = {"default_language": "en", "default_author": "Global Author"}
+    output_path = "test_output/minimal.epub"
+    expected_dir_to_ensure = "test_output"
+    returned_path = epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_ensure_output_dirs.assert_called_once_with(expected_dir_to_ensure)
+    mock_epub_book_class.assert_called_once()
+    mock_book_instance.set_title.assert_called_with("Test Book")
+    mock_book_instance.set_language.assert_called_with("fr")
+    mock_book_instance.add_author.assert_called_with("Test Author")
+    assert mock_book_instance.add_item.called
+    mock_write_epub.assert_called_once_with(output_path, mock_book_instance, {})
+    assert returned_path == output_path
+
+def test_generate_adds_basic_toc_items(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that generate calls ToC creation functions."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    specific_config = {
+        "title": "Basic ToC Test Book EPUB2 NCX", "chapters_config": 1, "epub_version": 2,
+        "toc_settings": {"style": "default"}, "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/basic_toc_test_epub2_ncx.epub"
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0]) # chapters, sections, notes, images
+    
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_create_ncx.assert_called_once()
+    mock_create_nav_document.assert_not_called()
+
+def test_generate_chapters_config_exact_integer(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config as an exact integer."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    exact_chapter_count = 3
+    mock_determine_count.return_value = exact_chapter_count
+    specific_config = {"title": "Exact Chapters Test", "chapters_config": exact_chapter_count}
+    global_config = {}
+    output_path = "test_output/exact_chapters.epub"
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    mock_determine_count.assert_called_once_with(exact_chapter_count, "chapters")
+    assert mock_create_chapter_content.call_count == exact_chapter_count
+
+def test_generate_chapters_config_range_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config as a range object."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+    mock_randint = mocker.patch('random.randint')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    range_config = {"min": 2, "max": 5}
+    expected_chapters_from_range = 4
+    mock_randint.return_value = expected_chapters_from_range
+    mock_determine_count.return_value = expected_chapters_from_range
+    specific_config = {"title": "Range Chapters Test", "chapters_config": range_config}
+    global_config = {}
+    output_path = "test_output/range_chapters.epub"
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    mock_determine_count.assert_called_once_with(range_config, "chapters")
+    assert mock_create_chapter_content.call_count == expected_chapters_from_range
+
+def test_generate_chapters_config_probabilistic_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config as a probabilistic object."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+    mock_random_random = mocker.patch('random.random')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    prob_config = {"chance": 0.7, "per_unit_of": "document", "max_total": 3}
+    mock_random_random.return_value = 0.6
+    expected_chapters_from_prob = 1
+    mock_determine_count.return_value = expected_chapters_from_prob
+    specific_config = {"title": "Probabilistic Chapters Test", "chapters_config": prob_config}
+    global_config = {}
+    output_path = "test_output/prob_chapters.epub"
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    mock_determine_count.assert_called_once_with(prob_config, "chapters")
+    assert mock_create_chapter_content.call_count == expected_chapters_from_prob
+
+def test_generate_sections_config_exact_integer(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with sections_per_chapter_config as an exact integer."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_section_content = mocker.patch.object(epub_generator_instance, '_create_section_content')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    exact_section_count = 2
+    mock_determine_count.side_effect = [num_chapters, exact_section_count, 0, 0]
+    specific_config = {
+        "title": "Exact Sections Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": exact_section_count
+    }
+    global_config = {}
+    output_path = "test_output/exact_sections.epub"
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[1] == mocker.call(exact_section_count, f"sections_in_chapter_1")
+    assert mock_create_section_content.call_count == exact_section_count * num_chapters
+
+def test_generate_sections_config_range_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with sections_per_chapter_config as a range object."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_section_content = mocker.patch.object(epub_generator_instance, '_create_section_content')
+    mock_add_images_to_chapter = mocker.patch.object(epub_generator_instance, '_add_images_to_chapter') # ADD THIS LINE
+    mock_randint = mocker.patch('random.randint')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    images_range_config = {"min": 1, "max": 3}
+    expected_images_from_range = 2
+    mock_randint.return_value = expected_images_from_range
+    # Calls: chapters, sections for chap1, images for chap1. Notes are off by default.
+    mock_determine_count.side_effect = [num_chapters, 1, expected_images_from_range]
+    specific_config = {
+        "title": "Range Images Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1, "notes_system": {"enable": False, "notes_config": 0}, # Ensure notes are off
+        "multimedia": {"include_images": True, "images_config": images_range_config}
+    }
+    global_config = {}
+    output_path = "test_output/range_images.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(images_range_config, f"images_in_chapter_1")
+    mock_add_images_to_chapter.assert_called_once()
+
+def test_generate_sections_config_probabilistic_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with sections_per_chapter_config as a probabilistic object."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_section_content = mocker.patch.object(epub_generator_instance, '_create_section_content')
+    mock_random_random = mocker.patch('random.random')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    sections_prob_config = {"chance": 0.8, "max_total": 2}
+    mock_random_random.return_value = 0.7
+    expected_sections_from_prob = 1
+    # Correct side_effect: chapters, sections for chap1, notes for chap1
+    mock_determine_count.side_effect = [num_chapters, 1, expected_sections_from_prob, 0] # Added 0 for images
+    specific_config = {
+        "title": "Probabilistic Sections Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": sections_prob_config
+    }
+    global_config = {}
+    output_path = "test_output/prob_sections.epub"
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[1] == mocker.call(sections_prob_config, f"sections_in_chapter_1")
+    assert mock_create_section_content.call_count == expected_sections_from_prob * num_chapters
+
+def test_generate_notes_config_exact_integer(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with notes_config (exact integer)."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_notes_to_chapter = mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    exact_notes_count = 3
+    # Correct side_effect: chapters, sections for chap1, notes for chap1
+    mock_determine_count.side_effect = [num_chapters, 1, exact_notes_count, 0] # Added 0 for images
+    specific_config = {
+        "title": "Exact Notes Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1,
+        "notes_system": {"enable": True, "type": "footnotes_same_page", "notes_config": exact_notes_count}
+    }
+    global_config = {}
+    output_path = "test_output/exact_notes.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(exact_notes_count, f"notes_in_chapter_1")
+    mock_add_notes_to_chapter.assert_called_once()
+
+def test_generate_notes_config_range_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with notes_config (range object)."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_notes_to_chapter = mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter')
+    mock_randint = mocker.patch('random.randint')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    notes_range_config = {"min": 1, "max": 4}
+    expected_notes_from_range = 2
+    mock_randint.return_value = expected_notes_from_range
+    # Correct side_effect: chapters, sections for chap1, notes for chap1
+    mock_determine_count.side_effect = [num_chapters, 1, expected_notes_from_range, 0] # Added 0 for images
+    specific_config = {
+        "title": "Range Notes Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1,
+        "notes_system": {"enable": True, "type": "footnotes_same_page", "notes_config": notes_range_config}
+    }
+    global_config = {}
+    output_path = "test_output/range_notes.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(notes_range_config, f"notes_in_chapter_1")
+    mock_add_notes_to_chapter.assert_called_once()
+
+def test_generate_notes_config_probabilistic_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with notes_config (probabilistic object)."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_notes_to_chapter = mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter')
+    mock_random_random = mocker.patch('random.random')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    notes_prob_config = {"chance": 0.6, "max_total": 3}
+    mock_random_random.return_value = 0.5
+    expected_notes_from_prob = 1
+    # Correct side_effect: chapters, sections for chap1, notes for chap1
+    mock_determine_count.side_effect = [num_chapters, 1, expected_notes_from_prob, 0] # Added 0 for images
+    specific_config = {
+        "title": "Probabilistic Notes Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1,
+        "notes_system": {"enable": True, "type": "footnotes_same_page", "notes_config": notes_prob_config}
+    }
+    global_config = {}
+    output_path = "test_output/prob_notes.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(notes_prob_config, f"notes_in_chapter_1")
+    mock_add_notes_to_chapter.assert_called_once()
+
+# Tests for images_config
+def test_generate_images_config_exact_integer(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with images_config (exact integer)."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_images_to_chapter = mocker.patch.object(epub_generator_instance, '_add_images_to_chapter')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    exact_images_count = 2
+    # Calls: chapters, sections for chap1, images for chap1. Notes are off by default.
+    mock_determine_count.side_effect = [num_chapters, 1, exact_images_count]
+    specific_config = {
+        "title": "Exact Images Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1, "notes_system": {"enable": False, "notes_config": 0}, # Ensure notes are off
+        "multimedia": {"include_images": True, "images_config": exact_images_count}
+    }
+    global_config = {}
+    output_path = "test_output/exact_images.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(exact_images_count, f"images_in_chapter_1")
+    mock_add_images_to_chapter.assert_called_once()
+
+def test_generate_images_config_range_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with images_config (range object)."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_images_to_chapter = mocker.patch.object(epub_generator_instance, '_add_images_to_chapter')
+    mock_randint = mocker.patch('random.randint')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    images_range_config = {"min": 1, "max": 3}
+    expected_images_from_range = 2
+    mock_randint.return_value = expected_images_from_range
+    # Calls: chapters, sections for chap1, images for chap1. Notes are off by default.
+    mock_determine_count.side_effect = [num_chapters, 1, expected_images_from_range]
+    specific_config = {
+        "title": "Range Images Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1, "notes_system": {"enable": False, "notes_config": 0}, # Ensure notes are off
+        "multimedia": {"include_images": True, "images_config": images_range_config}
+    }
+    global_config = {}
+    output_path = "test_output/range_images.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(images_range_config, f"images_in_chapter_1")
+    mock_add_images_to_chapter.assert_called_once()
+
+def test_generate_images_config_probabilistic_object(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with images_config (probabilistic object)."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_images_to_chapter = mocker.patch.object(epub_generator_instance, '_add_images_to_chapter')
+    mock_random_random = mocker.patch('random.random')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    images_prob_config = {"chance": 0.9, "max_total": 2}
+    mock_random_random.return_value = 0.8
+    expected_images_from_prob = 1
+    # Calls: chapters, sections for chap1, images for chap1. Notes are off by default.
+    mock_determine_count.side_effect = [num_chapters, 1, expected_images_from_prob]
+    specific_config = {
+        "title": "Probabilistic Images Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1, "notes_system": {"enable": False, "notes_config": 0}, # Ensure notes are off
+        "multimedia": {"include_images": True, "images_config": images_prob_config}
+    }
+    global_config = {}
+    output_path = "test_output/prob_images.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    assert mock_determine_count.call_args_list[2] == mocker.call(images_prob_config, f"images_in_chapter_1")
+    mock_add_images_to_chapter.assert_called_once()
+
+def test_generate_multimedia_include_images_false(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that images are not processed if multimedia.include_images is False."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_add_images_to_chapter = mocker.patch.object(epub_generator_instance, '_add_images_to_chapter')
+    # Patch random.randint used by BaseGenerator._determine_count if sections/notes/images are range-based
+    # For this test, notes_config is 0 (exact), so not strictly needed for notes, but good for consistency if other counts were ranges.
+    mock_base_randint = mocker.patch('random.randint') # Add this line
+    mocker.patch('synth_data_gen.core.base.random.randint', mock_base_randint) # Add this line
+
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    num_chapters = 1
+    # Correct side_effect: chapters, sections for chap1, notes for chap1
+    mock_determine_count.side_effect = [num_chapters, 1, 0] 
+    specific_config = {
+        "title": "No Images Test", "chapters_config": num_chapters,
+        "sections_per_chapter_config": 1, 
+        "notes_system": {"enable": True, "notes_config": 0}, # Notes are enabled, count is 0
+        "multimedia": {"include_images": False, "images_config": 5}
+    }
+    global_config = {}
+    output_path = "test_output/no_images.epub"
+    mocker.patch.object(epub_generator_instance, '_create_section_content', mocker.MagicMock())
+    mocker.patch.object(epub_generator_instance, '_add_notes_to_chapter', mocker.MagicMock())
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_add_images_to_chapter.assert_not_called()
+    assert mock_determine_count.call_count == 3 # ch, sec, notes
+    assert mock_determine_count.call_args_list[0] == mocker.call(num_chapters, "chapters")
+    assert mock_determine_count.call_args_list[1] == mocker.call(1, f"sections_in_chapter_1")
+    assert mock_determine_count.call_args_list[2] == mocker.call(0, f"notes_in_chapter_1")
+    for call_args in mock_determine_count.call_args_list:
+        assert call_args[0][1] != "images_in_chapter_1"
+
+def test_generate_uses_toc_settings(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that generate passes toc_settings to toc creation functions."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0])
+
+    specific_config = {
+        "title": "ToC Settings Test",
+        "chapters_config": 1,
+        "epub_version": 3,
+        "toc_settings": {
+            "style": "custom_style",
+            "max_depth": 2,
+            "include_landmarks": False
+        },
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/toc_settings_test.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_create_nav_document.assert_called_once()
+    args_nav, _ = mock_create_nav_document.call_args
+    assert args_nav[0] is mock_book_instance
+    assert len(args_nav[1]) == 1
+    assert args_nav[1][0] is mock_chapter_item
+    assert args_nav[2] == specific_config["toc_settings"]
+    assert args_nav[3] == str(specific_config["epub_version"])
+
+    mock_create_ncx.assert_not_called()
+
+def test_generate_default_epub3_creates_nav_not_ncx(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that default EPUB3 generation creates NAV doc and not NCX."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    specific_config = {
+        "title": "EPUB3 Default ToC Test", "chapters_config": 1, "epub_version": 3,
+        "toc_settings": {"style": "default"}, "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/epub3_default_toc.epub"
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0])
+    
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_create_nav_document.assert_called_once()
+    mock_create_ncx.assert_not_called()
+
+def test_generate_default_epub2_creates_ncx_not_nav(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that default EPUB2 generation creates NCX and not NAV doc."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    specific_config = {
+        "title": "EPUB2 Default ToC Test", "chapters_config": 1, "epub_version": 2,
+        "toc_settings": {"style": "default"}, "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/epub2_default_toc.epub"
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0])
+    
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_create_ncx.assert_called_once()
+    mock_create_nav_document.assert_not_called()
+
+def test_generate_font_embedding_enabled(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that font embedding settings are applied when enabled."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    
+    # Capture the EpubBook instance
+    captured_book_instances = []
+    def mock_epub_book_constructor(*args, **kwargs):
+        instance = mocker.MagicMock() # Create a fresh mock for each call if needed
+        captured_book_instances.append(instance)
+        return instance
+    
+    mocker.patch('synth_data_gen.generators.epub.epub.EpubBook', side_effect=mock_epub_book_constructor)
+    
+    mock_os_path_exists = mocker.patch('synth_data_gen.generators.epub.os.path.exists', return_value=True)
+    mock_os_path_basename = mocker.patch('synth_data_gen.generators.epub.os.path.basename', return_value="TestFont.ttf")
+    mock_open_instance = mocker.mock_open(read_data=b"dummy_font_bytes")
+    mocker.patch('builtins.open', mock_open_instance)
+    mock_add_font_css = mocker.patch.object(epub_generator_instance, '_add_font_css_to_book')
+
+    specific_config = {
+        "title": "Font Embedding Test", "chapters_config": 1,
+        "font_embedding": {
+            "enable": True,
+            "fonts": ["path/to/TestFont.ttf"],
+            "obfuscation": "adobe" # Test a specific obfuscation type
+        },
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/font_embedding_test.epub"
+    
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml) # For _create_chapter_content
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1,0,0,0])
+
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    assert len(captured_book_instances) == 1
+    mock_book_instance = captured_book_instances[0]
+
+    mock_os_path_exists.assert_any_call("path/to/TestFont.ttf")
+    mock_os_path_basename.assert_called_with("path/to/TestFont.ttf")
+    mock_open_instance.assert_called_with("path/to/TestFont.ttf", "rb")
+    
+    # Check if add_item was called with an EpubItem that looks like a font
+    font_item_added = False
+    for call_args in mock_book_instance.add_item.call_args_list:
+        item = call_args[0][0]
+        if isinstance(item, epub.EpubItem) and item.file_name == "fonts/TestFont.ttf":
+            assert item.media_type == "application/vnd.ms-opentype" # or font/ttf
+            assert item.content == b"dummy_font_bytes"
+            font_item_added = True
+            break
+    assert font_item_added, "Font item was not added to the book"
+
+    mock_add_font_css.assert_called_once()
+    # Check obfuscation call if possible (might require deeper mocking of EpubBook or EpubItem)
+    # For now, we assume if add_item is called with font data, obfuscation (if any) is handled by ebooklib
+    # or would be part of a more direct test of _add_font_to_book if that method was public/complex.
+
+def test_generate_unified_quantity_chapters_exact(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (exact integer) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    exact_chapter_count = 3
+    # _determine_count will be called for chapters, sections, notes, images.
+    # We are interested in the first call for chapters.
+    mock_determine_count.side_effect = [exact_chapter_count, 0, 0, 0] 
+
+    specific_config = {
+        "title": "Unified Exact Chapters",
+        "chapters_config": exact_chapter_count, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_exact_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    # Check the first call to _determine_count (for chapters)
+    assert mock_determine_count.call_args_list[0] == mocker.call(exact_chapter_count, "chapters")
+    assert mock_create_chapter_content.call_count == exact_chapter_count
+
+def test_generate_unified_quantity_chapters_range(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (range) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+    
+    # Patch random.randint used by BaseGenerator._determine_count
+    mock_base_randint = mocker.patch('random.randint')
+    # Also patch in the module where it's used directly
+    mocker.patch('synth_data_gen.generators.epub.random.randint', mock_base_randint)
+    mocker.patch('synth_data_gen.core.base.random.randint', mock_base_randint)
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    chapters_range_config = {"min": 2, "max": 5}
+    expected_chapters_from_range = 4 
+    mock_base_randint.return_value = expected_chapters_from_range
+
+    specific_config = {
+        "title": "Unified Range Chapters",
+        "chapters_config": chapters_range_config, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_range_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_base_randint.assert_called_with(chapters_range_config["min"], chapters_range_config["max"])
+    assert mock_create_chapter_content.call_count == expected_chapters_from_range
+
+def test_generate_unified_quantity_chapters_probabilistic(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (probabilistic) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    # Patch random.random used by BaseGenerator._determine_count
+    mock_base_random_random = mocker.patch('random.random')
+    # Also patch in the modules where it's used directly
+    mocker.patch('synth_data_gen.generators.epub.random.random', mock_base_random_random)
+    mocker.patch('synth_data_gen.core.base.random.random', mock_base_random_random)
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    chapters_prob_config = {"chance": 0.7, "per_unit_of": "document", "max_total": 3}
+    # Simulate random.random() returning a value that triggers generation (less than chance)
+    mock_base_random_random.return_value = 0.6 
+    expected_chapters_from_prob = 1 # For a single document, chance 0.7, random 0.6 -> 1 chapter
+
+    specific_config = {
+        "title": "Unified Probabilistic Chapters",
+        "chapters_config": chapters_prob_config, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_prob_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_base_random_random.assert_called_once() 
+    assert mock_create_chapter_content.call_count == expected_chapters_from_prob
+
+# --- More detailed integration tests for EpubGenerator components ---
+
+def test_generate_epub_with_basic_config_integrates_toc(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """
+    Test that EpubGenerator.generate with a basic EPUB3 config correctly calls
+    toc.create_nav_document and not toc.create_ncx.
+    """
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    
+    # Capture the EpubBook instance
+    captured_book_instances = []
+    def mock_epub_book_constructor(*args, **kwargs):
+        # Create a real EpubBook instance but track it
+        # This is tricky because we want to inspect its state *after* SUT modifies it,
+        # but *before* write_epub (which is mocked) would consume it.
+        # For this test, we'll use a MagicMock and assert calls on it.
+        instance = mocker.MagicMock() 
+        captured_book_instances.append(instance)
+        return instance
+    
+    mocker.patch('synth_data_gen.generators.epub.epub.EpubBook', side_effect=mock_epub_book_constructor)
+
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+
+    # Mock chapter creation to return a list of mock EpubHtml items
+    mock_chapter_1_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_1_item.file_name = "c1.xhtml"
+    mock_chapter_1_item.title = "Chapter 1 Title"
+    
+    mock_chapter_2_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_2_item.file_name = "c2.xhtml"
+    mock_chapter_2_item.title = "Chapter 2 Title"
+
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', 
+                        side_effect=[mock_chapter_1_item, mock_chapter_2_item])
+    
+    # Mock _determine_count to control number of chapters, sections, notes, images
+    # For this test: 2 chapters, 0 sections, 0 notes, 0 images
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[2, 0, 0, 0, 0, 0, 0]) 
+                                                                    # ch, s_c1, n_c1, i_c1, s_c2, n_c2, i_c2
+
+    specific_config_epub3 = {
+        "title": "EPUB3 Basic ToC",
+        "author": "Test Author",
+        "language": "en-US",
+        "epub_version": 3, # Test integer version
+        "chapters_config": 2,
+        "sections_per_chapter_config": 0,
+        "toc_settings": {"style": "default", "max_depth": 3, "include_landmarks": True},
+        "notes_system": {"enable": False, "notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0},
+        "validation": {"run_epubcheck": False}
+    }
+    global_config = {"default_publisher": "Test Publisher"}
+    output_path = "test_output/epub3_basic_toc_integration.epub"
+
+    epub_generator_instance.generate(specific_config_epub3, global_config, output_path)
+
+    assert len(captured_book_instances) == 1
+    mock_book_instance = captured_book_instances[0]
+
+    # Verify EpubBook setup
+    mock_book_instance.set_title.assert_called_with("EPUB3 Basic ToC")
+    mock_book_instance.set_language.assert_called_with("en-US")
+    mock_book_instance.add_author.assert_called_with("Test Author")
+    mock_book_instance.add_metadata.assert_any_call('DC', 'publisher', 'Test Publisher')
+
+
+    # Verify ToC calls
+    mock_create_nav_document.assert_called_once()
+    nav_call_args, _ = mock_create_nav_document.call_args
+    assert nav_call_args[0] is mock_book_instance # book instance
+    assert len(nav_call_args[1]) == 2 # chapters_for_toc (list of EpubHtml items)
+    assert nav_call_args[1][0] is mock_chapter_1_item
+    assert nav_call_args[1][1] is mock_chapter_2_item
+    assert nav_call_args[2] == specific_config_epub3["toc_settings"] # toc_settings
+    assert nav_call_args[3] == str(specific_config_epub3["epub_version"]) # epub_version (as string)
+    
+    mock_create_ncx.assert_not_called()
+    mock_write_epub.assert_called_once_with(output_path, mock_book_instance, {})
+
+def test_generate_epub2_with_basic_config_integrates_ncx(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """
+    Test that EpubGenerator.generate with a basic EPUB2 config correctly calls
+    toc.create_ncx and not toc.create_nav_document.
+    """
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    specific_config = {
+        "title": "EPUB2 Default ToC Test", "chapters_config": 1, "epub_version": 2,
+        "toc_settings": {"style": "default"}, "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/epub2_default_toc.epub"
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0])
+    
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_create_ncx.assert_called_once()
+    mock_create_nav_document.assert_not_called()
+
+def test_generate_font_embedding_enabled(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that font embedding settings are applied when enabled."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    
+    # Capture the EpubBook instance
+    captured_book_instances = []
+    def mock_epub_book_constructor(*args, **kwargs):
+        instance = mocker.MagicMock() # Create a fresh mock for each call if needed
+        captured_book_instances.append(instance)
+        return instance
+    
+    mocker.patch('synth_data_gen.generators.epub.epub.EpubBook', side_effect=mock_epub_book_constructor)
+    
+    mock_os_path_exists = mocker.patch('synth_data_gen.generators.epub.os.path.exists', return_value=True)
+    mock_os_path_basename = mocker.patch('synth_data_gen.generators.epub.os.path.basename', return_value="TestFont.ttf")
+    mock_open_instance = mocker.mock_open(read_data=b"dummy_font_bytes")
+    mocker.patch('builtins.open', mock_open_instance)
+    mock_add_font_css = mocker.patch.object(epub_generator_instance, '_add_font_css_to_book')
+
+    specific_config = {
+        "title": "Font Embedding Test", "chapters_config": 1,
+        "font_embedding": {
+            "enable": True,
+            "fonts": ["path/to/TestFont.ttf"],
+            "obfuscation": "adobe" # Test a specific obfuscation type
+        },
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/font_embedding_test.epub"
+    
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml) # For _create_chapter_content
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1,0,0,0])
+
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    assert len(captured_book_instances) == 1
+    mock_book_instance = captured_book_instances[0]
+
+    mock_os_path_exists.assert_any_call("path/to/TestFont.ttf")
+    mock_os_path_basename.assert_called_with("path/to/TestFont.ttf")
+    mock_open_instance.assert_called_with("path/to/TestFont.ttf", "rb")
+    
+    # Check if add_item was called with an EpubItem that looks like a font
+    font_item_added = False
+    for call_args in mock_book_instance.add_item.call_args_list:
+        item = call_args[0][0]
+        if isinstance(item, epub.EpubItem) and item.file_name == "fonts/TestFont.ttf":
+            assert item.media_type == "application/vnd.ms-opentype" # or font/ttf
+            assert item.content == b"dummy_font_bytes"
+            font_item_added = True
+            break
+    assert font_item_added, "Font item was not added to the book"
+
+    mock_add_font_css.assert_called_once()
+    # Check obfuscation call if possible (might require deeper mocking of EpubBook or EpubItem)
+    # For now, we assume if add_item is called with font data, obfuscation (if any) is handled by ebooklib
+    # or would be part of a more direct test of _add_font_to_book if that method was public/complex.
+
+def test_generate_unified_quantity_chapters_exact(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (exact integer) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    exact_chapter_count = 3
+    # _determine_count will be called for chapters, sections, notes, images.
+    # We are interested in the first call for chapters.
+    mock_determine_count.side_effect = [exact_chapter_count, 0, 0, 0] 
+
+    specific_config = {
+        "title": "Unified Exact Chapters",
+        "chapters_config": exact_chapter_count, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_exact_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    # Check the first call to _determine_count (for chapters)
+    assert mock_determine_count.call_args_list[0] == mocker.call(exact_chapter_count, "chapters")
+    assert mock_create_chapter_content.call_count == exact_chapter_count
+
+def test_generate_unified_quantity_chapters_range(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (range) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+    
+    # Patch random.randint used by BaseGenerator._determine_count
+    mock_base_randint = mocker.patch('random.randint')
+    # Also patch in the module where it's used directly
+    mocker.patch('synth_data_gen.generators.epub.random.randint', mock_base_randint)
+    mocker.patch('synth_data_gen.core.base.random.randint', mock_base_randint)
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    chapters_range_config = {"min": 2, "max": 5}
+    expected_chapters_from_range = 4 
+    mock_base_randint.return_value = expected_chapters_from_range
+
+    specific_config = {
+        "title": "Unified Range Chapters",
+        "chapters_config": chapters_range_config, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_range_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_base_randint.assert_called_with(chapters_range_config["min"], chapters_range_config["max"])
+    assert mock_create_chapter_content.call_count == expected_chapters_from_range
+
+def test_generate_unified_quantity_chapters_probabilistic(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (probabilistic) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    # Patch random.random used by BaseGenerator._determine_count
+    mock_base_random_random = mocker.patch('random.random')
+    # Also patch in the modules where it's used directly
+    mocker.patch('synth_data_gen.generators.epub.random.random', mock_base_random_random)
+    mocker.patch('synth_data_gen.core.base.random.random', mock_base_random_random)
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    chapters_prob_config = {"chance": 0.7, "per_unit_of": "document", "max_total": 3}
+    # Simulate random.random() returning a value that triggers generation (less than chance)
+    mock_base_random_random.return_value = 0.6 
+    expected_chapters_from_prob = 1 # For a single document, chance 0.7, random 0.6 -> 1 chapter
+
+    specific_config = {
+        "title": "Unified Probabilistic Chapters",
+        "chapters_config": chapters_prob_config, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_prob_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_base_random_random.assert_called_once() 
+    assert mock_create_chapter_content.call_count == expected_chapters_from_prob
+
+# --- More detailed integration tests for EpubGenerator components ---
+
+def test_generate_epub_with_basic_config_integrates_toc(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """
+    Test that EpubGenerator.generate with a basic EPUB3 config correctly calls
+    toc.create_nav_document and not toc.create_ncx.
+    """
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    
+    # Capture the EpubBook instance
+    captured_book_instances = []
+    def mock_epub_book_constructor(*args, **kwargs):
+        # Create a real EpubBook instance but track it
+        # This is tricky because we want to inspect its state *after* SUT modifies it,
+        # but *before* write_epub (which is mocked) would consume it.
+        # For this test, we'll use a MagicMock and assert calls on it.
+        instance = mocker.MagicMock() 
+        captured_book_instances.append(instance)
+        return instance
+    
+    mocker.patch('synth_data_gen.generators.epub.epub.EpubBook', side_effect=mock_epub_book_constructor)
+
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+
+    # Mock chapter creation to return a list of mock EpubHtml items
+    mock_chapter_1_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_1_item.file_name = "c1.xhtml"
+    mock_chapter_1_item.title = "Chapter 1 Title"
+    
+    mock_chapter_2_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_2_item.file_name = "c2.xhtml"
+    mock_chapter_2_item.title = "Chapter 2 Title"
+
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', 
+                        side_effect=[mock_chapter_1_item, mock_chapter_2_item])
+    
+    # Mock _determine_count to control number of chapters, sections, notes, images
+    # For this test: 2 chapters, 0 sections, 0 notes, 0 images
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[2, 0, 0, 0, 0, 0, 0]) 
+                                                                    # ch, s_c1, n_c1, i_c1, s_c2, n_c2, i_c2
+
+    specific_config_epub3 = {
+        "title": "EPUB3 Basic ToC",
+        "author": "Test Author",
+        "language": "en-US",
+        "epub_version": 3, # Test integer version
+        "chapters_config": 2,
+        "sections_per_chapter_config": 0,
+        "toc_settings": {"style": "default", "max_depth": 3, "include_landmarks": True},
+        "notes_system": {"enable": False, "notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0},
+        "validation": {"run_epubcheck": False}
+    }
+    global_config = {"default_publisher": "Test Publisher"}
+    output_path = "test_output/epub3_basic_toc_integration.epub"
+
+    epub_generator_instance.generate(specific_config_epub3, global_config, output_path)
+
+    assert len(captured_book_instances) == 1
+    mock_book_instance = captured_book_instances[0]
+
+    # Verify EpubBook setup
+    mock_book_instance.set_title.assert_called_with("EPUB3 Basic ToC")
+    mock_book_instance.set_language.assert_called_with("en-US")
+    mock_book_instance.add_author.assert_called_with("Test Author")
+    mock_book_instance.add_metadata.assert_any_call('DC', 'publisher', 'Test Publisher')
+
+
+    # Verify ToC calls
+    mock_create_nav_document.assert_called_once()
+    nav_call_args, _ = mock_create_nav_document.call_args
+    assert nav_call_args[0] is mock_book_instance # book instance
+    assert len(nav_call_args[1]) == 2 # chapters_for_toc (list of EpubHtml items)
+    assert nav_call_args[1][0] is mock_chapter_1_item
+    assert nav_call_args[1][1] is mock_chapter_2_item
+    assert nav_call_args[2] == specific_config_epub3["toc_settings"] # toc_settings
+    assert nav_call_args[3] == str(specific_config_epub3["epub_version"]) # epub_version (as string)
+    
+    mock_create_ncx.assert_not_called()
+    mock_write_epub.assert_called_once_with(output_path, mock_book_instance, {})
+
+def test_generate_epub2_with_basic_config_integrates_ncx(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """
+    Test that EpubGenerator.generate with a basic EPUB2 config correctly calls
+    toc.create_ncx and not toc.create_nav_document.
+    """
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    specific_config = {
+        "title": "EPUB2 Default ToC Test", "chapters_config": 1, "epub_version": 2,
+        "toc_settings": {"style": "default"}, "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/epub2_default_toc.epub"
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0])
+    
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_create_ncx.assert_called_once()
+    mock_create_nav_document.assert_not_called()
+
+def test_generate_font_embedding_enabled(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test that font embedding settings are applied when enabled."""
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    
+    # Capture the EpubBook instance
+    captured_book_instances = []
+    def mock_epub_book_constructor(*args, **kwargs):
+        instance = mocker.MagicMock() # Create a fresh mock for each call if needed
+        captured_book_instances.append(instance)
+        return instance
+    
+    mocker.patch('synth_data_gen.generators.epub.epub.EpubBook', side_effect=mock_epub_book_constructor)
+    
+    mock_os_path_exists = mocker.patch('synth_data_gen.generators.epub.os.path.exists', return_value=True)
+    mock_os_path_basename = mocker.patch('synth_data_gen.generators.epub.os.path.basename', return_value="TestFont.ttf")
+    mock_open_instance = mocker.mock_open(read_data=b"dummy_font_bytes")
+    mocker.patch('builtins.open', mock_open_instance)
+    mock_add_font_css = mocker.patch.object(epub_generator_instance, '_add_font_css_to_book')
+
+    specific_config = {
+        "title": "Font Embedding Test", "chapters_config": 1,
+        "font_embedding": {
+            "enable": True,
+            "fonts": ["path/to/TestFont.ttf"],
+            "obfuscation": "adobe" # Test a specific obfuscation type
+        },
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/font_embedding_test.epub"
+    
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml) # For _create_chapter_content
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1,0,0,0])
+
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    assert len(captured_book_instances) == 1
+    mock_book_instance = captured_book_instances[0]
+
+    mock_os_path_exists.assert_any_call("path/to/TestFont.ttf")
+    mock_os_path_basename.assert_called_with("path/to/TestFont.ttf")
+    mock_open_instance.assert_called_with("path/to/TestFont.ttf", "rb")
+    
+    # Check if add_item was called with an EpubItem that looks like a font
+    font_item_added = False
+    for call_args in mock_book_instance.add_item.call_args_list:
+        item = call_args[0][0]
+        if isinstance(item, epub.EpubItem) and item.file_name == "fonts/TestFont.ttf":
+            assert item.media_type == "application/vnd.ms-opentype" # or font/ttf
+            assert item.content == b"dummy_font_bytes"
+            font_item_added = True
+            break
+    assert font_item_added, "Font item was not added to the book"
+
+    mock_add_font_css.assert_called_once()
+    # Check obfuscation call if possible (might require deeper mocking of EpubBook or EpubItem)
+    # For now, we assume if add_item is called with font data, obfuscation (if any) is handled by ebooklib
+    # or would be part of a more direct test of _add_font_to_book if that method was public/complex.
+
+def test_generate_unified_quantity_chapters_exact(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (exact integer) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_determine_count = mocker.patch.object(epub_generator_instance, '_determine_count')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    exact_chapter_count = 3
+    # _determine_count will be called for chapters, sections, notes, images.
+    # We are interested in the first call for chapters.
+    mock_determine_count.side_effect = [exact_chapter_count, 0, 0, 0] 
+
+    specific_config = {
+        "title": "Unified Exact Chapters",
+        "chapters_config": exact_chapter_count, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_exact_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    # Check the first call to _determine_count (for chapters)
+    assert mock_determine_count.call_args_list[0] == mocker.call(exact_chapter_count, "chapters")
+    assert mock_create_chapter_content.call_count == exact_chapter_count
+
+def test_generate_unified_quantity_chapters_range(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (range) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+    
+    # Patch random.randint used by BaseGenerator._determine_count
+    mock_base_randint = mocker.patch('random.randint')
+    # Also patch in the module where it's used directly
+    mocker.patch('synth_data_gen.generators.epub.random.randint', mock_base_randint)
+    mocker.patch('synth_data_gen.core.base.random.randint', mock_base_randint)
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    chapters_range_config = {"min": 2, "max": 5}
+    expected_chapters_from_range = 4 
+    mock_base_randint.return_value = expected_chapters_from_range
+
+    specific_config = {
+        "title": "Unified Range Chapters",
+        "chapters_config": chapters_range_config, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_range_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_base_randint.assert_called_with(chapters_range_config["min"], chapters_range_config["max"])
+    assert mock_create_chapter_content.call_count == expected_chapters_from_range
+
+def test_generate_unified_quantity_chapters_probabilistic(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """Test generate with chapters_config (probabilistic) via unified quantity spec."""
+    mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_chapter_content = mocker.patch.object(epub_generator_instance, '_create_chapter_content')
+
+    # Patch random.random used by BaseGenerator._determine_count
+    mock_base_random_random = mocker.patch('random.random')
+    # Also patch in the modules where it's used directly
+    mocker.patch('synth_data_gen.generators.epub.random.random', mock_base_random_random)
+    mocker.patch('synth_data_gen.core.base.random.random', mock_base_random_random)
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    
+    chapters_prob_config = {"chance": 0.7, "per_unit_of": "document", "max_total": 3}
+    # Simulate random.random() returning a value that triggers generation (less than chance)
+    mock_base_random_random.return_value = 0.6 
+    expected_chapters_from_prob = 1 # For a single document, chance 0.7, random 0.6 -> 1 chapter
+
+    specific_config = {
+        "title": "Unified Probabilistic Chapters",
+        "chapters_config": chapters_prob_config, # Unified quantity
+        "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/unified_prob_chapters.epub"
+
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+
+    mock_base_random_random.assert_called_once() 
+    assert mock_create_chapter_content.call_count == expected_chapters_from_prob
+
+# --- More detailed integration tests for EpubGenerator components ---
+
+def test_generate_epub_with_basic_config_integrates_toc(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """
+    Test that EpubGenerator.generate with a basic EPUB3 config correctly calls
+    toc.create_nav_document and not toc.create_ncx.
+    """
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    
+    # Capture the EpubBook instance
+    captured_book_instances = []
+    def mock_epub_book_constructor(*args, **kwargs):
+        # Create a real EpubBook instance but track it
+        # This is tricky because we want to inspect its state *after* SUT modifies it,
+        # but *before* write_epub (which is mocked) would consume it.
+        # For this test, we'll use a MagicMock and assert calls on it.
+        instance = mocker.MagicMock() 
+        captured_book_instances.append(instance)
+        return instance
+    
+    mocker.patch('synth_data_gen.generators.epub.epub.EpubBook', side_effect=mock_epub_book_constructor)
+
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+
+    # Mock chapter creation to return a list of mock EpubHtml items
+    mock_chapter_1_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_1_item.file_name = "c1.xhtml"
+    mock_chapter_1_item.title = "Chapter 1 Title"
+    
+    mock_chapter_2_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_2_item.file_name = "c2.xhtml"
+    mock_chapter_2_item.title = "Chapter 2 Title"
+
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', 
+                        side_effect=[mock_chapter_1_item, mock_chapter_2_item])
+    
+    # Mock _determine_count to control number of chapters, sections, notes, images
+    # For this test: 2 chapters, 0 sections, 0 notes, 0 images
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[2, 0, 0, 0, 0, 0, 0]) 
+                                                                    # ch, s_c1, n_c1, i_c1, s_c2, n_c2, i_c2
+
+    specific_config_epub3 = {
+        "title": "EPUB3 Basic ToC",
+        "author": "Test Author",
+        "language": "en-US",
+        "epub_version": 3, # Test integer version
+        "chapters_config": 2,
+        "sections_per_chapter_config": 0,
+        "toc_settings": {"style": "default", "max_depth": 3, "include_landmarks": True},
+        "notes_system": {"enable": False, "notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0},
+        "validation": {"run_epubcheck": False}
+    }
+    global_config = {"default_publisher": "Test Publisher"}
+    output_path = "test_output/epub3_basic_toc_integration.epub"
+
+    epub_generator_instance.generate(specific_config_epub3, global_config, output_path)
+
+    assert len(captured_book_instances) == 1
+    mock_book_instance = captured_book_instances[0]
+
+    # Verify EpubBook setup
+    mock_book_instance.set_title.assert_called_with("EPUB3 Basic ToC")
+    mock_book_instance.set_language.assert_called_with("en-US")
+    mock_book_instance.add_author.assert_called_with("Test Author")
+    mock_book_instance.add_metadata.assert_any_call('DC', 'publisher', 'Test Publisher')
+
+
+    # Verify ToC calls
+    mock_create_nav_document.assert_called_once()
+    nav_call_args, _ = mock_create_nav_document.call_args
+    assert nav_call_args[0] is mock_book_instance # book instance
+    assert len(nav_call_args[1]) == 2 # chapters_for_toc (list of EpubHtml items)
+    assert nav_call_args[1][0] is mock_chapter_1_item
+    assert nav_call_args[1][1] is mock_chapter_2_item
+    assert nav_call_args[2] == specific_config_epub3["toc_settings"] # toc_settings
+    assert nav_call_args[3] == str(specific_config_epub3["epub_version"]) # epub_version (as string)
+    
+    mock_create_ncx.assert_not_called()
+    mock_write_epub.assert_called_once_with(output_path, mock_book_instance, {})
+
+def test_generate_epub2_with_basic_config_integrates_ncx(mocker: MockerFixture, epub_generator_instance: EpubGenerator):
+    """
+    Test that EpubGenerator.generate with a basic EPUB2 config correctly calls
+    toc.create_ncx and not toc.create_nav_document.
+    """
+    mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.epub.ensure_output_directories')
+    mock_write_epub = mocker.patch('synth_data_gen.generators.epub.epub.write_epub')
+    mock_epub_book_class = mocker.patch('synth_data_gen.generators.epub.epub.EpubBook')
+    mock_create_ncx = mocker.patch('synth_data_gen.generators.epub_components.toc.create_ncx')
+    mock_create_nav_document = mocker.patch('synth_data_gen.generators.epub_components.toc.create_nav_document')
+
+    mock_book_instance = mocker.MagicMock()
+    mock_epub_book_class.return_value = mock_book_instance
+    mock_chapter_item = mocker.MagicMock(spec=epub.EpubHtml)
+    mock_chapter_item.file_name = 'chap_1.xhtml'
+    mock_chapter_item.title = 'Chapter 1'
+    specific_config = {
+        "title": "EPUB2 Default ToC Test", "chapters_config": 1, "epub_version": 2,
+        "toc_settings": {"style": "default"}, "sections_per_chapter_config": 0,
+        "notes_system": {"notes_config": 0},
+        "multimedia": {"include_images": False, "images_config": 0}
+    }
+    global_config = {}
+    output_path = "test_output/epub2_default_toc.epub"
+    
+    mocker.patch.object(epub_generator_instance, '_create_chapter_content', return_value=mock_chapter_item)
+    mocker.patch.object(epub_generator_instance, '_determine_count', side_effect=[1, 0, 0, 0])
+    
+    epub_generator_instance.generate(specific_config, global_config, output_path)
+    
+    mock_create_ncx.assert_called_once()
+    mock_create_nav_document.assert_not_called()
