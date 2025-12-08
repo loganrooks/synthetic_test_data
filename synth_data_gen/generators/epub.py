@@ -1,14 +1,14 @@
+import logging
 import os
-import subprocess
 import re
-import random # Added import
+import subprocess
 from typing import Any, Dict, List
 from ebooklib import epub
 
 from ..core.base import BaseGenerator
-# Assuming utils.py contains the necessary helper functions.
-# Adjust if these were moved/refactored elsewhere during initial migration.
-from ..common.utils import ensure_output_directories #, _create_epub_book, _add_epub_chapters, _write_epub_file
+from ..common.utils import ensure_output_directories
+
+logger = logging.getLogger(__name__)
 
 # Import epub_components - these might be refactored into helper classes or methods
 from .epub_components import (
@@ -72,49 +72,14 @@ class EpubGenerator(BaseGenerator):
         
         # Example: Check for required fields in epub_specific_settings
         if "epub_version" not in specific_config:
-            print("Warning: epub_version not found in specific_config, using default.")
-            # Or raise InvalidConfigError
+            logger.warning("epub_version not found in specific_config, using default.")
         
         # Add more detailed validation based on epub_specific_settings schema
         # For example, check types, ranges, allowed values for various keys.
         # This is a placeholder for more comprehensive validation.
         return True
 
-    def _determine_count(self, config_value: Any, element_name_for_logging: str = "element") -> int:
-        """
-        Determines the count of an element based on its configuration value.
-        Handles integer, range object, or probabilistic object.
-        """
-        if isinstance(config_value, int):
-            return config_value
-        elif isinstance(config_value, dict):
-            if "min" in config_value and "max" in config_value:
-                min_val = config_value.get("min", 0)
-                max_val = config_value.get("max", 0)
-                if not (isinstance(min_val, int) and isinstance(max_val, int) and min_val <= max_val):
-                    print(f"Warning: Invalid range for {element_name_for_logging}: {config_value}. Defaulting to 0.")
-                    return 0
-                return random.randint(min_val, max_val)
-            elif "chance" in config_value:
-                chance = config_value.get("chance", 0.0)
-                # per_unit_of = config_value.get("per_unit_of", "document") # Not used in this simplified version yet
-                max_total = config_value.get("max_total", 1) # Default to generating 1 if chance met
-                
-                if not (isinstance(chance, float) and 0.0 <= chance <= 1.0):
-                    print(f"Warning: Invalid chance for {element_name_for_logging}: {chance}. Defaulting to 0.")
-                    return 0
-                
-                if random.random() < chance:
-                    # For simplicity, if chance hits, generate 1 up to max_total.
-                    # A more complex version might involve another random number for count.
-                    return min(1, max_total) if isinstance(max_total, int) and max_total >=0 else 1
-                return 0
-            else:
-                print(f"Warning: Unknown dictionary structure for {element_name_for_logging} count: {config_value}. Defaulting to 0.")
-                return 0
-        else:
-            print(f"Warning: Unknown config type for {element_name_for_logging} count: {config_value}. Defaulting to 0.")
-            return 0
+    # Note: _determine_count is inherited from BaseGenerator
 
     def _create_chapter_content(self, book: epub.EpubBook, chapter_number: int, chapter_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> epub.EpubHtml:
         """
