@@ -2,7 +2,14 @@
 
 ## Project Overview
 
-Python package for generating high-quality, configurable synthetic test data in EPUB, PDF, and Markdown formats. Designed to comprehensively test PhiloGraph Tier 0 MVP's document parsing, preprocessing, chunking, metadata extraction, and relationship extraction capabilities.
+A Python library for generating high-quality, configurable synthetic test data in EPUB, PDF, and Markdown formats. Designed to help developers test document processing pipelines, including parsing, preprocessing, chunking, metadata extraction, and content analysis.
+
+**Use Cases:**
+- Testing document parsers and converters
+- Generating sample data for ML/NLP pipelines
+- Creating test fixtures for e-reader applications
+- Validating PDF processing workflows
+- Testing Markdown renderers and editors
 
 ## Tech Stack
 

@@ -1,21 +1,64 @@
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
-backend-path = ["."]
+
 [project]
 name = "synth_data_gen"
 version = "0.1.0"
-description = "A package for generating synthetic test data."
+description = "A library for generating synthetic test data in EPUB, PDF, and Markdown formats for testing document processing pipelines."
+readme = "README.md"
+license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "you@example.com"},
+    {name = "Synthetic Data Gen Contributors"},
 ]
-dependencies = [
-    # "PyYAML>=6.0", # If YAML config is chosen
-    "pytest",
-    "pytest-mock",
+keywords = ["synthetic-data", "testing", "epub", "pdf", "markdown", "document-generation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Text Processing :: Markup",
 ]
 requires-python = ">=3.8"
+dependencies = [
+    "ebooklib>=0.18",
+    "reportlab>=4.0",
+    "PyYAML>=6.0",
+    "jsonschema>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-mock>=3.0",
+    "pytest-cov>=4.0",
+]
 
 [project.urls]
-Homepage = "https://example.com/synth_data_gen" # Placeholder
-Repository = "https://example.com/synth_data_gen" # Placeholder
+Homepage = "https://github.com/synth-data-gen/synth_data_gen"
+Repository = "https://github.com/synth-data-gen/synth_data_gen"
+Documentation = "https://github.com/synth-data-gen/synth_data_gen#readme"
+Issues = "https://github.com/synth-data-gen/synth_data_gen/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["synth_data_gen"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
