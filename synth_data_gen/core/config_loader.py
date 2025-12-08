@@ -63,42 +63,74 @@ class ConfigLoader:
                 merged[key] = copy.deepcopy(value)
         return merged
 
-    def load_and_validate_config(self, file_path: str = None, schema: dict = None) -> dict:
+    def load_and_validate_config(
+        self,
+        file_path: str = None,
+        schema: dict = None,
+        config_override_object: dict = None
+    ) -> dict:
         """
         Loads configuration and validates it.
-        1. Loads default configuration.
-        2. If file_path is provided, loads user configuration (raises FileNotFoundError if not found).
-        3. Merges user_config over default_config (if both exist/loaded).
-        4. If only default_config loaded, uses that.
-        5. If only user_config loaded (no default_config found/loadable), uses that.
-        6. If neither could be loaded, raises FileNotFoundError.
-        7. Validates the resulting effective_config against the schema if provided.
-        """
-        default_config = self.get_default_config() # Returns {} if issues
-        user_config = {}
-        user_config_loaded_successfully = False
-        
-        if file_path:
-            # load_config is strict and will raise FileNotFoundError or YAMLError if applicable
-            user_config = self.load_config(file_path) 
-            user_config_loaded_successfully = True
 
+        Args:
+            file_path: Path to a YAML/JSON configuration file.
+            schema: JSON schema to validate the configuration against.
+            config_override_object: A dictionary to use as configuration or to merge
+                                   over file-based configuration.
+
+        Priority order (highest to lowest):
+        1. config_override_object (if provided, merges over file config)
+        2. file_path configuration (if provided)
+        3. default configuration
+
+        Returns:
+            dict: The effective configuration after merging and validation.
+
+        Raises:
+            FileNotFoundError: If no configuration source is available.
+            jsonschema.ValidationError: If schema validation fails.
+        """
+        default_config = self.get_default_config()  # Returns {} if issues
+        file_config = {}
+        file_config_loaded = False
+
+        # Load file-based configuration if provided
+        if file_path:
+            file_config = self.load_config(file_path)
+            file_config_loaded = True
+
+        # Build effective configuration through merging
         effective_config = {}
-        if user_config_loaded_successfully:
-            if default_config: # If default_config is not an empty dict (i.e., was loaded)
-                effective_config = self._merge_configs(default_config, user_config)
-            else: # No default config, so effective is just user config
-                effective_config = user_config
-        elif default_config: # No user_file_path provided, use default if it was loaded
-            effective_config = default_config
-        else: # No user config was loaded (no path, or path failed) AND no default config
-            # This means file_path was None, and get_default_config() returned {}
+
+        # Start with default config if available
+        if default_config:
+            effective_config = copy.deepcopy(default_config)
+
+        # Merge file config over defaults
+        if file_config_loaded:
+            if effective_config:
+                effective_config = self._merge_configs(effective_config, file_config)
+            else:
+                effective_config = copy.deepcopy(file_config)
+
+        # Merge override object over everything else
+        if config_override_object:
+            if effective_config:
+                effective_config = self._merge_configs(effective_config, config_override_object)
+            else:
+                effective_config = copy.deepcopy(config_override_object)
+
+        # Ensure we have some configuration
+        if not effective_config:
             raise FileNotFoundError(
-                "No configuration file path provided and default configuration could not be loaded."
+                "No configuration available: no file_path, config_override_object, "
+                "or default configuration could be loaded."
             )
 
+        # Validate against schema if provided
         if schema:
             jsonschema.validate(instance=effective_config, schema=schema)
+
         return effective_config
 
     def get_generator_config(self, full_config: dict, section_name: str) -> dict:
