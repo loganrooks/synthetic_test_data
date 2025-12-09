@@ -138,6 +138,7 @@ All generators inherit from `BaseGenerator` and must implement:
 - `docs/architecture_overview.md` - Architecture patterns
 - `docs/synthetic_data_requirements.md` - Requirements for all formats
 - `docs/epub_formatting_analysis_report.md` - Real EPUB analysis
+- `docs/adr/ADR-001-combinatoric-test-generation.md` - Combinatoric generation design
 - `ISSUES.md` - Known issues and technical debt tracker
 - `ROADMAP.md` - Development roadmap and planned features
 
