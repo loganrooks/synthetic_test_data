@@ -21,6 +21,7 @@ from reportlab.platypus import (
 )
 
 from ..common.utils import ensure_output_directories
+from ..constants import PdfVariant, Defaults, ConfigKeys
 from ..core.base import BaseGenerator
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ class PdfGenerator(BaseGenerator):
             "author": "Default PDF Author",
             "title": "Synthetic PDF Document",
             # Simplified for now, a more complete version would be derived from the spec
-            "pdf_variant": "single_column_text" # Added to select which creation function to call
+            ConfigKeys.PDF_VARIANT: PdfVariant.SINGLE_COLUMN_TEXT.value
         }
 
     def validate_config(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> bool:
@@ -120,23 +121,14 @@ class PdfGenerator(BaseGenerator):
         """
         ensure_output_directories(os.path.dirname(output_path))
         
-        variant = specific_config.get("pdf_variant", "single_column_text")
-        # For simplicity, we'll call the old functions directly, adapting them slightly.
-        # In a full refactor, their logic would be integrated more deeply.
-
-        # Adapt parameters for the chosen creation function
-        # The old functions took 'filename' which was just the basename.
-        # We now have 'output_path' which is the full path.
-        
-        # Note: The original functions print to console. This behavior might be
-        # undesirable in a library. Consider logging instead.
+        variant = specific_config.get(ConfigKeys.PDF_VARIANT, PdfVariant.SINGLE_COLUMN_TEXT.value)
 
         layout_config = specific_config.get("layout", {})
         num_columns = layout_config.get("columns", 1)
 
-        if variant == "multi_column_text" or (variant == "single_column_text" and num_columns == 2):
+        if variant == PdfVariant.MULTI_COLUMN_TEXT.value or (variant == PdfVariant.SINGLE_COLUMN_TEXT.value and num_columns == 2):
             self._create_pdf_text_multi_column(output_path, specific_config, global_config)
-        elif variant == "single_column_text": # Handles num_columns == 1 or not specified
+        elif variant == PdfVariant.SINGLE_COLUMN_TEXT.value:
             self._create_pdf_text_single_column(output_path, specific_config, global_config)
         elif variant == "text_flow_around_image":
             self._create_pdf_text_flow_around_image(output_path, specific_config, global_config)
@@ -144,25 +136,22 @@ class PdfGenerator(BaseGenerator):
             self._create_pdf_simulated_ocr_high_quality(output_path, specific_config, global_config)
         elif variant == "with_bookmarks":
             self._create_pdf_with_bookmarks(output_path, specific_config, global_config)
-        elif variant == "visual_toc_hyperlinked":
-            visual_toc_config = specific_config.get("visual_toc", {})
-            if visual_toc_config.get("enable", True): # Default to True if 'enable' is missing for this variant
+        elif variant == PdfVariant.VISUAL_TOC_HYPERLINKED.value:
+            visual_toc_config = specific_config.get(ConfigKeys.VISUAL_TOC, {})
+            if visual_toc_config.get(ConfigKeys.ENABLE, True):
                 self._create_pdf_visual_toc_hyperlinked(output_path, specific_config, global_config)
             else:
-                # Fallback if ToC is explicitly disabled for this variant
                 logger.info("Visual ToC variant selected but 'visual_toc.enable' is false. Generating single_column_text instead.")
                 self._create_pdf_text_single_column(output_path, specific_config, global_config)
-        elif variant == "running_headers_footers":
+        elif variant == PdfVariant.RUNNING_HEADERS_FOOTERS.value:
             self._create_pdf_running_headers_footers(output_path, specific_config, global_config)
-        elif variant == "bottom_page_footnotes":
+        elif variant == PdfVariant.BOTTOM_PAGE_FOOTNOTES.value:
             self._create_pdf_bottom_page_footnotes(output_path, specific_config, global_config)
-        elif variant == "simple_table":
+        elif variant == PdfVariant.SIMPLE_TABLE.value:
             self._create_pdf_simple_table(output_path, specific_config, global_config)
         else:
-            # Default to single column or raise an error for unknown variant
             logger.warning("Unknown PDF variant '%s'. Generating single_column_text instead.", variant)
             self._create_pdf_text_single_column(output_path, specific_config, global_config)
-            # Or raise GeneratorError(f"Unknown PDF variant: {variant}")
 
         return output_path
 

@@ -5,6 +5,7 @@ import random
 from typing import Any, Dict, List
 
 from ..common.utils import ensure_output_directories
+from ..constants import FrontmatterStyle, GeneratorType
 from ..core.base import BaseGenerator
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ class MarkdownGenerator(BaseGenerator):
     """
     Generator for Markdown files.
     """
-    GENERATOR_ID = "markdown"
+    GENERATOR_ID = GeneratorType.MARKDOWN.value
 
     def get_default_specific_config(self) -> Dict[str, Any]:
         """
@@ -35,7 +36,7 @@ class MarkdownGenerator(BaseGenerator):
             },
             "frontmatter": {
                 "include_chance": 1.0,
-                "style": "yaml", # yaml, toml, json
+                "style": FrontmatterStyle.YAML.value,
                 "fields": {
                     "title": True, "author": True, "date": "2025-01-01",
                     "tags": ["synthetic", "test"], "custom_fields": []
@@ -56,40 +57,54 @@ class MarkdownGenerator(BaseGenerator):
         fm_config = config.get("frontmatter", {})
         # The include_chance check is now done in the main generate() method before this is called.
 
-        style = fm_config.get("style", "yaml")
+        style = fm_config.get("style", FrontmatterStyle.YAML.value)
         fields = fm_config.get("fields", {})
-        
+
         title = fields.get("title")
-        if title is True: title = config.get("title", "Synthetic Markdown Document") # Get from main config if True
-        elif not isinstance(title, str): title = "Default Title"
+        if title is True:
+            title = config.get("title", "Synthetic Markdown Document")
+        elif not isinstance(title, str):
+            title = "Default Title"
 
         author = fields.get("author")
-        if author is True: author = global_config.get("default_author", "Synthetic Author")
-        elif not isinstance(author, str): author = "Default Author"
-        
-        date_val = fields.get("date", "YYYY-MM-DD") # Placeholder
-        tags = fields.get("tags", ["test"])
-        custom_fields = fields.get("custom_fields", []) # Expects list of {"key": "k", "value": "v"}
+        if author is True:
+            author = global_config.get("default_author", "Synthetic Author")
+        elif not isinstance(author, str):
+            author = "Default Author"
 
-        if style == "yaml":
+        date_val = fields.get("date", "YYYY-MM-DD")
+        tags = fields.get("tags", ["test"])
+        custom_fields = fields.get("custom_fields", [])
+
+        if style == FrontmatterStyle.YAML.value:
             lines = ["---"]
-            if title: lines.append(f"title: {title}")
-            if author: lines.append(f"author: {author}")
-            if date_val: lines.append(f"date: {date_val}")
-            if tags: lines.append(f"tags: {json.dumps(tags)}") # Ensure proper list format
-            for cf in custom_fields: lines.append(f"{cf.get('key', 'custom')}: {cf.get('value', 'default')}")
+            if title:
+                lines.append(f"title: {title}")
+            if author:
+                lines.append(f"author: {author}")
+            if date_val:
+                lines.append(f"date: {date_val}")
+            if tags:
+                lines.append(f"tags: {json.dumps(tags)}")
+            for cf in custom_fields:
+                lines.append(f"{cf.get('key', 'custom')}: {cf.get('value', 'default')}")
             lines.append("---")
             return "\n".join(lines) + "\n\n"
-        elif style == "toml":
+        elif style == FrontmatterStyle.TOML.value:
             lines = ["+++"]
-            if title: lines.append(f'title = "{title}"')
-            if author: lines.append(f'author = "{author}"')
-            if date_val: lines.append(f'date = "{date_val}"')
-            if tags: lines.append(f'tags = {json.dumps(tags)}') # TOML array
-            for cf in custom_fields: lines.append(f'{cf.get("key", "custom")} = "{cf.get("value", "default")}"')
+            if title:
+                lines.append(f'title = "{title}"')
+            if author:
+                lines.append(f'author = "{author}"')
+            if date_val:
+                lines.append(f'date = "{date_val}"')
+            if tags:
+                lines.append(f'tags = {json.dumps(tags)}')
+            for cf in custom_fields:
+                lines.append(f'{cf.get("key", "custom")} = "{cf.get("value", "default")}"')
             lines.append("+++")
             return "\n".join(lines) + "\n\n"
-        elif style == "json":
+        elif style == FrontmatterStyle.JSON.value:
             fm_obj = {}
             if title: fm_obj["title"] = title
             if author: fm_obj["author"] = author

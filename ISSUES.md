@@ -6,17 +6,20 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 
 ### Low Priority
 
-#### ISS-007: Duplicate test files for ConfigLoader
-- **Location:** `tests/`
-- **Description:** Multiple test files exist for ConfigLoader:
-  - `tests/core/test_config_loader.py`
-  - `tests/test_config_loader.py`
-  - `tests/test_integration_config_loader.py`
-- **Suggested Fix:** Consolidate into a single location with clear unit vs integration separation.
-
-#### ISS-009: Magic strings throughout codebase
-- **Description:** Configuration values like `"single_column_text"`, `"footnotes_same_page"`, `"yaml"` are scattered as string literals.
-- **Suggested Fix:** Create `constants.py` or use `Enum` classes.
+#### ISS-010: PDF generator tests needing rewrite
+- **Location:** `tests/generators/test_pdf_generator.py`
+- **Description:** 11 tests are currently skipped because they reference non-existent methods or have mock setups that don't match actual code flow after recent refactoring.
+- **Skipped Tests:**
+  - `test_ligature_simulation_setting_is_respected` (2 instances) - references `_get_dummy_text` which doesn't exist
+  - `test_ocr_simulation_applies_accuracy` (2 instances) - assumptions about OCR variant implementation
+  - `test_visual_toc_is_integrated_into_pdf_story` - references `_setup_document_and_styles`, `generate_single_column_content`
+  - `test_single_column_with_probabilistic_table_occurrence` (2 instances) - mock setup issues
+  - `test_single_column_with_probabilistic_figure_occurrence` - mock setup issues
+  - `test_generate_single_column_unified_chapters_probabilistic` (2 instances) - undefined mock references
+  - `test_generate_single_column_page_count_probabilistic` (2 instances) - mock setup doesn't match two-pass ToC flow
+  - `test_single_column_with_range_table_occurrence` - assertion patterns changed
+- **Impact:** Reduced test coverage for PDF generation edge cases
+- **Suggested Fix:** Rewrite tests to match actual implementation, using proper mock side effects that return appropriate values
 
 ---
 
@@ -112,6 +115,35 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
   - Generates dynamic dot patterns (` . ` repeated to fill space)
   - Updated Canvas-based implementation to calculate actual dot count based on stringWidth
   - Applies proper TableStyle for alignment (left, center, right)
+
+### RES-011: ConfigLoader test files consolidated (ISS-007)
+- **Resolved:** 2025-12-09
+- **Description:** Multiple test files existed for ConfigLoader causing maintenance burden and confusion.
+- **Fix:** Consolidated into organized structure:
+  - Merged `tests/test_config_loader.py` (unit tests) into `tests/core/test_config_loader.py`
+  - Moved `tests/test_integration_config_loader.py` to `tests/integration/test_config_integration.py`
+  - Converted all tests to pytest style with proper fixtures and test classes
+  - Created `tests/integration/__init__.py` for proper package structure
+  - Removed duplicate `tests/test_config_loader.py`
+
+### RES-012: Magic strings replaced with constants (ISS-009)
+- **Resolved:** 2025-12-09
+- **Description:** Configuration values scattered as string literals throughout codebase.
+- **Fix:** Created `synth_data_gen/constants.py` with:
+  - **Enums:**
+    - `GeneratorType` (epub, pdf, markdown)
+    - `PdfVariant` (single_column_text, visual_toc_hyperlinked, etc.)
+    - `NotesSystemType` (footnotes_same_page, endnotes_chapter, etc.)
+    - `FrontmatterStyle` (yaml, toml, json)
+    - `TocStyle` (navdoc_full, ncx_only, etc.)
+    - `PageNumberStyle`, `LogLevel`, `PageSize`, `PageOrientation`, `FileExtension`
+  - **Defaults class:** Common default values
+  - **ConfigKeys class:** Standard configuration dictionary keys
+  - **Updated files:**
+    - `synth_data_gen/__init__.py` - GENERATOR_MAP uses GeneratorType
+    - `synth_data_gen/generators/pdf.py` - PdfVariant, ConfigKeys
+    - `synth_data_gen/generators/epub.py` - GeneratorType, NotesSystemType, TocStyle
+    - `synth_data_gen/generators/markdown.py` - GeneratorType, FrontmatterStyle
 
 ---
 
