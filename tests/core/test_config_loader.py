@@ -97,18 +97,18 @@ def complex_schema():
 
 
 @pytest.fixture
-def setup_default_config(default_config_content):
-    """Set up and tear down the default config file for tests."""
-    default_path = ConfigLoader.DEFAULT_CONFIG_PATH
-    os.makedirs(os.path.dirname(default_path), exist_ok=True)
+def setup_default_config(default_config_content, tmp_path):
+    """Set up a temporary default config file for tests that need to override it.
 
-    with open(default_path, 'w', encoding='utf-8') as f:
+    This fixture creates a ConfigLoader with a custom default_config_path
+    pointing to a temp file, avoiding interference with the real default config.
+    """
+    temp_default_path = tmp_path / "test_default_config.yaml"
+
+    with open(temp_default_path, 'w', encoding='utf-8') as f:
         yaml.dump(default_config_content, f)
 
-    yield default_path
-
-    if os.path.exists(default_path):
-        os.remove(default_path)
+    yield str(temp_default_path)
 
 
 # =============================================================================
@@ -218,9 +218,10 @@ class TestGetDefaultConfig:
     """Tests for the get_default_config method."""
 
     def test_get_default_config_loads_default(
-        self, loader, setup_default_config, default_config_content
+        self, setup_default_config, default_config_content
     ):
         """get_default_config loads the default configuration file."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         loaded_default = loader.get_default_config()
         assert loaded_default == default_config_content
 
@@ -253,9 +254,10 @@ class TestLoadAndValidateConfig:
     """Tests for load_and_validate_config (handles defaults, merge, validation)."""
 
     def test_no_user_file_loads_default_and_validates(
-        self, loader, setup_default_config, default_config_content
+        self, setup_default_config, default_config_content
     ):
         """With no user file, loads default and validates against schema."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         simple_schema = {
             "type": "object",
             "properties": {"project_name": {"type": "string"}},
@@ -273,9 +275,10 @@ class TestLoadAndValidateConfig:
             loader.load_and_validate_config(file_path=str(non_existent_path))
 
     def test_merges_user_over_default(
-        self, loader, test_data_dir, setup_default_config, default_config_content
+        self, test_data_dir, setup_default_config, default_config_content
     ):
         """User config values override default config values."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         user_config_path = test_data_dir / "partial_user_config.yaml"
         user_content = {
             "version": "1.2.3",
@@ -384,9 +387,10 @@ class TestSchemaValidation:
             jsonschema.validate(instance=loaded_data, schema=schema)
 
     def test_complex_config_valid_merged(
-        self, loader, test_data_dir, setup_default_config, default_config_content, complex_schema
+        self, test_data_dir, setup_default_config, default_config_content, complex_schema
     ):
         """Complex config validates after merging with defaults."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         config_path = test_data_dir / "complex_valid_config.yaml"
         user_content = {
             "project_name": "User Validated Project",
@@ -407,9 +411,10 @@ class TestSchemaValidation:
         assert loaded_data["settings"]["log_level"] == default_config_content["settings"]["log_level"]
 
     def test_complex_config_missing_required_after_merge(
-        self, loader, test_data_dir, setup_default_config, complex_schema
+        self, test_data_dir, setup_default_config, complex_schema
     ):
         """Validation fails when merged config is missing required fields."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         config_path = test_data_dir / "invalid_authors.yaml"
         invalid_content = {"authors": []}  # Empty authors list violates minItems
 
@@ -422,9 +427,10 @@ class TestSchemaValidation:
         assert "[] is too short" in str(exc_info.value)
 
     def test_complex_config_invalid_version_format(
-        self, loader, test_data_dir, setup_default_config, complex_schema
+        self, test_data_dir, setup_default_config, complex_schema
     ):
         """Validation fails for invalid version format."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         config_path = test_data_dir / "invalid_version.yaml"
         invalid_content = {"version": "1.0"}  # Missing patch version
 
@@ -444,8 +450,9 @@ class TestSchemaValidation:
 class TestGetGeneratorConfig:
     """Tests for the get_generator_config method."""
 
-    def test_returns_specific_section(self, loader, test_data_dir, setup_default_config):
+    def test_returns_specific_section(self, test_data_dir, setup_default_config):
         """get_generator_config returns the correct generator section."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         config_path = test_data_dir / "config_with_gen_sections.yaml"
         content = {
             "project_name": "Test Project",
@@ -467,8 +474,9 @@ class TestGetGeneratorConfig:
         pdf_config = loader.get_generator_config(full_config, "pdf_settings")
         assert pdf_config == {"font_size": 10}
 
-    def test_returns_empty_dict_if_not_found(self, loader, test_data_dir, setup_default_config):
+    def test_returns_empty_dict_if_not_found(self, test_data_dir, setup_default_config):
         """get_generator_config returns empty dict for missing section."""
+        loader = ConfigLoader(default_config_path=setup_default_config)
         config_path = test_data_dir / "config_without_gen_section.yaml"
         content = {
             "project_name": "Test Project",
