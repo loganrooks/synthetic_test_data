@@ -46,15 +46,6 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
   # TODO: Use annotation_font_family and other style settings
   ```
 
-#### ISS-006: Print statements remain in some modules
-- **Location:** Various files in `synth_data_gen/`
-- **Description:** Some modules still use `print()` instead of proper logging.
-- **Affected Files:**
-  - `synth_data_gen/core/base.py` - validation warnings
-  - `synth_data_gen/generators/pdf.py` - various warnings
-  - `synth_data_gen/generators/markdown.py` - error messages
-- **Suggested Fix:** Replace with `logging` module calls.
-
 ### Low Priority
 
 #### ISS-007: Duplicate test files for ConfigLoader
@@ -99,6 +90,17 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
   - EPUB, PDF, and Markdown defaults matching specification
   - Preset definitions for future combinatoric generation (ADR-001)
   - Sensible deterministic defaults for testability
+
+### RES-005: Print statements replaced with logging (ISS-006)
+- **Resolved:** 2025-12-09
+- **Description:** Multiple modules used `print()` instead of proper logging.
+- **Files Updated:**
+  - `synth_data_gen/core/base.py` - 11 print statements
+  - `synth_data_gen/common/utils.py` - 3 print statements
+  - `synth_data_gen/generators/epub.py` - 8 print statements
+  - `synth_data_gen/generators/pdf.py` - 11 print statements
+  - `synth_data_gen/generators/markdown.py` - 3 print statements
+- **Fix:** Replaced all print statements with appropriate `logger.error()`, `logger.warning()`, `logger.info()`, or `logger.debug()` calls.
 
 ---
 
