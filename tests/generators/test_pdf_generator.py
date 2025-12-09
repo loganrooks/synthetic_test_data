@@ -114,19 +114,20 @@ def test_generate_minimal_pdf_multi_column(mocker: MockerFixture, pdf_generator_
     
     mock_create_multi_column.assert_called_once_with(output_path, specific_config, global_config)
 
-def test_generate_unknown_variant_falls_back_to_single_column(mocker: MockerFixture, pdf_generator_instance: PdfGenerator):
+def test_generate_unknown_variant_falls_back_to_single_column(mocker: MockerFixture, pdf_generator_instance: PdfGenerator, caplog):
     """Test that an unknown pdf_variant falls back to single_column_text."""
+    import logging
     mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_single_column = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_single_column')
-    
+
     specific_config = {"title": "Unknown Variant Test", "pdf_variant": "this_variant_does_not_exist"}
     global_config = {}
     output_path = "test_output/unknown_variant.pdf"
-    
-    mock_print = mocker.patch('builtins.print')
-    pdf_generator_instance.generate(specific_config, global_config, output_path)
-    mock_print.assert_any_call("Warning: Unknown PDF variant 'this_variant_does_not_exist'. Generating single_column_text instead.")
 
+    with caplog.at_level(logging.WARNING):
+        pdf_generator_instance.generate(specific_config, global_config, output_path)
+
+    assert "Unknown PDF variant 'this_variant_does_not_exist'" in caplog.text
     mock_create_single_column.assert_called_once_with(output_path, specific_config, global_config)
 
 def test_generate_single_column_unified_chapters_exact(mocker: MockerFixture, pdf_generator_instance: PdfGenerator):
@@ -251,7 +252,7 @@ def test_generate_single_column_unified_chapters_probabilistic(mocker: MockerFix
     mock_base_randint.return_value = expected_chapters_scenario1
     output_path_s1 = "test_output/pdf_prob_chapters_s1.pdf"
     pdf_generator_instance.generate(specific_pdf_config, global_generator_config, output_path_s1)
-    assert mock_base_random.call_count == 2 # Adjusted expectation
+    assert mock_base_random.call_count == 1  # Fixed: guard check prevents unnecessary random() call
     mock_base_randint.assert_called_once_with(chapters_prob_config["if_true"]["min"], chapters_prob_config["if_true"]["max"])
     assert mock_add_pdf_chapter_content.call_count == expected_chapters_scenario1
 
@@ -260,11 +261,11 @@ def test_generate_single_column_unified_chapters_probabilistic(mocker: MockerFix
     mock_simple_doc_template_class.reset_mock(); mock_doc_instance.reset_mock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
 
-    mock_base_random.return_value = 0.8 
-    expected_chapters_scenario2 = 0 
+    mock_base_random.return_value = 0.8
+    expected_chapters_scenario2 = 0
     output_path_s2 = "test_output/pdf_prob_chapters_s2.pdf"
     pdf_generator_instance.generate(specific_pdf_config, global_generator_config, output_path_s2)
-    assert mock_base_random.call_count == 2 # Assuming the unexpected second call always happens
+    assert mock_base_random.call_count == 1  # Fixed: guard check prevents unnecessary random() call
     mock_base_randint.assert_not_called() 
     assert mock_add_pdf_chapter_content.call_count == expected_chapters_scenario2
 
@@ -755,7 +756,7 @@ def test_single_column_with_probabilistic_table_occurrence(mocker: MockerFixture
     output_path_s1 = "test_output/pdf_prob_tables_s1.pdf"
     pdf_generator_instance.generate(specific_pdf_config_base, global_config, output_path_s1)
     mock_determine_count_on_pdf.assert_any_call(table_prob_config, "pdf_tables_occurrence")
-    assert mock_base_random.call_count == 2 # Adjusted expectation
+    assert mock_base_random.call_count == 1  # Fixed: guard check prevents unnecessary random() call
     mock_base_randint.assert_called_once_with(table_prob_config["if_true"]["min"], table_prob_config["if_true"]["max"])
     assert mock_add_pdf_table_content.call_count == expected_tables_scenario1
 
@@ -771,7 +772,7 @@ def test_single_column_with_probabilistic_table_occurrence(mocker: MockerFixture
     output_path_s2 = "test_output/pdf_prob_tables_s2.pdf"
     pdf_generator_instance.generate(specific_pdf_config_base, global_config, output_path_s2)
     mock_determine_count_on_pdf.assert_any_call(table_prob_config, "pdf_tables_occurrence")
-    assert mock_base_random.call_count == 2 # Assuming the unexpected second call always happens
+    assert mock_base_random.call_count == 1  # Fixed: guard check prevents unnecessary random() call
     mock_base_randint.assert_not_called() 
     assert mock_add_pdf_table_content.call_count == expected_tables_scenario2
 
