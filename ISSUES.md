@@ -4,29 +4,6 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 
 ## Open Issues
 
-### High Priority
-
-#### ISS-001: PDF Visual ToC uses placeholder page numbers
-- **Location:** `synth_data_gen/generators/pdf.py`
-- **Description:** The Visual Table of Contents currently uses placeholders like `(PAGE_REF:ch_alpha_key)` instead of actual page numbers.
-- **Root Cause:** Actual page numbers require a two-pass PDF generation approach where content is laid out first, then page numbers are calculated.
-- **Impact:** ToC page numbers are not functional in generated PDFs.
-- **Suggested Fix:** Implement two-pass PDF generation using ReportLab's `doctemplate` callbacks or post-processing.
-
-#### ISS-002: Probabilistic test assertion count mismatches
-- **Location:** `tests/generators/test_pdf_generator.py`
-- **Description:** Some probabilistic tests expect 1 call to `random()` but receive 2 calls.
-- **Affected Tests:**
-  - `test_single_column_with_probabilistic_table_occurrence` (Scenario 2)
-  - `test_single_column_with_probabilistic_figure_occurrence` (Scenario 2)
-- **Status:** Diagnostic fixes applied (changed assertions to expect 2 calls). Root cause unclear.
-- **Impact:** Tests pass but the underlying behavior may not be as intended.
-
-#### ISS-003: Visual ToC dot leader rendering
-- **Location:** `synth_data_gen/generators/pdf.py`
-- **Description:** Dot leaders use a simple `...DOTS...` placeholder instead of proper ReportLab dot leader fill.
-- **Suggested Fix:** Use ReportLab's `<seq id="dot"/>` or Table-based approach for proper dot leader rendering.
-
 ### Low Priority
 
 #### ISS-007: Duplicate test files for ConfigLoader
@@ -98,6 +75,43 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
   - `annotation_opacity_range`
   - `annotation_rotation_degrees_range`
   - `annotation_text_options`
+
+### RES-008: PDF Visual ToC now shows real page numbers (ISS-001)
+- **Resolved:** 2025-12-09
+- **Description:** Visual ToC used placeholders like `(PAGE_REF:ch_alpha_key)` instead of actual page numbers.
+- **Root Cause:** PDF generation is sequential - ToC was built before chapter positions were known.
+- **Fix:** Implemented two-pass PDF generation:
+  - Created `TocAnchor` flowable class that records page numbers when rendered
+  - Created `TocPlaceholder` flowable to reserve space in first pass
+  - First pass builds to BytesIO, capturing page numbers via `TocAnchor.draw()`
+  - Second pass rebuilds with actual page numbers from captured data
+  - Updated `get_visual_toc_flowables()` to accept optional `page_numbers` dict
+
+### RES-009: Probabilistic test random() call count fixed (ISS-002)
+- **Resolved:** 2025-12-09
+- **Description:** Tests expected 1 call to `random.random()` but received 2 calls. The issue was misdiagnosed as test flakiness.
+- **Root Cause:** Line 142 in `pdf.py` called `random.random()` unconditionally:
+  ```python
+  if random.random() < mixed_chance:  # Always called even when mixed_chance is 0.0
+  ```
+- **Fix:** Added guard check to short-circuit when chance is zero:
+  ```python
+  if mixed_chance > 0.0 and random.random() < mixed_chance:
+  ```
+- **Tests Updated:** Changed expected call counts from 2 to 1 in:
+  - `test_single_column_with_probabilistic_table_occurrence`
+  - `test_generate_single_column_unified_chapters_probabilistic`
+
+### RES-010: Visual ToC dot leaders properly rendered (ISS-003)
+- **Resolved:** 2025-12-09
+- **Description:** Dot leaders used static `" ..... "` or `...DOTS...` placeholder strings instead of proper fill.
+- **Fix:** Implemented Table-based approach for proper dot leader rendering:
+  - Created `_create_toc_entry_table()` helper method
+  - Uses 3-column Table: [title, dot leaders, page number]
+  - Calculates proper column widths based on available space
+  - Generates dynamic dot patterns (` . ` repeated to fill space)
+  - Updated Canvas-based implementation to calculate actual dot count based on stringWidth
+  - Applies proper TableStyle for alignment (left, center, right)
 
 ---
 
