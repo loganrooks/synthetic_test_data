@@ -164,9 +164,9 @@ class PdfGenerator(BaseGenerator):
         if rotation == 90 or rotation == 270:
             # Applying landscape effectively swaps width and height
             current_pagesize = landscape(current_pagesize)
-        
-        # TODO: Handle 180 rotation if it means flipping content,
-        # for now, it doesn't change dimensions.
+
+        # Note: 180-degree rotation is handled via page rotation metadata in onPage handler
+        # This sets the PDF /Rotate property which tells readers to display the page rotated
 
         doc = SimpleDocTemplate(
             filepath,
@@ -270,6 +270,13 @@ class PdfGenerator(BaseGenerator):
         # Let's create a combined handler.
 
         combined_on_page_items = []
+
+        # Add page rotation if non-zero (0, 90, 180, 270 are valid PDF rotation values)
+        if rotation in [90, 180, 270]:
+            combined_on_page_items.append(
+                {"type": "page_rotation", "rotation": rotation}
+            )
+
         if watermark_enabled:
             combined_on_page_items.append(
                 {"type": "watermark", "config": watermark_settings}
@@ -293,7 +300,11 @@ class PdfGenerator(BaseGenerator):
 
             def _master_on_page_handler(canvas, doc, items, first_page: bool):
                 for item_spec in items:
-                    if item_spec["type"] == "watermark":
+                    if item_spec["type"] == "page_rotation":
+                        # Set PDF page rotation metadata (0, 90, 180, 270)
+                        # This tells PDF readers to display the page rotated
+                        canvas.setPageRotation(item_spec["rotation"])
+                    elif item_spec["type"] == "watermark":
                         if not first_page or item_spec["config"].get("include_on_first_page", True): # Default true for watermark
                              self._draw_watermark_wrapped_for_onpage(canvas, doc, item_spec["config"])
                     elif item_spec["type"] == "header_footer":
