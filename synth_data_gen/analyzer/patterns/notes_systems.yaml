@@ -1,0 +1,158 @@
+# Footnote/endnote pattern definitions
+# Source: docs/epub_formatting_analysis_report.md
+
+patterns:
+  footnotes_same_page_standard:
+    category: "notes_system"
+    description: "Standard footnotes with <sup><a> references and <p class='footnote'>"
+    source_examples:
+      - "Charles Taylor - Hegel"
+    epub_versions: [2, 3]
+    detection_signature:
+      reference:
+        type: "sup_link"
+        selector: "sup a[href^='#']"
+      note_text:
+        location: "same_file"
+        selector: "p.footnote"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      notes_config:
+        type: "footnotes"
+        location: "same_page"
+        reference_style: "numeric"
+        note_class: "footnote"
+
+  footnotes_calibre_style:
+    category: "notes_system"
+    description: "Calibre-style footnotes with calibre classes"
+    source_examples:
+      - "Kant - Critique of Pure Reason"
+    epub_versions: [2, 3]
+    detection_signature:
+      reference:
+        type: "sup_link"
+        selector: "sup.calibre* a"
+      note_text:
+        location: "same_file"
+        selector: "p.footnotes"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      notes_config:
+        type: "footnotes"
+        location: "same_page"
+        reference_class: "calibre"
+
+  endnotes_collected:
+    category: "notes_system"
+    description: "Endnotes collected in a separate HTML file"
+    source_examples:
+      - "Robert B. Pippin - Hegel's Realm of Shadows"
+    epub_versions: [2, 3]
+    detection_signature:
+      reference:
+        type: "sup_link"
+        selector: "a.fnref[href*='notes'], a[href*='endnotes']"
+      note_text:
+        location: "separate_file"
+        file_pattern: "*notes*.xhtml"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      notes_config:
+        type: "endnotes"
+        location: "separate_file"
+        notes_filename: "notes.xhtml"
+
+  epub3_semantic_notes:
+    category: "notes_system"
+    description: "EPUB3 semantic endnotes with epub:type='noteref'"
+    source_examples:
+      - "Heidegger - Metaphysics of German Idealism"
+    epub_versions: [3]
+    detection_signature:
+      reference:
+        type: "epub_noteref"
+        selector: "a[epub|type='noteref']"
+      note_text:
+        location: "separate_file"
+        selector: "section[role='doc-endnotes']"
+    requires:
+      - "epub3_container"
+    conflicts_with:
+      - "epub2_only"
+    generator_config:
+      epub_version: 3
+      notes_config:
+        type: "endnotes"
+        semantic_markup: true
+        epub_type: "noteref"
+
+  dual_system_symbols:
+    category: "notes_system"
+    description: "Dual system: symbols (†) for author notes, numbers for editor notes"
+    source_examples:
+      - "Hegel - Philosophy of Right"
+    epub_versions: [2, 3]
+    detection_signature:
+      author_notes:
+        selector: "sup a em:contains('†'), sup a em:contains('*')"
+        location: "same_file"
+      editor_notes:
+        selector: "sup a[href*='part']:not(:has(em))"
+        location: "different_file"
+    requires: []
+    conflicts_with:
+      - "single_note_system"
+    generator_config:
+      notes_config:
+        type: "dual"
+        author_marker_style: "symbol"
+        editor_marker_style: "numeric"
+        author_location: "same_page"
+        editor_location: "endnotes_file"
+
+  unlinked_superscript:
+    category: "notes_system"
+    description: "Unlinked superscript notes (no <a> tags)"
+    source_examples:
+      - "Adorno - Negative Dialectics"
+      - "Baudrillard works"
+    epub_versions: [2, 3]
+    detection_signature:
+      reference:
+        type: "unlinked"
+        selector: "sup:not(:has(a))"
+      note_text:
+        location: "same_file"
+        position: "page_bottom"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      notes_config:
+        type: "footnotes"
+        reference_style: "unlinked"
+        location: "same_page"
+
+  blockquote_notes:
+    category: "notes_system"
+    description: "Footnotes in blockquote/div structure"
+    source_examples:
+      - "Hegel - Science of Logic"
+    epub_versions: [2, 3]
+    detection_signature:
+      reference:
+        type: "sup_link"
+        selector: "span a[href^='#filepos'] sup"
+      note_text:
+        location: "same_file"
+        selector: "div.calibre32 blockquote"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      notes_config:
+        type: "footnotes"
+        location: "same_page"
+        container_element: "blockquote"
