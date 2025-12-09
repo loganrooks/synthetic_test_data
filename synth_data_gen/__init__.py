@@ -9,6 +9,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Type
 
+from .constants import GeneratorType, FileExtension
 from .core.base import BaseGenerator
 from .core.config_loader import ConfigLoader
 from .generators.epub import EpubGenerator
@@ -53,9 +54,9 @@ class PluginError(RuntimeError):
 
 # Mapping of type strings to generator classes
 GENERATOR_MAP: Dict[str, Type[BaseGenerator]] = {
-    "epub": EpubGenerator,
-    "pdf": PdfGenerator,
-    "markdown": MarkdownGenerator,
+    GeneratorType.EPUB.value: EpubGenerator,
+    GeneratorType.PDF.value: PdfGenerator,
+    GeneratorType.MARKDOWN.value: MarkdownGenerator,
 }
 
 
@@ -150,7 +151,11 @@ def generate_data(
         current_output_dir = os.path.join(base_output_dir, file_output_subdir)
         ensure_output_directories(current_output_dir)
 
-        default_extension = generator_type_str if generator_type_str != "markdown" else "md"
+        # Determine file extension: markdown -> .md, others use type name
+        if generator_type_str == GeneratorType.MARKDOWN.value:
+            default_extension = "md"
+        else:
+            default_extension = generator_type_str
         filename_pattern = file_type_config.get(
             "filename_pattern",
             f"{generator_type_str}_{{index}}.{default_extension}"

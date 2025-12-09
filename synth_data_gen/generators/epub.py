@@ -5,6 +5,7 @@ import subprocess
 from typing import Any, Dict, List
 from ebooklib import epub
 
+from ..constants import GeneratorType, NotesSystemType, TocStyle
 from ..core.base import BaseGenerator
 from ..common.utils import ensure_output_directories
 
@@ -26,7 +27,7 @@ class EpubGenerator(BaseGenerator):
     """
     Generator for EPUB files.
     """
-    GENERATOR_ID = "epub"
+    GENERATOR_ID = GeneratorType.EPUB.value
 
     def get_default_specific_config(self) -> Dict[str, Any]:
         """
@@ -48,9 +49,9 @@ class EpubGenerator(BaseGenerator):
             "include_ncx": "auto",
             "include_nav_doc": "auto",
             "font_embedding": {"enable": False},
-            "toc_settings": {"style": "navdoc_full", "max_depth": 3, "include_landmarks": True, "include_page_list_in_toc": True},
+            "toc_settings": {"style": TocStyle.NAVDOC_FULL.value, "max_depth": 3, "include_landmarks": True, "include_page_list_in_toc": True},
             "page_numbering": {"style": "epub3_semantic", "link_to_page_markers": True},
-            "notes_system": {"type": "footnotes_same_page", "notes_config": 0},
+            "notes_system": {"type": NotesSystemType.FOOTNOTES_SAME_PAGE.value, "notes_config": 0},
             "citations_bibliography": {"in_text_citation_style": "none", "bibliography_style": {"style": "dedicated_file_list"}},
             "multimedia": {"include_images": True, "images_config": 0},
             "content_elements": {
@@ -158,7 +159,7 @@ class EpubGenerator(BaseGenerator):
         note_type = notes_system_config.get("type")
         notes_data = notes_system_config.get("data", {})
         
-        if note_type == "footnotes_same_page" and notes_data:
+        if note_type == NotesSystemType.FOOTNOTES_SAME_PAGE.value and notes_data:
             content = chapter_item.content
             footnotes_html_list = []
             note_counter = 0
