@@ -65,12 +65,6 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
   - `tests/test_integration_config_loader.py`
 - **Suggested Fix:** Consolidate into a single location with clear unit vs integration separation.
 
-#### ISS-008: Missing default_config.yaml
-- **Location:** `synth_data_gen/core/`
-- **Description:** `ConfigLoader` references a `default_config.yaml` that doesn't exist.
-- **Impact:** Falls back to empty config, which may cause issues.
-- **Suggested Fix:** Create a comprehensive default configuration file.
-
 #### ISS-009: Magic strings throughout codebase
 - **Description:** Configuration values like `"single_column_text"`, `"footnotes_same_page"`, `"yaml"` are scattered as string literals.
 - **Suggested Fix:** Create `constants.py` or use `Enum` classes.
@@ -96,6 +90,15 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 - **Commit:** `6dd7add`
 - **Description:** pyproject.toml listed test dependencies as runtime deps and was missing actual runtime deps.
 - **Fix:** Added ebooklib, reportlab, PyYAML, jsonschema; moved test deps to `[dev]` extras.
+
+### RES-004: Missing default_config.yaml (ISS-008)
+- **Resolved:** 2025-12-09
+- **Description:** `ConfigLoader` referenced a `default_config.yaml` that didn't exist, causing fallback to empty config.
+- **Fix:** Created comprehensive `synth_data_gen/core/default_config.yaml` with:
+  - All configuration options documented with inline comments
+  - EPUB, PDF, and Markdown defaults matching specification
+  - Preset definitions for future combinatoric generation (ADR-001)
+  - Sensible deterministic defaults for testability
 
 ---
 

@@ -1,0 +1,578 @@
+# =============================================================================
+# Synthetic Data Generator - Default Configuration
+# =============================================================================
+#
+# This file provides comprehensive defaults for all configuration options.
+# All _config parameters support the "Unified Quantity Specification":
+#   - Exact integer: chapters_config: 5 (exactly 5)
+#   - Range object: chapters_config: { min: 3, max: 7 } (random in range)
+#   - Probabilistic: { chance: 0.5, if_true: 3, if_false: 0, max_total: 10 }
+#
+# Default values prioritize deterministic (exact) counts for testability.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Output Settings
+# -----------------------------------------------------------------------------
+output_directory_base: "synthetic_output"  # Root directory for all generated files
+
+# -----------------------------------------------------------------------------
+# Global Settings (applied to all generators unless overridden)
+# -----------------------------------------------------------------------------
+global_settings:
+  default_author: "Synthetic Data Generator"
+  default_language: "en"
+  default_publisher: "SynthPress"
+  base_seed: null  # Set to integer for reproducible randomness (e.g., 12345)
+
+# -----------------------------------------------------------------------------
+# File Types to Generate
+# -----------------------------------------------------------------------------
+# Each entry in file_types defines a generation job.
+# Uncomment or modify as needed.
+
+file_types:
+  # Default EPUB generation
+  - type: "epub"
+    count: 1
+    output_subdir: "default/epubs"
+    filename_pattern: "synthetic_epub_{index}.epub"
+    epub_specific_settings:
+      # Use defaults defined in epub_defaults section below
+
+  # Default PDF generation
+  - type: "pdf"
+    count: 1
+    output_subdir: "default/pdfs"
+    filename_pattern: "synthetic_pdf_{index}.pdf"
+    pdf_specific_settings:
+      # Use defaults defined in pdf_defaults section below
+
+  # Default Markdown generation
+  - type: "markdown"
+    count: 1
+    output_subdir: "default/markdown"
+    filename_pattern: "synthetic_md_{index}.md"
+    markdown_specific_settings:
+      # Use defaults defined in markdown_defaults section below
+
+# =============================================================================
+# EPUB SPECIFIC SETTINGS DEFAULTS
+# =============================================================================
+# These are the default settings for EPUB generation.
+# Each generator's get_default_specific_config() returns these values.
+
+epub_defaults:
+  # --- Content & Structure ---
+  chapters_config: 5               # Exact number of chapters
+  sections_per_chapter_config: 2   # Exact sections per chapter
+  epigraph_config: 0               # 0 = disabled (no epigraphs)
+
+  # --- Metadata ---
+  author: "Default EPUB Author"
+  title_prefix: "Synthetic EPUB: "
+  language: "en"
+  publisher: "SynthPress EPUB Division"
+  isbn: null                        # Auto-generate UUID if null
+  publication_date: null            # Auto-generate if null
+  series_name: null
+  series_number: null
+
+  # --- EPUB Version & Technical ---
+  epub_version: 3                   # 2 or 3
+  include_ncx: "auto"               # "auto", true, false - auto includes NCX for EPUB2
+  include_nav_doc: "auto"           # "auto", true, false - auto includes NavDoc for EPUB3
+
+  # --- Font Embedding ---
+  font_embedding:
+    enable: false
+    fonts: []                       # List of font family names to embed
+    obfuscation: "none"             # "none", "adobe", "idpf"
+
+  # --- Table of Contents (ToC) ---
+  toc_settings:
+    style: "navdoc_full"            # See ToC styles below
+    max_depth: 3                    # Maximum nesting depth
+    include_landmarks: true         # Include landmarks (EPUB3)
+    include_page_list_in_toc: true  # Include page list
+    ncx_problematic_label_chance: 0.0
+    ncx_list_footnote_files_chance: 0.0
+  # ToC Style Options:
+  #   "ncx_simple"           - Flat NCX
+  #   "ncx_deeply_nested"    - NCX with max_depth levels
+  #   "ncx_with_anchors"     - NCX with #anchor_id links
+  #   "ncx_with_pagelist"    - NCX includes <pageList>
+  #   "html_basic_list"      - HTML ToC using <ul>/<ol>
+  #   "html_styled_paragraphs" - HTML ToC using <p class="toc_level_X">
+  #   "navdoc_basic"         - EPUB3 NavDoc with epub:type="toc" only
+  #   "navdoc_full"          - EPUB3 NavDoc with toc, landmarks, page-list
+  #   "none"                 - No ToC
+
+  # --- Page Numbering ---
+  page_numbering:
+    style: "epub3_semantic"         # See page numbering styles below
+    link_to_page_markers: true
+    text_page_number_format: "arabic"
+    text_page_number_prefix: "p. "
+    text_page_number_suffix: ""
+  # Page Numbering Style Options:
+  #   "epub3_semantic"  - <span epub:type="pagebreak" ...>
+  #   "anchor_based"    - <a id="page_XXX"></a>
+  #   "text_embedded"   - Plain text page numbers in content
+  #   "none"            - No page markers
+
+  # --- Notes System (Footnotes/Endnotes) ---
+  notes_system:
+    type: "footnotes_same_page"     # See notes system types below
+    notes_config: 0                 # Exact count, 0 = disabled
+    secondary_note_type: null       # For dual systems
+    secondary_note_marker_style: null
+    secondary_notes_config: 0
+    reference_style:
+      style: "linked_superscript_number"
+      symbols: ["*", "†", "‡", "§", "||"]
+    note_text_structure:
+      style: "paragraph_with_backlink"
+    include_translator_notes_chance: 0.0
+    translator_note_prefix: "{TN: "
+    translator_note_suffix: "}"
+  # Notes System Type Options:
+  #   "footnotes_same_page"   - Notes at bottom of current XHTML
+  #   "endnotes_chapter"      - Notes at end of chapter
+  #   "endnotes_book"         - All notes in separate notes.xhtml
+  #   "endnotes_granular_files" - Each note in own file
+  #   "dual_system_kant"      - Author footnotes + editorial endnotes
+  #   "dual_system_hegel_por" - Symbol footnotes + numbered endnotes
+  #   "dual_system_derrida_grammatology" - Granular symbol + book numbered
+  #   "none"                  - No notes
+  # Reference Style Options:
+  #   "linked_superscript_number"
+  #   "linked_superscript_symbol"
+  #   "unlinked_superscript_number"
+  #   "unlinked_bracketed_number"
+
+  # --- Citations & Bibliography ---
+  citations_bibliography:
+    in_text_citation_style: "none"  # "none", "parenthetical_kant_style", etc.
+    bibliography_style:
+      style: "dedicated_file_list"
+      include_cite_tags: false
+      biblio_entry_backlink_chance: 0.0
+
+  # --- Multimedia ---
+  multimedia:
+    include_images: true
+    images_config: 0                # Exact count, 0 = no images
+    image_types:
+      - "jpeg"
+      - "png"
+    image_usage_profile: "placeholder_images"
+    image_caption_style: "none"
+    include_audio_video: false      # EPUB3 only
+
+  # --- Content Elements ---
+  content_elements:
+    paragraph_styles:
+      - { class_name: "indent", chance: 0.7 }
+      - { class_name: "noindent", chance: 0.2 }
+      - { class_name: "epigraph", chance: 0.0 }
+    heading_styles:
+      chapter_title_style: "standard_h_tags"
+      section_header_style: "standard_h_tags"
+    # Heading Style Options:
+    #   "standard_h_tags"             - <h1>, <h2>, etc.
+    #   "styled_p_tags_byung_chul_han" - <p class="c9"><strong>
+    #   "styled_div_tags_kaplan"      - <div class="chapter-title">
+    #   "combined_h_tag_hegel_metaphysics" - <h1><span class="chapterNumber">
+    blockquote_styles:
+      style: "standard_blockquote"
+    list_styles:
+      include_ordered_lists: true
+      include_unordered_lists: true
+      list_items_config: 5          # Exact items per list
+      max_list_nesting_depth: 2
+    table_styles:
+      tables_occurrence_config: 0   # Exact count, 0 = no tables
+      table_rows_config: 3
+      table_cols_config: 3
+    code_block_styles:
+      code_blocks_occurrence_config: 0
+    poetry_formatting:
+      poetry_occurrence_config: 0
+      style: "style_hegel_por"
+
+  # --- Structural Elements ---
+  structural_elements:
+    include_front_matter: true
+    include_back_matter: true
+    include_calibre_metadata_files: "none"
+    include_sigil_metadata_files: "none"
+    include_adobe_xpgt_adept_tags: "none"
+    split_content_files_chance: 0.0
+    split_filename_suffix: "_split_"
+    segment_chapter_files_chance: 0.0
+    segment_suffix_pattern:
+      - ""
+      - "a"
+      - "b"
+
+  # --- Typography & Layout ---
+  typography_layout:
+    base_font_family:
+      - "Liberation Serif"
+      - "Georgia"
+      - "serif"
+    heading_font_family:
+      - "Liberation Sans"
+      - "Arial"
+      - "sans-serif"
+    margins_cm: 2.0
+    line_spacing_multiplier: 1.5
+    text_alignment: "justify"
+
+  # --- Edge Cases (all disabled by default for predictability) ---
+  edge_cases:
+    minimal_opf_metadata_chance: 0.0
+    conflicting_metadata_chance: 0.0
+    malformed_html_chance: 0.0
+    unusual_css_class_usage_chance: 0.0
+    empty_content_file_chance: 0.0
+    image_only_file_chance: 0.0
+    non_ascii_chars_chance: 0.0
+    doi_link_chance: 0.0
+    index_term_markers_chance: 0.0
+    forced_page_break_div_chance: 0.0
+    bracketed_numbers_paragraph_chance: 0.0
+
+# =============================================================================
+# PDF SPECIFIC SETTINGS DEFAULTS
+# =============================================================================
+
+pdf_defaults:
+  # --- Generation Method ---
+  generation_method: "from_html"    # "from_html", "direct_draw", "ocr_simulation"
+  pdf_variant: "single_column_text" # Variant to generate
+
+  # --- Page Configuration ---
+  page_count_config: 10             # Exact page count
+
+  # --- Layout ---
+  layout:
+    columns: 1
+    margins_mm:
+      top: 20
+      bottom: 20
+      left: 25
+      right: 25
+
+  # --- Page Setup ---
+  page_setup:
+    page_size: "letter"             # "letter", "a4"
+    orientation: "portrait"         # "portrait", "landscape"
+    rotation: 0                     # 0, 90, 180, 270
+
+  # --- Typography ---
+  base_font_family: "Times New Roman"
+  base_font_size_pt: 12
+  ligature_simulation:
+    enable: true
+
+  # --- Metadata ---
+  author: "Default PDF Author"
+  title: "Synthetic PDF Document"
+  subject: null
+  keywords: []
+  creator_tool: "SynthDataGen PDF Module"
+
+  # --- Running Header ---
+  running_header:
+    enable: true
+    left_content: "{book_title}"
+    center_content: ""
+    right_content: "Page {page_number}"
+    font_name: "Helvetica"
+    font_size_pt: 9
+    include_on_first_page: false
+
+  # --- Running Footer ---
+  running_footer:
+    enable: false
+    left_content: ""
+    center_content: ""
+    right_content: ""
+    font_size_pt: 9
+    include_on_first_page: true
+
+  # --- Visual Table of Contents ---
+  visual_toc:
+    enable: true
+    max_depth: 3
+    style: "hyperlinked_text"
+    page_number_style: "dot_leader"  # "dot_leader", "no_page_numbers", "none"
+
+  # --- OCR Simulation (for ocr_simulation generation_method) ---
+  ocr_simulation_settings:
+    base_image_quality: "high"
+    ocr_accuracy_level: 0.98
+    skew_chance: 0.0
+    max_skew_angle: 0.0
+    noise_chance: 0.0
+    noise_level_percent: 5
+    noise_type: "speckle"           # "speckle", "salt-and-pepper", "gaussian"
+    include_handwritten_annotations_chance: 0.0
+    annotation_text_options:
+      - "Note"
+      - "Important"
+      - "See also"
+    annotation_font_family: "Helvetica"
+    annotation_font_size_pt_range: [8, 12]
+    annotation_color_rgb: [0.2, 0.2, 0.8]
+    annotation_opacity_range: [0.5, 1.0]
+    annotation_rotation_degrees_range: [-5, 5]
+
+  # --- Watermark ---
+  watermark_settings:
+    enable: false
+    text: "SAMPLE"
+    font_name: "Helvetica"
+    font_size: 50
+    color: "#C0C0C0"
+    opacity: 0.1
+    rotation: 45
+    position: "center"              # "center", "top_left", "top_right", etc.
+    include_on_first_page: true
+
+  # --- Content Generation ---
+  chapters_config: 1
+  sections_per_chapter_config: 0
+  text_blocks_config: []
+
+  # --- Tables ---
+  table_generation:
+    pdf_tables_occurrence_config: 0
+    row_count_config: 3
+    col_count_config: 3
+    default_table_style:
+      header_background_color: "grey"
+      header_text_color: "whitesmoke"
+      cell_alignment: "CENTER"
+      header_font_name: "Helvetica-Bold"
+      grid_color: "black"
+
+  # --- Figures ---
+  figure_generation:
+    pdf_figures_occurrence_config: 0
+    figure_details: []
+    caption_config:
+      enable: false
+      text_options:
+        - "Figure caption"
+      font_family: "Helvetica-Oblique"
+      font_size_pt: 9
+      alignment: "CENTER"
+
+  # --- Page Variations ---
+  include_rotated_pages_chance: 0.0
+  mixed_page_sizes_orientations_chance: 0.0
+
+# =============================================================================
+# MARKDOWN SPECIFIC SETTINGS DEFAULTS
+# =============================================================================
+
+markdown_defaults:
+  # --- Variant ---
+  md_variant: "basic_elements"      # "basic_elements", "extended_elements", etc.
+
+  # --- Headings ---
+  headings_config:
+    count: 5                        # Exact number of headings
+    max_depth: 3
+
+  # --- Emphasis ---
+  include_emphasis_styles: true
+
+  # --- Lists ---
+  md_list_items_config:
+    count: 4                        # Exact items per list
+    max_nesting_depth: 2
+    include_lists: true
+  list_type_mix_chance: 0.0
+
+  # --- Links ---
+  include_links: true
+  link_style_mix_chance: 0.0
+
+  # --- Images ---
+  md_images_config:
+    count: 1                        # Exact image count
+    include_images: true
+
+  # --- Blockquotes ---
+  include_blockquotes: true
+  blockquote_max_nesting_depth: 1
+
+  # --- Horizontal Rules ---
+  include_horizontal_rules: true
+
+  # --- GFM (GitHub Flavored Markdown) Features ---
+  gfm_features:
+    # Tables
+    md_tables_occurrence_config:
+      count: 0                      # Exact table count, 0 = disabled
+    md_table_rows_config: 3
+    md_table_cols_config: 3
+    table_include_alignment_chance: 0.0
+    table_inline_markdown_chance: 0.0
+
+    # Footnotes
+    md_footnotes_occurrence_config:
+      count: 0                      # Exact footnote count, 0 = disabled
+    footnote_multi_paragraph_chance: 0.0
+
+    # Task Lists
+    md_task_lists_occurrence_config:
+      count: 0                      # Exact task list count, 0 = disabled
+
+    # Code Blocks
+    include_code_blocks: true
+    md_code_blocks_config:
+      count: 1                      # Exact code block count
+      include_code_blocks: true
+    code_block_style_mix_chance: 0.0
+    code_block_fenced_include_language_chance: 1.0
+
+  # --- Frontmatter ---
+  frontmatter:
+    include_chance: 1.0             # 1.0 = always include, 0.0 = never
+    style: "yaml"                   # "yaml", "toml", "json"
+    fields:
+      title: true                   # true = use document title
+      author: true                  # true = use global author
+      date: "2025-01-01"
+      tags:
+        - "synthetic"
+        - "test"
+      custom_fields: []             # List of { key: "name", value: "value" }
+    syntax_error_chance: 0.0
+
+  # --- Edge Cases ---
+  embed_html_chance: 0.0
+  embed_latex_chance: 0.0
+  mixed_line_endings_chance: 0.0
+  encoding_issues_chance: 0.0
+  max_overall_nesting_depth: 3
+
+# =============================================================================
+# PRESETS (for future combinatoric generation - ADR-001)
+# =============================================================================
+# Presets are named configurations that capture real-world formatting patterns.
+# See docs/adr/ADR-001-combinatoric-test-generation.md for details.
+
+presets:
+  # --- EPUB Presets derived from empirical analysis ---
+  epub2_calibre_basic:
+    description: "Simple Calibre-converted EPUB2"
+    epub_version: 2
+    toc_settings:
+      style: "ncx_simple"
+    notes_system:
+      type: "footnotes_same_page"
+      notes_config: 0
+
+  epub3_semantic:
+    description: "Modern EPUB3 with semantic markup"
+    epub_version: 3
+    toc_settings:
+      style: "navdoc_full"
+      include_landmarks: true
+    page_numbering:
+      style: "epub3_semantic"
+    notes_system:
+      type: "endnotes_book"
+
+  kant_critique_style:
+    description: "Scholarly with dual footnote systems, edition markers"
+    # Derived from Kant - Critique of Pure Reason analysis
+    epub_version: 2
+    toc_settings:
+      style: "ncx_deeply_nested"
+      max_depth: 4
+    notes_system:
+      type: "dual_system_kant"
+      notes_config: 50
+      secondary_notes_config: 15
+      reference_style:
+        style: "complex_kant_style"
+    page_numbering:
+      style: "anchor_based"
+
+  taylor_hegel_style:
+    description: "Academic with same-page footnotes, bibliography/index"
+    # Derived from Charles Taylor - Hegel analysis
+    epub_version: 2
+    toc_settings:
+      style: "ncx_deeply_nested"
+      max_depth: 4
+    notes_system:
+      type: "footnotes_same_page"
+      notes_config: 30
+
+  hegel_logic_style:
+    description: "Complex with heavy file splitting, image-based symbols"
+    # Derived from Hegel - Science of Logic analysis
+    epub_version: 2
+    toc_settings:
+      style: "ncx_simple"
+    structural_elements:
+      split_content_files_chance: 1.0
+    multimedia:
+      include_images: true
+      image_usage_profile: "images_as_text_hegel_sol"
+
+  adorno_unlinked_style:
+    description: "Unlinked superscript notes, print page ranges"
+    # Derived from Adorno - Negative Dialectics analysis
+    epub_version: 2
+    notes_system:
+      type: "endnotes_book"
+      notes_config: 45
+      reference_style:
+        style: "unlinked_superscript_number"
+    toc_settings:
+      ncx_problematic_label_chance: 1.0
+
+  # --- PDF Presets ---
+  pdf_academic_paper:
+    description: "Academic paper with ToC, headers, footnotes"
+    layout:
+      columns: 1
+    visual_toc:
+      enable: true
+    running_header:
+      enable: true
+
+  pdf_ocr_scanned:
+    description: "Simulated scanned document with OCR artifacts"
+    generation_method: "ocr_simulation"
+    ocr_simulation_settings:
+      ocr_accuracy_level: 0.92
+      noise_chance: 0.3
+      skew_chance: 0.2
+
+  # --- Markdown Presets ---
+  markdown_gfm:
+    description: "GitHub Flavored Markdown with all GFM features"
+    gfm_features:
+      md_tables_occurrence_config:
+        count: 2
+      md_footnotes_occurrence_config:
+        count: 5
+      md_task_lists_occurrence_config:
+        count: 1
+
+  markdown_academic:
+    description: "Academic markdown with LaTeX, citations, frontmatter"
+    embed_latex_chance: 1.0
+    frontmatter:
+      include_chance: 1.0
+      style: "yaml"
