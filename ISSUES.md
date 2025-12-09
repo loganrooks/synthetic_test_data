@@ -4,26 +4,25 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 
 ## Open Issues
 
-### Low Priority
-
-#### ISS-010: PDF generator tests needing rewrite
-- **Location:** `tests/generators/test_pdf_generator.py`
-- **Description:** 11 tests are currently skipped because they reference non-existent methods or have mock setups that don't match actual code flow after recent refactoring.
-- **Skipped Tests:**
-  - `test_ligature_simulation_setting_is_respected` (2 instances) - references `_get_dummy_text` which doesn't exist
-  - `test_ocr_simulation_applies_accuracy` (2 instances) - assumptions about OCR variant implementation
-  - `test_visual_toc_is_integrated_into_pdf_story` - references `_setup_document_and_styles`, `generate_single_column_content`
-  - `test_single_column_with_probabilistic_table_occurrence` (2 instances) - mock setup issues
-  - `test_single_column_with_probabilistic_figure_occurrence` - mock setup issues
-  - `test_generate_single_column_unified_chapters_probabilistic` (2 instances) - undefined mock references
-  - `test_generate_single_column_page_count_probabilistic` (2 instances) - mock setup doesn't match two-pass ToC flow
-  - `test_single_column_with_range_table_occurrence` - assertion patterns changed
-- **Impact:** Reduced test coverage for PDF generation edge cases
-- **Suggested Fix:** Rewrite tests to match actual implementation, using proper mock side effects that return appropriate values
+*No open issues at this time.*
 
 ---
 
 ## Resolved Issues
+
+### RES-013: PDF generator tests rewritten (ISS-010)
+- **Resolved:** 2025-12-09
+- **Description:** 11 tests were skipped because they referenced non-existent methods or had mock setups that didn't match actual code flow.
+- **Fix:** Rewrote all skipped tests with proper implementations:
+  - Replaced `test_ligature_simulation_setting_is_respected` with `test_process_text_for_ligatures_*` (3 unit tests)
+  - Replaced `test_ocr_simulation_applies_accuracy` with `test_ocr_simulation_creates_pdf` and `test_degrade_text_*`
+  - Replaced `test_visual_toc_is_integrated_into_pdf_story` with `test_visual_toc_flowables_generation` and `test_visual_toc_respects_max_depth`
+  - Fixed `test_single_column_with_probabilistic_table_occurrence` with proper mock side_effect returning int values
+  - Fixed `test_single_column_with_range_table_occurrence` with correct assertion keys
+  - Fixed `test_generate_single_column_page_count_probabilistic` with proper mock variable references
+  - Added `test_create_toc_entry_table_*` for ToC table functionality
+  - Removed duplicate class-based tests that already existed as standalone functions
+- **Test Count:** 39 tests pass, 0 skipped
 
 ### RES-001: Duplicate `_determine_count()` in EpubGenerator
 - **Resolved:** 2025-12-09

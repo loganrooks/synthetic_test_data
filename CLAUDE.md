@@ -25,7 +25,8 @@ A Python library for generating high-quality, configurable synthetic test data i
 synth_data_gen/
 ├── core/                    # Core infrastructure
 │   ├── base.py             # BaseGenerator abstract class
-│   └── config_loader.py    # YAML/JSON config loading and validation
+│   ├── config_loader.py    # YAML/JSON config loading and validation
+│   └── default_config.yaml # Default configuration values
 ├── generators/              # Format-specific generators
 │   ├── epub.py             # EPUB generator
 │   ├── pdf.py              # PDF generator (most complex)
@@ -41,12 +42,16 @@ synth_data_gen/
 │       └── multimedia.py   # Images and fonts
 ├── common/                  # Shared utilities
 │   └── utils.py            # Helper functions
+├── constants.py             # Enums and constants (GeneratorType, PdfVariant, etc.)
 └── __init__.py             # Main API: generate_data()
 
 tests/                       # Test suite (mirrors src structure)
 ├── core/
+│   └── test_config_loader.py  # ConfigLoader unit tests
 ├── generators/
 │   └── epub_components/
+├── integration/             # Integration tests
+│   └── test_config_integration.py
 └── test_*.py
 
 docs/                        # Documentation
@@ -73,7 +78,7 @@ pytest -v
 pytest tests/generators/test_pdf_generator.py -v
 
 # Run specific test
-pytest tests/generators/test_pdf_generator.py::test_visual_toc_is_integrated_into_pdf_story -v
+pytest tests/generators/test_pdf_generator.py::test_visual_toc_flowables_generation -v
 
 # Run with coverage
 pytest --cov=synth_data_gen --cov-report=term-missing
@@ -142,13 +147,17 @@ All generators inherit from `BaseGenerator` and must implement:
 - `ISSUES.md` - Known issues and technical debt tracker
 - `ROADMAP.md` - Development roadmap and planned features
 
-## Known Issues / TODOs
+## Current Status
 
-See `ISSUES.md` for the full list of known issues. Key items:
-- ISS-001: PDF Visual ToC uses placeholders for page numbers
-- ISS-002: Probabilistic test assertion count mismatches
-- ISS-004: 180-degree page rotation not implemented
-- ISS-005: Annotation font styling not applied
+All known issues have been resolved. See `ISSUES.md` for the full history of resolved issues.
+
+**Recent fixes (2025-12-09):**
+- PDF Visual ToC now shows real page numbers (two-pass generation)
+- Visual ToC dot leaders properly rendered with Table-based approach
+- 180-degree page rotation implemented
+- Annotation font styling applied correctly
+- Magic strings replaced with typed constants/enums (`synth_data_gen/constants.py`)
+- All PDF generator tests rewritten (39 passing, 0 skipped)
 
 ## Development Workflow
 
