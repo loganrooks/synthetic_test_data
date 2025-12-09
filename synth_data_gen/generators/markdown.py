@@ -1,10 +1,13 @@
+import json  # For JSON frontmatter
+import logging
 import os
-import json # For JSON frontmatter
 import random
 from typing import Any, Dict, List
 
+from ..common.utils import ensure_output_directories
 from ..core.base import BaseGenerator
-from ..common.utils import ensure_output_directories # Assuming MD_DIR is handled by output_path
+
+logger = logging.getLogger(__name__)
 
 class MarkdownGenerator(BaseGenerator):
     """
@@ -46,7 +49,7 @@ class MarkdownGenerator(BaseGenerator):
             return False
         # Add Markdown-specific validation logic here
         if "md_variant" not in specific_config:
-            print("Warning: md_variant not specified, using default.")
+            logger.warning("md_variant not specified, using default.")
         return True
 
     def _generate_frontmatter(self, config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
@@ -151,14 +154,14 @@ The YAML frontmatter above contains intentional syntax errors.
         elif variant == "with_latex":
             content += self._create_md_with_latex_content(specific_config, global_config)
         else:
-            print(f"Warning: Unknown Markdown variant '{variant}'. Generating basic elements.")
+            logger.warning("Unknown Markdown variant '%s'. Generating basic elements.", variant)
             content += self._create_md_basic_elements_content(specific_config, global_config)
 
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(content)
         except Exception as e:
-            print(f"Error creating Markdown {output_path}: {e}") # Consider raising GeneratorError
+            logger.error("Error creating Markdown %s: %s", output_path, e)
             # Or return an error status/message
         return output_path
 

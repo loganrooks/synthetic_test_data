@@ -1,18 +1,28 @@
+import logging
 import os
-from typing import Any, Dict, List
 import random
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.lib import colors # Added import
-from reportlab.lib.pagesizes import letter, A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import Paragraph, Spacer, SimpleDocTemplate, Table, TableStyle, Flowable, PageBreak
-from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
-from reportlab.lib import colors
+from typing import Any, Dict, List
 
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.pagesizes import A4, landscape, letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+from reportlab.platypus import (
+    Flowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+from ..common.utils import ensure_output_directories
 from ..core.base import BaseGenerator
-from ..common.utils import ensure_output_directories # Assuming PDF_DIR is handled by output_path logic
+
+logger = logging.getLogger(__name__)
 
 class PdfGenerator(BaseGenerator):
     """
@@ -48,7 +58,7 @@ class PdfGenerator(BaseGenerator):
             return False
         # Add PDF-specific validation logic here
         if "pdf_variant" not in specific_config:
-            print("Warning: pdf_variant not specified, using default.")
+            logger.warning("pdf_variant not specified, using default.")
         # Example: check if generation_method is valid
         # generation_method = specific_config.get("generation_method", "from_html")
         # if generation_method not in ["from_html", "direct_draw", "ocr_simulation"]:
@@ -92,7 +102,7 @@ class PdfGenerator(BaseGenerator):
                 self._create_pdf_visual_toc_hyperlinked(output_path, specific_config, global_config)
             else:
                 # Fallback if ToC is explicitly disabled for this variant
-                print(f"Info: Visual ToC variant selected but 'visual_toc.enable' is false. Generating single_column_text instead.")
+                logger.info("Visual ToC variant selected but 'visual_toc.enable' is false. Generating single_column_text instead.")
                 self._create_pdf_text_single_column(output_path, specific_config, global_config)
         elif variant == "running_headers_footers":
             self._create_pdf_running_headers_footers(output_path, specific_config, global_config)
@@ -102,7 +112,7 @@ class PdfGenerator(BaseGenerator):
             self._create_pdf_simple_table(output_path, specific_config, global_config)
         else:
             # Default to single column or raise an error for unknown variant
-            print(f"Warning: Unknown PDF variant '{variant}'. Generating single_column_text instead.")
+            logger.warning("Unknown PDF variant '%s'. Generating single_column_text instead.", variant)
             self._create_pdf_text_single_column(output_path, specific_config, global_config)
             # Or raise GeneratorError(f"Unknown PDF variant: {variant}")
 
@@ -332,7 +342,7 @@ class PdfGenerator(BaseGenerator):
             else:
                 doc.build(story)
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}") # Consider raising GeneratorError
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_text_multi_column(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -381,7 +391,7 @@ class PdfGenerator(BaseGenerator):
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_text_flow_around_image(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -420,7 +430,7 @@ class PdfGenerator(BaseGenerator):
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _degrade_text(self, text: str, accuracy: float) -> str:
         """Simulates OCR degradation based on accuracy level."""
@@ -753,7 +763,7 @@ class PdfGenerator(BaseGenerator):
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _draw_watermark_wrapped_for_onpage(self, canvas: canvas.Canvas, doc, watermark_settings: Dict[str, Any]):
         """Wrapper to call _draw_watermark with page dimensions from doc for onPage events."""
@@ -846,7 +856,7 @@ class PdfGenerator(BaseGenerator):
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_visual_toc_hyperlinked(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -991,7 +1001,7 @@ class PdfGenerator(BaseGenerator):
         try:
             doc.build(story, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_bottom_page_footnotes(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -1021,7 +1031,7 @@ class PdfGenerator(BaseGenerator):
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_simple_table(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         styles = getSampleStyleSheet()
@@ -1057,7 +1067,7 @@ class PdfGenerator(BaseGenerator):
         try:
             doc.build(story)
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _add_pdf_chapter_content(self, story: List, chapter_number: int, chapter_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
             """

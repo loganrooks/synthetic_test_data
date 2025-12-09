@@ -1,6 +1,10 @@
+import logging
 import os
 import zipfile
+
 from ebooklib import epub
+
+logger = logging.getLogger(__name__)
 
 # Define output base directory relative to the project root
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -100,11 +104,11 @@ def _write_epub_file(book, filepath):
                     # Ensure the path is treated as relative to the ZIP root
                     # For META-INF, rel_path should be e.g., "META-INF/encryption.xml"
                     epub_zip.writestr(rel_path, content_bytes)
-            # print(f"Successfully added custom files to EPUB: {filepath}") # Optional: for debugging
+            logger.debug("Successfully added custom files to EPUB: %s", filepath)
         except Exception as e:
-            print(f"Error adding custom files to EPUB {filepath}: {e}")
+            logger.error("Error adding custom files to EPUB %s: %s", filepath, e)
             # Consider re-raising or more specific error handling
-    print(f"Successfully created EPUB: {filepath}")
+    logger.info("Successfully created EPUB: %s", filepath)
 
 # Call this once if common.py is imported, or ensure main runner calls it.
 # For now, let's assume the main runner will call ensure_output_directories().

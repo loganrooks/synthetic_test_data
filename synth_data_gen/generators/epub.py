@@ -248,10 +248,10 @@ class EpubGenerator(BaseGenerator):
                         processed_keys.add(image_key)
                         return f'<img src="{epub_image_path}" alt="{alt_text}" />'
                     except IOError as e:
-                        print(f"Warning: Could not read image file {img_path_on_disk}: {e}")
+                        logger.warning("Could not read image file %s: %s", img_path_on_disk, e)
                         return match.group(0) # Return original marker on error
                 else:
-                    print(f"Warning: Image path {img_path_on_disk} for key '{image_key}' not found.")
+                    logger.warning("Image path %s for key '%s' not found.", img_path_on_disk, image_key)
                     return match.group(0) # Return original marker if path not found
             return match.group(0)
 
@@ -475,7 +475,7 @@ class EpubGenerator(BaseGenerator):
                         )
                         book.add_item(font_item)
                     except IOError as e:
-                        print(f"Warning: Could not read font file {font_path}: {e}")
+                        logger.warning("Could not read font file %s: %s", font_path, e)
         
         style = 'BODY {color: black;}' # Basic style
         # Potentially add @font-face rules here if fonts were embedded
@@ -496,15 +496,15 @@ class EpubGenerator(BaseGenerator):
                         capture_output=True, text=True, check=False
                     )
                     if result.returncode != 0:
-                        print(f"EPUBCheck for {output_path} found issues:\n{result.stderr}")
+                        logger.warning("EPUBCheck for %s found issues:\n%s", output_path, result.stderr)
                     else:
-                        print(f"EPUBCheck for {output_path} passed.")
+                        logger.info("EPUBCheck for %s passed.", output_path)
                 except Exception as e:
-                    print(f"Error running EPUBCheck for {output_path}: {e}")
+                    logger.error("Error running EPUBCheck for %s: %s", output_path, e)
             elif epubcheck_path:
-                print(f"Warning: EPUBCheck path '{epubcheck_path}' not found. Skipping validation.")
+                logger.warning("EPUBCheck path '%s' not found. Skipping validation.", epubcheck_path)
             else:
-                print("Warning: EPUBCheck path not configured. Skipping validation.")
+                logger.warning("EPUBCheck path not configured. Skipping validation.")
         
         return output_path
 
