@@ -91,7 +91,7 @@ class PdfGenerator(BaseGenerator):
                 "columns": 1,
                 "margins_mm": {"top": 20, "bottom": 20, "left": 25, "right": 25}
             },
-            "base_font_family": "Times New Roman",
+            "base_font_family": "Helvetica",  # ReportLab built-in font
             "base_font_size_pt": 12,
             "running_header": {"enable": True, "right_content": "Page {page_number}"},
             "running_footer": {"enable": False},

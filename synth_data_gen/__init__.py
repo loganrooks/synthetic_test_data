@@ -126,12 +126,19 @@ def generate_data(
             logger.warning("Invalid 'count' for type '%s': %s. Defaulting to 1.", generator_type_str, count)
             count = 1
 
-        # Get generator-specific config from the loaded config
-        specific_config = loader.get_generator_config(config, generator_type_str.lower())
+        # Get generator-specific config from the file_type_config (per spec)
+        # Config is in file_types[].<type>_specific_settings (e.g., epub_specific_settings)
+        specific_settings_key = f"{generator_type_str.lower()}_specific_settings"
+        specific_config = file_type_config.get(specific_settings_key, {})
 
-        # Use generator defaults if no specific config found
-        if not specific_config:
-            specific_config = generator_instance.get_default_specific_config()
+        # Merge with generator defaults if needed
+        default_config = generator_instance.get_default_specific_config()
+        if specific_config:
+            # Merge user config over defaults
+            merged_config = {**default_config, **specific_config}
+            specific_config = merged_config
+        else:
+            specific_config = default_config
             logger.debug("Using default settings for %s (none found in config).", generator_type_str)
 
         # Validate the specific config

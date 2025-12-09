@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 
 # Adjust the import path based on your project structure
 # This assumes tests/ is at the same level as synth_data_gen/
-from synth_data_gen import generate_data
+from synth_data_gen import generate_data, InvalidConfigError
 from synth_data_gen.generators.epub import EpubGenerator
 from synth_data_gen.generators.pdf import PdfGenerator
 from synth_data_gen.generators.markdown import MarkdownGenerator
@@ -28,28 +28,27 @@ def test_generate_data_default_config(mocker: MockerFixture, cleanup_main_genera
     mock_epub_generate = mocker.patch.object(EpubGenerator, 'generate')
     mock_pdf_generate = mocker.patch.object(PdfGenerator, 'generate')
     mock_md_generate = mocker.patch.object(MarkdownGenerator, 'generate')
-    
-    # Define expected output path from the default config in __init__.py
-    expected_output_dir_base = Path("synthetic_output_default") # Matches default in ConfigLoader
-    
+
+    # The default config (default_config.yaml) uses these paths:
+    # - output_directory_base: "synthetic_output"
+    # - epub: output_subdir: "default/epubs", filename_pattern: "synthetic_epub_{index}.epub"
+    # - pdf: output_subdir: "default/pdfs", filename_pattern: "synthetic_pdf_{index}.pdf"
+    # - markdown: output_subdir: "default/markdown", filename_pattern: "synthetic_md_{index}.md"
+    expected_output_dir_base = Path("synthetic_output")
+
     # Ensure the directory is clean before the test
     if expected_output_dir_base.exists():
         shutil.rmtree(expected_output_dir_base)
 
-    # Mocks should return the path they were called with, as per BaseGenerator.generate contract
-    # The actual file creation is handled by the (mocked) generator's generate method.
-    # The test will verify that the mocks were called with the correct output path.
-    
-    # We need to know which subdir each generator will use. From __init__.py default config:
-    # epub: "default_epubs", pdf: "default_pdfs", md: "default_markdown"
-    expected_epub_path = expected_output_dir_base / "default_epubs" / "epub_1.epub" # Default filename pattern
-    expected_pdf_path = expected_output_dir_base / "default_pdfs" / "pdf_1.pdf"
-    expected_md_path = expected_output_dir_base / "default_markdown" / "markdown_1.md"
+    # Expected paths based on default_config.yaml
+    expected_epub_path = expected_output_dir_base / "default/epubs" / "synthetic_epub_1.epub"
+    expected_pdf_path = expected_output_dir_base / "default/pdfs" / "synthetic_pdf_1.pdf"
+    expected_md_path = expected_output_dir_base / "default/markdown" / "synthetic_md_1.md"
 
     mock_epub_generate.return_value = str(expected_epub_path)
     mock_pdf_generate.return_value = str(expected_pdf_path)
     mock_md_generate.return_value = str(expected_md_path)
-    
+
     generated_files = generate_data()
 
     # Check that the base directory was created by ensure_output_directories
@@ -62,7 +61,7 @@ def test_generate_data_default_config(mocker: MockerFixture, cleanup_main_genera
 
     mock_pdf_generate.assert_called_once()
     assert mock_pdf_generate.call_args[0][2] == str(expected_pdf_path)
-    
+
     mock_md_generate.assert_called_once()
     assert mock_md_generate.call_args[0][2] == str(expected_md_path)
 
@@ -123,6 +122,6 @@ def test_generate_data_custom_config_obj(mocker: MockerFixture, cleanup_main_gen
     assert len(files_in_output_dir) > 0, "At least one EPUB file should be created in the custom output directory."
 
 def test_generate_data_invalid_config_path(cleanup_main_generator_output):
-    """Test generate_data with an invalid config_path."""
-    with pytest.raises(FileNotFoundError):
+    """Test generate_data with an invalid config_path raises InvalidConfigError."""
+    with pytest.raises(InvalidConfigError):
         generate_data(config_path="non_existent_config.yaml")
