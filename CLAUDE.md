@@ -138,13 +138,16 @@ All generators inherit from `BaseGenerator` and must implement:
 - `docs/architecture_overview.md` - Architecture patterns
 - `docs/synthetic_data_requirements.md` - Requirements for all formats
 - `docs/epub_formatting_analysis_report.md` - Real EPUB analysis
+- `ISSUES.md` - Known issues and technical debt tracker
+- `ROADMAP.md` - Development roadmap and planned features
 
 ## Known Issues / TODOs
 
-- PDF Visual ToC uses placeholders for page numbers (needs two-pass implementation)
-- Some probabilistic tests may have assertion count mismatches
-- `pdf.py` line ~520: Handle 180-degree page rotation
-- `pdf.py` line ~610: Use annotation font styling settings
+See `ISSUES.md` for the full list of known issues. Key items:
+- ISS-001: PDF Visual ToC uses placeholders for page numbers
+- ISS-002: Probabilistic test assertion count mismatches
+- ISS-004: 180-degree page rotation not implemented
+- ISS-005: Annotation font styling not applied
 
 ## Development Workflow
 

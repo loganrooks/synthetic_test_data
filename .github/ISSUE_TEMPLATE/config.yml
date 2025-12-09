@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/synth-data-gen/synth_data_gen#readme
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/synth-data-gen/synth_data_gen/discussions
+    about: Ask questions and discuss ideas
