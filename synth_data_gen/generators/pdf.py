@@ -502,66 +502,6 @@ class PdfGenerator(BaseGenerator):
         canvas_obj.drawString(0, 0, text) # Draw at new origin (0,0) after translate
         
         canvas_obj.restoreState()
-        
-        font_family = annotation_settings.get("annotation_font_family", "Helvetica") # Default if not specified
-        font_size_range = annotation_settings.get("annotation_font_size_pt_range", [10, 14])
-        font_size = random.uniform(font_size_range[0], font_size_range[1])
-        
-        color_rgb = annotation_settings.get("annotation_color_rgb", [0,0,0]) # Default black
-        opacity_range = annotation_settings.get("annotation_opacity_range", [0.6, 0.9])
-        opacity = random.uniform(opacity_range[0], opacity_range[1])
-        
-        rotation_range = annotation_settings.get("annotation_rotation_degrees_range", [-15, 15])
-        rotation = random.uniform(rotation_range[0], rotation_range[1])
-
-        # Position randomly on the page, avoiding extreme edges
-        # Ensure text_width is calculated *after* setting font, if needed for precise placement
-        # For simplicity, let's pick a random x, y within a margin.
-        margin = 0.5 * inch
-        max_x = page_width - margin - canvas_obj.stringWidth(text, font_family, font_size) # Approx
-        max_y = page_height - margin - font_size # Approx
-        
-        # Ensure max_x and max_y are not less than margin to avoid negative ranges for randint
-        pos_x = random.uniform(margin, max(margin, max_x))
-        pos_y = random.uniform(margin, max(margin, max_y))
-
-        canvas_obj.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=opacity)
-        # Note: ReportLab's setFillColorRGB doesn't take alpha directly. setFillAlpha is separate.
-        # Correcting to use setFillColorRGB and then setFillAlpha.
-        # However, the test expects setFillColorRGB(r,g,b) and setFillAlpha(a) separately.
-        # The SUT for watermark used canvas.setFillColor(parsed_color, alpha=opacity)
-        # Let's use setFillColor for consistency if parsed_color is available, or setFillColorRGB + setFillAlpha
-        
-        # Re-checking: The test asserts setFillColorRGB.assert_any_call(0.2, 0.2, 0.8)
-        # and setFillAlpha.assert_any_call(mocker.ANY)
-        # So, we should use these two methods.
-        
-        canvas_obj.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2])
-        canvas_obj.setFillAlpha(opacity)
-
-        canvas_obj.setFont(font_family, font_size)
-        
-        canvas_obj.translate(pos_x, pos_y)
-        canvas_obj.rotate(rotation)
-        canvas_obj.drawString(0, 0, text) # Draw at the new (translated and rotated) origin
-        
-        canvas_obj.restoreState()
-        # More complex logic based on annotation_style will be added later.
-        
-        annotation_texts = annotation_settings.get("annotation_text_options", ["Default Annotation"])
-        text_to_draw = random.choice(annotation_texts) if annotation_texts else "Default Annotation"
-        
-        # Basic font and color
-        # TODO: Use annotation_font_family and other style settings
-        canvas_obj.setFont("Helvetica", 10)
-        canvas_obj.setFillColorRGB(random.random(), random.random(), random.random())
-
-        # Random position
-        x_pos = random.uniform(page_width * 0.1, page_width * 0.9)
-        y_pos = random.uniform(page_height * 0.1, page_height * 0.9)
-
-        canvas_obj.drawString(x_pos, y_pos, text_to_draw)
-
 
     def _apply_ocr_noise(self, canvas_obj: canvas.Canvas, page_width: float, page_height: float, noise_level: float, noise_type: str = "speckle"):
         """Applies random noise (dots or small rects) to the canvas."""

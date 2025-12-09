@@ -27,16 +27,6 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 - **Description:** Dot leaders use a simple `...DOTS...` placeholder instead of proper ReportLab dot leader fill.
 - **Suggested Fix:** Use ReportLab's `<seq id="dot"/>` or Table-based approach for proper dot leader rendering.
 
-### Medium Priority
-
-#### ISS-005: Annotation font styling not used
-- **Location:** `synth_data_gen/generators/pdf.py:534`
-- **Description:** `annotation_font_family` and other style settings are not applied to handwritten annotations.
-- **Code:**
-  ```python
-  # TODO: Use annotation_font_family and other style settings
-  ```
-
 ### Low Priority
 
 #### ISS-007: Duplicate test files for ConfigLoader
@@ -97,6 +87,17 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 - **Resolved:** 2025-12-09
 - **Description:** PDF generator had TODO for handling 180-degree page rotation.
 - **Fix:** Implemented using `canvas.setPageRotation()` in onPage handler. This sets the PDF /Rotate property which tells PDF readers to display the page rotated. Added page_rotation handling to combined_on_page_items system.
+
+### RES-007: Annotation font styling now applied (ISS-005)
+- **Resolved:** 2025-12-09
+- **Description:** `_apply_handwritten_annotation` had duplicated code and a TODO section that used hardcoded "Helvetica" 10pt font instead of the configured annotation_font_family and other style settings.
+- **Fix:** Removed ~60 lines of duplicated/incomplete code. The first implementation (lines 467-504) already correctly reads and applies:
+  - `annotation_font_family`
+  - `annotation_font_size_pt_range`
+  - `annotation_color_rgb`
+  - `annotation_opacity_range`
+  - `annotation_rotation_degrees_range`
+  - `annotation_text_options`
 
 ---
 
