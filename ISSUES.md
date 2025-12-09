@@ -29,15 +29,6 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
 
 ### Medium Priority
 
-#### ISS-004: 180-degree page rotation not implemented
-- **Location:** `synth_data_gen/generators/pdf.py:158`
-- **Description:** TODO comment indicates 180-degree rotation handling is incomplete.
-- **Code:**
-  ```python
-  # TODO: Handle 180 rotation if it means flipping content,
-  # for now, it doesn't change dimensions.
-  ```
-
 #### ISS-005: Annotation font styling not used
 - **Location:** `synth_data_gen/generators/pdf.py:534`
 - **Description:** `annotation_font_family` and other style settings are not applied to handwritten annotations.
@@ -101,6 +92,11 @@ This document tracks known issues, bugs, and technical debt in the `synth_data_g
   - `synth_data_gen/generators/pdf.py` - 11 print statements
   - `synth_data_gen/generators/markdown.py` - 3 print statements
 - **Fix:** Replaced all print statements with appropriate `logger.error()`, `logger.warning()`, `logger.info()`, or `logger.debug()` calls.
+
+### RES-006: 180-degree page rotation implemented (ISS-004)
+- **Resolved:** 2025-12-09
+- **Description:** PDF generator had TODO for handling 180-degree page rotation.
+- **Fix:** Implemented using `canvas.setPageRotation()` in onPage handler. This sets the PDF /Rotate property which tells PDF readers to display the page rotated. Added page_rotation handling to combined_on_page_items system.
 
 ---
 
