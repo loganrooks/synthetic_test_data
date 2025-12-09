@@ -1,0 +1,99 @@
+# Page number marker pattern definitions
+# Source: docs/epub_formatting_analysis_report.md
+
+patterns:
+  page_markers_calibre:
+    category: "page_marker"
+    description: "Calibre-style page markers with <a id='page_X'>"
+    source_examples:
+      - "Kant - Critique of Pure Reason"
+      - "Charles Taylor - Hegel"
+      - "Hegel - Philosophy of Right"
+    epub_versions: [2, 3]
+    detection_signature:
+      anchor_id:
+        required: true
+        pattern: "page_\\d+"
+        selector: "a[id^='page_']"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      page_markers:
+        enabled: true
+        style: "anchor"
+        id_pattern: "page_{num}"
+
+  page_markers_epub3_pagebreak:
+    category: "page_marker"
+    description: "EPUB3 pagebreak with epub:type='pagebreak'"
+    source_examples:
+      - "Heidegger - Metaphysics of German Idealism"
+    epub_versions: [3]
+    detection_signature:
+      epub_pagebreak:
+        required: true
+        selector: "[epub|type='pagebreak']"
+    requires:
+      - "epub3_container"
+    conflicts_with:
+      - "epub2_only"
+    generator_config:
+      epub_version: 3
+      page_markers:
+        enabled: true
+        style: "epub3_pagebreak"
+
+  page_markers_class:
+    category: "page_marker"
+    description: "Page markers using class='page' or similar"
+    source_examples:
+      - "Robert B. Pippin - Hegel's Realm of Shadows"
+    epub_versions: [2, 3]
+    detection_signature:
+      pagenum_class:
+        required: true
+        selector: "a.page, span.pagenum"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      page_markers:
+        enabled: true
+        style: "class"
+        marker_class: "page"
+
+  page_markers_data_locator:
+    category: "page_marker"
+    description: "Page markers with data-locator attribute"
+    source_examples:
+      - "Robert B. Pippin - Hegel's Realm of Shadows"
+    epub_versions: [2, 3]
+    detection_signature:
+      data_locator:
+        required: true
+        selector: "[data-locator^='p']"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      page_markers:
+        enabled: true
+        style: "data_locator"
+        locator_pattern: "p{num}"
+
+  filepos_anchors:
+    category: "page_marker"
+    description: "Position-based anchors using fileposXXXXX"
+    source_examples:
+      - "Hegel - Science of Logic"
+    epub_versions: [2, 3]
+    detection_signature:
+      anchor_id:
+        required: true
+        pattern: "filepos\\d+"
+        selector: "a[id^='filepos']"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      page_markers:
+        enabled: true
+        style: "filepos"
+        id_pattern: "filepos{pos}"
