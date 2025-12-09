@@ -32,7 +32,50 @@ The library is functional but has known limitations. All three generators (EPUB,
 
 ---
 
-## Version 0.3.0 - Feature Completeness
+## Version 0.3.0 - Combinatoric Test Generation
+
+**Focus:** Flexible, comprehensive test data generation (see [ADR-001](adr/ADR-001-combinatoric-test-generation.md))
+
+### Preset System (Tier 1)
+- [ ] Design preset registry architecture
+- [ ] Implement preset loading and merging
+- [ ] Create presets derived from real EPUB analysis:
+  - [ ] `epub2_calibre_basic` - Simple Calibre-converted EPUB2
+  - [ ] `epub3_semantic` - Modern EPUB3 with semantic markup
+  - [ ] `kant_critique_style` - Scholarly with dual footnotes, edition markers
+  - [ ] `taylor_hegel_style` - Academic with same-page footnotes
+  - [ ] `hegel_logic_style` - Complex with image-based symbols
+  - [ ] `ocr_scanned_book` - PDF-like with OCR artifacts
+  - [ ] `markdown_gfm` - GitHub Flavored Markdown
+  - [ ] `markdown_academic` - With LaTeX, citations, frontmatter
+- [ ] Preset override mechanism (`preset` + `overrides`)
+
+### Feature Matrix (Tier 2)
+- [ ] Implement matrix expansion algorithm
+- [ ] Support wildcards in matrix values (`toc_style: "ncx_*"`)
+- [ ] Add exclusion rules for invalid combinations
+- [ ] Implement sampling for large matrices
+- [ ] Add `--dry-run` preview mode
+
+### Feature Catalog
+- [ ] Document all EPUB features and valid values
+  - [ ] ToC styles (9+ variants from analysis)
+  - [ ] Header patterns (20+ variants)
+  - [ ] Footnote/endnote systems (16+ variants)
+  - [ ] Citation styles
+  - [ ] Page marker formats
+- [ ] Document all PDF features
+- [ ] Document all Markdown features
+- [ ] Auto-generate documentation from catalog
+
+### Test Suite Generation
+- [ ] `generate_test_suite()` API function
+- [ ] Coverage report generation
+- [ ] Integration with pytest fixtures
+
+---
+
+## Version 0.4.0 - Feature Completeness
 
 **Focus:** Complete all generator features per specification
 
@@ -44,7 +87,9 @@ The library is functional but has known limitations. All three generators (EPUB,
 - [ ] Form fields and interactive elements
 
 ### EPUB Generator
-- [ ] Complete NCX and NavDoc support for all EPUB versions
+- [ ] Complete all 9+ ToC style implementations
+- [ ] Complete all 16+ footnote/endnote patterns
+- [ ] Complete all 20+ header formatting patterns
 - [ ] Full multimedia support (audio, video references)
 - [ ] Complex CSS styling options
 - [ ] DRM simulation (encryption markers)
@@ -58,7 +103,7 @@ The library is functional but has known limitations. All three generators (EPUB,
 
 ---
 
-## Version 0.4.0 - Extensibility
+## Version 0.5.0 - Extensibility
 
 **Focus:** Plugin system and custom generators
 
@@ -93,9 +138,18 @@ The library is functional but has known limitations. All three generators (EPUB,
 ### Documentation
 - [ ] Complete API reference documentation
 - [ ] Tutorial: Getting Started
+- [ ] Tutorial: Using Presets
+- [ ] Tutorial: Feature Matrix Generation
 - [ ] Tutorial: Custom Generators
 - [ ] Tutorial: Configuration Deep Dive
 - [ ] Example gallery with sample outputs
+
+### CLI Tool
+- [ ] `synth-data generate` - Generate files from config
+- [ ] `synth-data matrix` - Expand and preview matrix
+- [ ] `synth-data coverage` - Report feature coverage
+- [ ] `synth-data presets` - List available presets
+- [ ] `synth-data validate` - Validate configuration
 
 ### Distribution
 - [ ] PyPI package publication
@@ -126,6 +180,12 @@ The library is functional but has known limitations. All three generators (EPUB,
 - pytest plugin for automatic test fixture generation
 - Hypothesis integration for property-based testing
 - MLflow integration for ML pipeline testing
+
+---
+
+## Architecture Decision Records
+
+- [ADR-001: Combinatoric Test Generation](adr/ADR-001-combinatoric-test-generation.md) - Three-tier configuration system
 
 ---
 
