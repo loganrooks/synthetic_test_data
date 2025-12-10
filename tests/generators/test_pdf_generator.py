@@ -1,18 +1,15 @@
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter # Add import
-from reportlab.lib.units import inch # Add import
-import pytest
 import os
-import shutil # Added for tearDown equivalent
+import shutil  # Added for tearDown equivalent
+import sys
+from unittest.mock import MagicMock, call  # Keep call and MagicMock, ensure patch is imported
+
+import pytest
 from pytest_mock import MockerFixture
-from unittest.mock import call, MagicMock, patch # Keep call and MagicMock, ensure patch is imported
-import inspect # For debugging module loading
+from reportlab.lib.pagesizes import letter  # Add import
+
+from synth_data_gen.core.base import BaseGenerator
 from synth_data_gen.generators.pdf import PdfGenerator
-from synth_data_gen.core.base import BaseGenerator 
-import random # For patching random.randint and random.random
-from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate  # For ToC and integration tests
-from reportlab.lib.styles import getSampleStyleSheet  # For style tests
-import re # Add import for regular expressions
+
 
 @pytest.fixture
 def pdf_generator_instance():
@@ -23,17 +20,17 @@ def cleanup_pdf_test_output():
     # This fixture will run after each test in this file
     yield
     # General cleanup for this test file
-    if os.path.exists("test_output"): 
+    if os.path.exists("test_output"):
         shutil.rmtree("test_output")
     # Specific cleanup for a directory created by one of the tests
-    if os.path.exists("test_output_pdf_range_chapters_global"): 
+    if os.path.exists("test_output_pdf_range_chapters_global"):
         shutil.rmtree("test_output_pdf_range_chapters_global")
 
 
 def test_get_default_specific_config(pdf_generator_instance: PdfGenerator):
     """Test that get_default_specific_config for PDF returns the expected structure."""
     defaults = pdf_generator_instance.get_default_specific_config()
-    
+
     assert isinstance(defaults, dict)
     assert "generation_method" in defaults
     assert defaults["generation_method"] == "from_html"
@@ -43,7 +40,7 @@ def test_get_default_specific_config(pdf_generator_instance: PdfGenerator):
     assert defaults["author"] == "Default PDF Author"
     assert "title" in defaults
     assert defaults["title"] == "Synthetic PDF Document"
-    assert "pdf_variant" in defaults 
+    assert "pdf_variant" in defaults
     assert defaults["pdf_variant"] == "single_column_text"
 
     assert "layout" in defaults
@@ -88,7 +85,7 @@ def test_generate_minimal_pdf_single_column(mocker: MockerFixture, pdf_generator
     """Test the basic flow of the generate method for a minimal single-column PDF."""
     mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_single_column = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_single_column')
-    
+
     specific_config = {
         "title": "Test PDF", "author": "Test PDF Author", "pdf_variant": "single_column_text"
     }
@@ -106,13 +103,13 @@ def test_generate_minimal_pdf_multi_column(mocker: MockerFixture, pdf_generator_
     """Test routing to a different PDF variant."""
     mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_multi_column = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_multi_column')
-    
+
     specific_config = {"title": "Multi Column Test", "pdf_variant": "multi_column_text"}
     global_config = {}
     output_path = "test_output/multi.pdf"
-    
+
     pdf_generator_instance.generate(specific_config, global_config, output_path)
-    
+
     mock_create_multi_column.assert_called_once_with(output_path, specific_config, global_config)
 
 def test_generate_unknown_variant_falls_back_to_single_column(mocker: MockerFixture, pdf_generator_instance: PdfGenerator, caplog):
@@ -137,10 +134,10 @@ def test_generate_single_column_unified_chapters_exact(mocker: MockerFixture, pd
     mock_simple_doc_template_class = mocker.patch('synth_data_gen.generators.pdf.SimpleDocTemplate')
     mock_determine_count = mocker.patch.object(pdf_generator_instance, '_determine_count')
     mock_add_pdf_chapter_content = mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content')
-    
+
     mock_doc_instance = mocker.MagicMock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
-    
+
     exact_chapter_count = 2
     mock_determine_count.side_effect = [10, exact_chapter_count, 0,0,0, 0,0,0]
 
@@ -170,12 +167,12 @@ def test_generate_single_column_unified_chapters_range(mocker: MockerFixture, pd
     mock_simple_doc_template_class = mocker.patch('synth_data_gen.generators.pdf.SimpleDocTemplate')
     mock_add_pdf_chapter_content = mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content')
     mock_base_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     mock_doc_instance = mocker.MagicMock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
-    
+
     chapters_range_config = {"min": 2, "max": 5}
-    expected_chapters_from_range = 3 
+    expected_chapters_from_range = 3
     mock_base_randint.return_value = expected_chapters_from_range
 
     specific_pdf_config = {
@@ -229,12 +226,12 @@ def test_generate_single_column_unified_chapters_probabilistic(mocker: MockerFix
     mock_add_pdf_chapter_content = mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content')
     mock_base_random = mocker.patch('synth_data_gen.core.base.random.random')
     mock_base_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     mock_doc_instance = mocker.MagicMock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
 
     chapters_prob_config = {"chance": 0.7, "if_true": {"min": 1, "max": 3}, "if_false": 0}
-    
+
     specific_pdf_config = {
         "title": "Test PDF Probabilistic Chapters", "author": "Test Author Probabilistic",
         "pdf_variant": "single_column_text", "chapters_config": chapters_prob_config,
@@ -248,7 +245,7 @@ def test_generate_single_column_unified_chapters_probabilistic(mocker: MockerFix
     global_generator_config = {"default_language": "en"}
 
     # Scenario 1
-    mock_base_random.return_value = 0.5 
+    mock_base_random.return_value = 0.5
     expected_chapters_scenario1 = 2
     mock_base_randint.return_value = expected_chapters_scenario1
     output_path_s1 = "test_output/pdf_prob_chapters_s1.pdf"
@@ -267,7 +264,7 @@ def test_generate_single_column_unified_chapters_probabilistic(mocker: MockerFix
     output_path_s2 = "test_output/pdf_prob_chapters_s2.pdf"
     pdf_generator_instance.generate(specific_pdf_config, global_generator_config, output_path_s2)
     assert mock_base_random.call_count == 1  # Fixed: guard check prevents unnecessary random() call
-    mock_base_randint.assert_not_called() 
+    mock_base_randint.assert_not_called()
     assert mock_add_pdf_chapter_content.call_count == expected_chapters_scenario2
 
 def test_generate_single_column_page_count_exact(mocker: MockerFixture, pdf_generator_instance: PdfGenerator):
@@ -275,17 +272,17 @@ def test_generate_single_column_page_count_exact(mocker: MockerFixture, pdf_gene
     mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_simple_doc_template_class = mocker.patch('synth_data_gen.generators.pdf.SimpleDocTemplate')
     mock_determine_count = mocker.patch.object(pdf_generator_instance, '_determine_count')
-    mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content') 
-    
+    mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content')
+
     mock_doc_instance = mocker.MagicMock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
-    
+
     exact_page_count = 5
     mock_determine_count.side_effect = [exact_page_count, 1, 0,0,0]
 
     specific_pdf_config = {
         "title": "PDF Exact Page Count Test", "author": "Test Author", "pdf_variant": "single_column_text",
-        "page_count_config": exact_page_count, "chapters_config": 1, 
+        "page_count_config": exact_page_count, "chapters_config": 1,
         "sections_per_chapter_config": 0, "notes_system": {"notes_config": 0},
         "multimedia": {"include_images": False, "images_config": 0},
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":20, "right":20}},
@@ -309,7 +306,7 @@ def test_generate_single_column_page_count_range(mocker: MockerFixture, pdf_gene
     mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content')
     mock_base_randint = mocker.patch('synth_data_gen.core.base.random.randint')
     mock_determine_count_on_pdf = mocker.patch.object(pdf_generator_instance, '_determine_count')
-    
+
     original_determine_count = BaseGenerator._determine_count
     def side_effect_for_determine_count(config_val, context_key):
         return original_determine_count(pdf_generator_instance, config_val, context_key)
@@ -317,14 +314,14 @@ def test_generate_single_column_page_count_range(mocker: MockerFixture, pdf_gene
 
     mock_doc_instance = mocker.MagicMock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
-    
+
     page_count_range_config = {"min": 3, "max": 7}
-    expected_page_count_from_range = 4 
+    expected_page_count_from_range = 4
     mock_base_randint.return_value = expected_page_count_from_range
-        
+
     specific_pdf_config = {
         "title": "PDF Range Page Count Test", "author": "Test Author", "pdf_variant": "single_column_text",
-        "page_count_config": page_count_range_config, "chapters_config": 1, 
+        "page_count_config": page_count_range_config, "chapters_config": 1,
         "sections_per_chapter_config": 0, "notes_system": {"notes_config": 0},
         "multimedia": {"include_images": False, "images_config": 0},
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":20, "right":20}},
@@ -401,7 +398,7 @@ def test_generate_routes_to_multi_column_based_on_layout_config(mocker: MockerFi
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_single = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_single_column')
     mock_create_multi = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_multi_column')
-    
+
     output_path = "test_output/pdf_layout_columns.pdf"
     global_config = {}
 
@@ -447,7 +444,7 @@ def test_generate_single_column_applies_custom_margins(mocker: MockerFixture, pd
     pdf_generator_instance.generate(specific_config, global_config, output_path)
 
     mock_ensure_output_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     # Check that SimpleDocTemplate was called with the correct margins
     # Margins are expected in points by reportlab (1mm = 2.8346456693 points)
     expected_left_margin = custom_page_margins["left_mm"] * 2.8346456693
@@ -460,14 +457,14 @@ def test_generate_single_column_applies_custom_margins(mocker: MockerFixture, pd
     assert kwargs.get("rightMargin") == pytest.approx(expected_right_margin)
     assert kwargs.get("topMargin") == pytest.approx(expected_top_margin)
     assert kwargs.get("bottomMargin") == pytest.approx(expected_bottom_margin)
-    
+
     mock_doc_instance.build.assert_called_once()
 
 def test_generate_running_header_enable_disable(mocker: MockerFixture, pdf_generator_instance: PdfGenerator):
     """Test that 'running_header.enable' correctly controls header generation."""
     mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_pdf = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_single_column') # Assuming this is the variant used
-    
+
     base_specific_config = {
         "title": "Header Test", "pdf_variant": "single_column_text", # Changed to single_column_text for simplicity
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":20, "right":20}},
@@ -493,7 +490,7 @@ def test_generate_running_header_content_and_font(mocker: MockerFixture, pdf_gen
     mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     # Mock the method that would actually draw, to inspect its arguments
     mock_create_pdf_method = mocker.patch.object(pdf_generator_instance, '_create_pdf_running_headers_footers')
-    
+
     header_config = {
         "enable": True,
         "left_content": "Book Title Here",
@@ -503,7 +500,7 @@ def test_generate_running_header_content_and_font(mocker: MockerFixture, pdf_gen
         "include_on_first_page": True
     }
     specific_config = {
-        "title": "Header Content Test", 
+        "title": "Header Content Test",
         "pdf_variant": "running_headers_footers", # Ensure this variant is called
         "running_header": header_config,
         "page_count_config": 2 # Need at least one page for header to be drawn
@@ -515,9 +512,9 @@ def test_generate_running_header_content_and_font(mocker: MockerFixture, pdf_gen
 
     mock_create_pdf_method.assert_called_once()
     args, kwargs = mock_create_pdf_method.call_args
-    
+
     # The specific_config is the second positional argument to _create_pdf_running_headers_footers
-    called_specific_config = args[1] 
+    called_specific_config = args[1]
     assert called_specific_config["running_header"]["left_content"] == "Book Title Here"
     assert called_specific_config["running_header"]["center_content"] == "Section X"
     assert called_specific_config["running_header"]["right_content"] == "Page {page_number}"
@@ -529,11 +526,11 @@ def test_generate_visual_toc_enable_disable(mocker: MockerFixture, pdf_generator
     mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_visual_toc = mocker.patch.object(pdf_generator_instance, '_create_pdf_visual_toc_hyperlinked')
     mock_create_single_column = mocker.patch.object(pdf_generator_instance, '_create_pdf_text_single_column')
-    
+
     base_specific_config = {
         "title": "Visual ToC Test", "pdf_variant": "visual_toc_hyperlinked", # Target this variant
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":20, "right":20}},
-        "running_header": {"enable": False}, "running_footer": {"enable": False}, 
+        "running_header": {"enable": False}, "running_footer": {"enable": False},
         "page_numbering": {"enable": False},
         "paragraph_styling": {"font_name": "Helvetica", "font_size": 12, "leading": 14},
         "page_count_config": 1, "chapters_config": 1 # Minimal content
@@ -555,7 +552,7 @@ def test_generate_visual_toc_style_and_depth(mocker: MockerFixture, pdf_generato
     """Test visual_toc style, max_depth, and page_number_style."""
     mock_ensure_output_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_toc_method = mocker.patch.object(pdf_generator_instance, '_create_pdf_visual_toc_hyperlinked')
-    
+
     toc_config = {
         "enable": True,
         "max_depth": 2,
@@ -563,7 +560,7 @@ def test_generate_visual_toc_style_and_depth(mocker: MockerFixture, pdf_generato
         "page_number_style": "roman_numerals"
     }
     specific_config = {
-        "title": "Visual ToC Style Test", 
+        "title": "Visual ToC Style Test",
         "pdf_variant": "visual_toc_hyperlinked", # Ensure this variant is called
         "visual_toc": toc_config,
         "page_count_config": 3 # Need a few pages for ToC to make sense
@@ -575,7 +572,7 @@ def test_generate_visual_toc_style_and_depth(mocker: MockerFixture, pdf_generato
 
     mock_create_toc_method.assert_called_once()
     args, kwargs = mock_create_toc_method.call_args
-    
+
     called_specific_config = args[1]
     assert called_specific_config["visual_toc"]["max_depth"] == 2
     assert called_specific_config["visual_toc"]["style"] == "custom_toc_style"
@@ -593,11 +590,11 @@ def test_generate_ocr_simulation_passes_settings(mocker: MockerFixture, pdf_gene
         "include_handwritten_annotations_chance": 0.05
     }
     specific_config = {
-        "title": "OCR Sim Test", 
+        "title": "OCR Sim Test",
         "pdf_variant": "simulated_ocr_high_quality",
         "generation_method": "ocr_simulation", # Explicitly set for clarity, though variant implies it
         "ocr_simulation_settings": ocr_settings,
-        "page_count_config": 1 
+        "page_count_config": 1
     }
     global_config = {"default_language": "en"}
     output_path = "test_output/ocr_sim_test.pdf"
@@ -606,7 +603,7 @@ def test_generate_ocr_simulation_passes_settings(mocker: MockerFixture, pdf_gene
 
     mock_create_ocr_pdf_method.assert_called_once()
     args, kwargs = mock_create_ocr_pdf_method.call_args
-    
+
     called_specific_config = args[1]
     assert called_specific_config["ocr_simulation_settings"] == ocr_settings
 
@@ -614,11 +611,11 @@ def test_generate_routes_to_simple_table_variant(mocker: MockerFixture, pdf_gene
     """Test that generate routes to _create_pdf_simple_table for the 'simple_table' variant."""
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
     mock_create_simple_table = mocker.patch.object(pdf_generator_instance, '_create_pdf_simple_table')
-    
+
     specific_config = {
         "title": "Test PDF Simple Table Variant", "pdf_variant": "simple_table",
         "table_generation": {"pdf_tables_occurrence_config": 1},
-        "page_count_config": 1, "chapters_config": 0, 
+        "page_count_config": 1, "chapters_config": 0,
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":25, "right":25}},
         "paragraph_styling": {"font_name": "Helvetica", "font_size": 12, "leading": 14}
     }
@@ -636,17 +633,15 @@ def test_single_column_with_exact_table_occurrence(mocker: MockerFixture, pdf_ge
     mock_add_pdf_table_content = mocker.patch.object(pdf_generator_instance, '_add_pdf_table_content')
     mock_determine_count = mocker.patch.object(pdf_generator_instance, '_determine_count')
     mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content') # Mock to simplify
-    
+
     mock_doc_instance = mocker.MagicMock()
     mock_simple_doc_template_class.return_value = mock_doc_instance
-    
+
     exact_table_count = 1
     def determine_count_side_effect(config_value, context_key):
         if context_key == "page_count": return 10
         elif context_key == "chapters": return 1
-        elif context_key.startswith("sections_chap_"): return 0
-        elif context_key.startswith("notes_chap_"): return 0
-        elif context_key.startswith("images_chap_"): return 0
+        elif context_key.startswith("sections_chap_") or context_key.startswith("notes_chap_") or context_key.startswith("images_chap_"): return 0
         elif context_key == "pdf_tables": return exact_table_count # SUT uses 'pdf_tables'
         elif context_key == "pdf_figures": return 0
         return 0
@@ -656,8 +651,8 @@ def test_single_column_with_exact_table_occurrence(mocker: MockerFixture, pdf_ge
         "title": "PDF Single Column with Table", "pdf_variant": "single_column_text", "page_count_config": 10,
         "chapters_config": 1, "sections_per_chapter_config": 0, "notes_system": {"notes_config": 0},
         "multimedia": {"include_images": False, "images_config": 0},
-        "table_generation": {"pdf_tables_occurrence_config": exact_table_count}, 
-        "pdf_figures_occurrence_config": {"count": 0}, 
+        "table_generation": {"pdf_tables_occurrence_config": exact_table_count},
+        "pdf_figures_occurrence_config": {"count": 0},
         "layout": {"columns": 1, "margins_mm": {"top":20, "bottom":20, "left":25, "right": 25}},
         "running_header": {"enable": False}, "running_footer": {"enable": False},
         "page_numbering": {"enable": False},
@@ -734,15 +729,9 @@ def test_single_column_with_probabilistic_table_occurrence(mocker: MockerFixture
     # Define side effect that returns proper int values
     table_prob_config = {"chance": 0.7, "if_true": {"min": 1, "max": 2}, "if_false": 0}
     def side_effect_for_determine_count(config_val, context_key):
-        if context_key == "page_count":
+        if context_key == "page_count" or context_key == "chapters":
             return 1
-        elif context_key == "chapters":
-            return 1
-        elif context_key.startswith("sections_chap_"):
-            return 0
-        elif context_key.startswith("notes_chap_"):
-            return 0
-        elif context_key.startswith("images_chap_"):
+        elif context_key.startswith("sections_chap_") or context_key.startswith("notes_chap_") or context_key.startswith("images_chap_"):
             return 0
         elif context_key == "pdf_tables":
             # Return value based on mock_base_random for probabilistic
@@ -795,7 +784,7 @@ def test_generate_single_column_page_rotation_is_applied(mocker: MockerFixture, 
         """Test that page_setup.rotation correctly adjusts pagesize for SimpleDocTemplate."""
         mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
         mock_simple_doc_template_class = mocker.patch('synth_data_gen.generators.pdf.SimpleDocTemplate')
-        
+
         # Mock methods that add content to avoid unrelated errors
         mocker.patch.object(pdf_generator_instance, '_add_pdf_chapter_content')
         mocker.patch.object(pdf_generator_instance, '_add_pdf_table_content')
@@ -804,12 +793,12 @@ def test_generate_single_column_page_rotation_is_applied(mocker: MockerFixture, 
 
         mock_doc_instance = mocker.MagicMock()
         mock_simple_doc_template_class.return_value = mock_doc_instance
-        
-        from reportlab.lib.pagesizes import letter, landscape # For expected values
+
+        from reportlab.lib.pagesizes import landscape  # For expected values
 
         specific_config = {
             "title": "Rotation Test", "author": "Test Author", "pdf_variant": "single_column_text",
-            "page_count_config": 1, 
+            "page_count_config": 1,
             "chapters_config": 0, # No chapters needed for this page setup test
             "table_generation": {"pdf_tables_occurrence_config": 0},
             "figure_generation": {"pdf_figures_occurrence_config": 0},
@@ -829,13 +818,13 @@ def test_generate_single_column_page_rotation_is_applied(mocker: MockerFixture, 
         pdf_generator_instance.generate(specific_config, global_config, output_path)
 
         mock_simple_doc_template_class.assert_called_once()
-        
+
         args, kwargs = mock_simple_doc_template_class.call_args
-        
+
         # Default letter is (612.0, 792.0) points
         # Rotated 90 degrees should be (792.0, 612.0)
         expected_pagesize = landscape(letter) # landscape() swaps width and height
-        
+
         assert "pagesize" in kwargs, "pagesize argument not found in SimpleDocTemplate call"
         assert kwargs["pagesize"] == pytest.approx(expected_pagesize), \
             f"Expected pagesize {expected_pagesize}, got {kwargs['pagesize']}"
@@ -956,6 +945,10 @@ class TestPdfGenerator:
         # Only level 1 and 2 should be included
         assert len(flowables) == 2
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 9),
+        reason="reportlab has hashlib compatibility issues with Python 3.8"
+    )
     def test_ocr_simulation_creates_pdf(self, mocker: MockerFixture):
         """Test that OCR simulation variant creates a PDF file."""
         mocker.patch('synth_data_gen.generators.pdf.ensure_output_directories')
@@ -1004,17 +997,9 @@ class TestPdfGenerator:
         # Define side effect that returns proper int values
         exact_figure_count = 2
         def side_effect_for_determine_count(config_val, context_key):
-            if context_key == "page_count":
+            if context_key == "page_count" or context_key == "chapters":
                 return 1
-            elif context_key == "chapters":
-                return 1
-            elif context_key.startswith("sections_chap_"):
-                return 0
-            elif context_key.startswith("notes_chap_"):
-                return 0
-            elif context_key.startswith("images_chap_"):
-                return 0
-            elif context_key == "pdf_tables":
+            elif context_key.startswith("sections_chap_") or context_key.startswith("notes_chap_") or context_key.startswith("images_chap_") or context_key == "pdf_tables":
                 return 0
             elif context_key == "pdf_figures":
                 return exact_figure_count
