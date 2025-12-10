@@ -323,6 +323,110 @@ class TestPatternRegistry:
         assert len(registry.patterns) == 0
 
 
+    def test_add_pattern(self, tmp_path):
+        """Test adding a new pattern to the registry."""
+        patterns_dir = tmp_path / "patterns"
+        patterns_dir.mkdir()
+
+        registry = PatternRegistry(patterns_dir=patterns_dir)
+
+        new_pattern = PatternDefinition(
+            id="new_test_pattern",
+            category="test_category",
+            description="A test pattern",
+            detection_signature={"test": True},
+        )
+
+        assert registry.add_pattern(new_pattern) is True
+        assert "new_test_pattern" in registry.patterns
+        assert "test_category" in registry._categories
+        assert "new_test_pattern" in registry._categories["test_category"]
+
+    def test_add_pattern_duplicate(self, tmp_path):
+        """Test that adding duplicate pattern returns False."""
+        patterns_dir = tmp_path / "patterns"
+        patterns_dir.mkdir()
+
+        registry = PatternRegistry(patterns_dir=patterns_dir)
+
+        pattern = PatternDefinition(
+            id="duplicate_pattern",
+            category="test",
+            description="Test",
+            detection_signature={},
+        )
+
+        assert registry.add_pattern(pattern) is True
+        assert registry.add_pattern(pattern) is False
+
+    def test_save_pattern_to_file(self, tmp_path):
+        """Test saving a pattern to a YAML file."""
+        patterns_dir = tmp_path / "patterns"
+        patterns_dir.mkdir()
+
+        registry = PatternRegistry(patterns_dir=patterns_dir)
+
+        pattern = PatternDefinition(
+            id="saved_pattern",
+            category="toc_style",
+            description="A saved pattern",
+            detection_signature={"ncx": {"required": True}},
+            source_examples=["Example Book"],
+            generator_config={"toc_settings": {"style": "ncx"}},
+        )
+
+        file_path = registry.save_pattern_to_file(pattern)
+
+        assert file_path.exists()
+        assert file_path.name == "toc_style.yaml"
+
+        # Verify file contents
+        with open(file_path) as f:
+            data = yaml.safe_load(f)
+
+        assert "patterns" in data
+        assert "saved_pattern" in data["patterns"]
+        assert data["patterns"]["saved_pattern"]["category"] == "toc_style"
+        assert data["patterns"]["saved_pattern"]["description"] == "A saved pattern"
+
+    def test_save_pattern_to_existing_file(self, tmp_path):
+        """Test saving a pattern to an existing YAML file."""
+        patterns_dir = tmp_path / "patterns"
+        patterns_dir.mkdir()
+
+        # Create initial file with one pattern
+        initial_data = {
+            "patterns": {
+                "existing_pattern": {
+                    "category": "toc_style",
+                    "description": "Existing",
+                    "detection_signature": {},
+                }
+            }
+        }
+        file_path = patterns_dir / "toc_style.yaml"
+        with open(file_path, "w") as f:
+            yaml.dump(initial_data, f)
+
+        registry = PatternRegistry(patterns_dir=patterns_dir)
+
+        new_pattern = PatternDefinition(
+            id="new_pattern",
+            category="toc_style",
+            description="New pattern",
+            detection_signature={"new": True},
+        )
+
+        registry.save_pattern_to_file(new_pattern)
+
+        # Verify both patterns exist
+        with open(file_path) as f:
+            data = yaml.safe_load(f)
+
+        assert "existing_pattern" in data["patterns"]
+        assert "new_pattern" in data["patterns"]
+
+
 class TestPatternRegistryWithRealPatterns:
     """Tests using the real patterns directory."""
 

@@ -210,9 +210,13 @@ class TestCmdAddPatterns:
         assert "skipping" in captured.out.lower()
 
     def test_new_pattern_decision(self, tmp_path, capsys):
-        """Test handling new_pattern decision (not implemented)."""
+        """Test handling new_pattern decision."""
         import argparse
         import yaml
+        import uuid
+
+        # Use unique pattern name to avoid conflicts with existing patterns
+        unique_pattern_name = f"test_pattern_{uuid.uuid4().hex[:8]}"
 
         candidates_file = tmp_path / "candidates.yaml"
         candidates = {
@@ -220,7 +224,9 @@ class TestCmdAddPatterns:
                 {
                     "id": "test1",
                     "decision": "new_pattern",
-                    "pattern_name": "new_toc_style",
+                    "pattern_name": unique_pattern_name,
+                    "category": "test_category",
+                    "description": "A test pattern",
                 },
             ]
         }
@@ -236,8 +242,8 @@ class TestCmdAddPatterns:
 
         assert result == 0
         captured = capsys.readouterr()
-        assert "adding new pattern" in captured.out.lower()
-        assert "not yet implemented" in captured.out.lower()
+        assert "added new pattern" in captured.out.lower()
+        assert "saved to" in captured.out.lower()
 
 
 class TestCmdValidate:

@@ -178,6 +178,8 @@ def cmd_discover(args: argparse.Namespace) -> int:
 
 def cmd_add_patterns(args: argparse.Namespace) -> int:
     """Handle add-patterns command."""
+    from .registry import PatternDefinition
+
     candidates_file = args.candidates_file
 
     if not candidates_file.exists():
@@ -194,31 +196,126 @@ def cmd_add_patterns(args: argparse.Namespace) -> int:
         print("Error: No candidates found in file")
         return 1
 
+    registry = PatternRegistry()
+    added_patterns = []
+    errors = []
+
     for candidate in data["candidates"]:
         decision = candidate.get("decision")
         pattern_name = candidate.get("pattern_name")
 
         if decision == "skip":
-            print(f"Skipping: {candidate.get('id', 'unknown')}")
+            print(f"  ⊘ Skipping: {candidate.get('id', 'unknown')}")
             continue
 
         if decision == "new_pattern" and pattern_name:
-            print(f"Adding new pattern: {pattern_name}")
-            # TODO: Implement pattern addition to registry
-            print("  ⚠ Pattern addition not yet implemented")
+            # Create new pattern from candidate data
+            try:
+                pattern = _create_pattern_from_candidate(pattern_name, candidate)
+                if registry.add_pattern(pattern):
+                    file_path = registry.save_pattern_to_file(pattern)
+                    print(f"  ✓ Added new pattern: {pattern_name}")
+                    print(f"    Saved to: {file_path}")
+                    added_patterns.append(pattern_name)
+                else:
+                    print(f"  ✗ Pattern already exists: {pattern_name}")
+                    errors.append(f"Pattern {pattern_name} already exists")
+            except Exception as e:
+                print(f"  ✗ Error adding {pattern_name}: {e}")
+                errors.append(str(e))
 
-        if decision == "variant":
-            base_pattern = candidate.get("base_pattern")
-            print(f"Adding variant of {base_pattern}: {pattern_name}")
-            # TODO: Implement variant addition
-            print("  ⚠ Variant addition not yet implemented")
+        elif decision == "variant" and pattern_name:
+            base_pattern_id = candidate.get("base_pattern")
+            if not base_pattern_id:
+                print(f"  ✗ Variant requires base_pattern: {pattern_name}")
+                errors.append(f"Missing base_pattern for {pattern_name}")
+                continue
 
-    if args.validate:
+            base_pattern = registry.get_pattern(base_pattern_id)
+            if not base_pattern:
+                print(f"  ✗ Base pattern not found: {base_pattern_id}")
+                errors.append(f"Base pattern {base_pattern_id} not found")
+                continue
+
+            try:
+                pattern = _create_variant_pattern(pattern_name, base_pattern, candidate)
+                if registry.add_pattern(pattern):
+                    file_path = registry.save_pattern_to_file(pattern)
+                    print(f"  ✓ Added variant: {pattern_name} (based on {base_pattern_id})")
+                    print(f"    Saved to: {file_path}")
+                    added_patterns.append(pattern_name)
+                else:
+                    print(f"  ✗ Pattern already exists: {pattern_name}")
+                    errors.append(f"Pattern {pattern_name} already exists")
+            except Exception as e:
+                print(f"  ✗ Error adding variant {pattern_name}: {e}")
+                errors.append(str(e))
+
+    print()
+    print(f"Summary: {len(added_patterns)} patterns added, {len(errors)} errors")
+
+    if args.validate and added_patterns:
         print()
-        print("Running round-trip validation...")
-        # TODO: Validate newly added patterns
+        print("Running round-trip validation on new patterns...")
+        for pattern_id in added_patterns:
+            result = round_trip_validate(pattern_id, registry)
+            status = "✓" if result.success else "✗"
+            print(f"  {status} {pattern_id}")
+            if not result.success and result.error:
+                print(f"      {result.error}")
 
-    return 0
+    return 1 if errors else 0
+
+
+def _create_pattern_from_candidate(
+    pattern_id: str, candidate: dict
+) -> "PatternDefinition":
+    """Create a PatternDefinition from candidate data."""
+    from .registry import PatternDefinition
+
+    return PatternDefinition(
+        id=pattern_id,
+        category=candidate.get("category", "unknown"),
+        description=candidate.get("description", ""),
+        detection_signature=candidate.get("detected_signature", {}),
+        source_examples=candidate.get("source_examples", []),
+        epub_versions=candidate.get("epub_versions", [2, 3]),
+        requires=set(candidate.get("requires", [])),
+        conflicts_with=set(candidate.get("conflicts_with", [])),
+        generator_config=candidate.get("generator_config", {}),
+    )
+
+
+def _create_variant_pattern(
+    pattern_id: str, base_pattern: "PatternDefinition", candidate: dict
+) -> "PatternDefinition":
+    """Create a variant pattern based on an existing pattern."""
+    from .registry import PatternDefinition
+
+    # Start with base pattern values, override with candidate data
+    return PatternDefinition(
+        id=pattern_id,
+        category=candidate.get("category", base_pattern.category),
+        description=candidate.get("description", f"Variant of {base_pattern.id}"),
+        detection_signature={
+            **base_pattern.detection_signature,
+            **candidate.get("detected_signature", {}),
+        },
+        source_examples=candidate.get("source_examples", []),
+        epub_versions=candidate.get("epub_versions", base_pattern.epub_versions),
+        requires=set(candidate.get("requires", list(base_pattern.requires))),
+        conflicts_with=set(candidate.get("conflicts_with", list(base_pattern.conflicts_with))),
+        generator_config={
+            **base_pattern.generator_config,
+            **candidate.get("generator_config", {}),
+        },
+    )
+
+
+def round_trip_validate(pattern_id: str, registry: PatternRegistry):
+    """Import and run round-trip validation."""
+    from .validation import round_trip_validate as _validate
+    return _validate(pattern_id, registry)
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
