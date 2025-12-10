@@ -52,6 +52,15 @@ Homepage = "https://github.com/synth-data-gen/synth_data_gen"
 Repository = "https://github.com/synth-data-gen/synth_data_gen"
 Documentation = "https://github.com/synth-data-gen/synth_data_gen#readme"
 Issues = "https://github.com/synth-data-gen/synth_data_gen/issues"
+Changelog = "https://github.com/synth-data-gen/synth_data_gen/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["synth_data_gen*"]
+
+[tool.setuptools.package-data]
+"synth_data_gen.core" = ["*.yaml"]
+"synth_data_gen.analyzer.patterns" = ["*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
