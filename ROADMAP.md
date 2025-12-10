@@ -18,8 +18,8 @@ This section tracks the immediate priorities to make the package deployment-read
 |------|--------|-------|
 | Fix 59 failing tests | ✅ Done | ConfigLoader API, EPUB components fixed |
 | Write analyzer module tests | ✅ Done | 81 tests added (registry, analyzer, validation, CLI) |
-| Set up GitHub Actions CI | ⬜ TODO | pytest, coverage reporting |
-| Expand README with examples | ⬜ TODO | Installation, usage, quick start |
+| Set up GitHub Actions CI | ✅ Done | pytest, coverage, lint, type-check, build |
+| Expand README with examples | ✅ Done | Installation, usage, YAML config, analyzer |
 
 ### Phase 2 - High Priority
 
