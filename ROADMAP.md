@@ -28,7 +28,7 @@ This section tracks the immediate priorities to make the package deployment-read
 | Add ruff/black/mypy configuration | ✅ Done | ruff + mypy configured in pyproject.toml |
 | Complete type hints | ⬜ TODO | Currently ~50-60% coverage |
 | Add CLI entry points | ✅ Done | synth-data, synth-analyze commands |
-| Implement `add-patterns` command | ⬜ TODO | Currently stubbed in analyzer |
+| Implement `add-patterns` command | ✅ Done | Full implementation with validation |
 
 ### Phase 3 - Release Prep
 

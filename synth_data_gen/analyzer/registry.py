@@ -238,3 +238,85 @@ class PatternRegistry:
     def list_patterns(self) -> List[str]:
         """Get list of all pattern IDs."""
         return list(self.patterns.keys())
+
+    def add_pattern(self, pattern: PatternDefinition) -> bool:
+        """
+        Add a new pattern to the registry.
+
+        Args:
+            pattern: PatternDefinition to add.
+
+        Returns:
+            True if added successfully, False if pattern ID already exists.
+        """
+        if pattern.id in self.patterns:
+            return False
+
+        self.patterns[pattern.id] = pattern
+
+        # Index by category
+        if pattern.category not in self._categories:
+            self._categories[pattern.category] = []
+        self._categories[pattern.category].append(pattern.id)
+
+        return True
+
+    def save_pattern_to_file(
+        self, pattern: PatternDefinition, filename: Optional[str] = None
+    ) -> Path:
+        """
+        Save a pattern to a YAML file in the patterns directory.
+
+        Args:
+            pattern: PatternDefinition to save.
+            filename: Optional filename (defaults to {category}.yaml).
+
+        Returns:
+            Path to the saved file.
+        """
+        if filename is None:
+            # Use category-based filename
+            filename = f"{pattern.category}.yaml"
+
+        file_path = self.patterns_dir / filename
+
+        # Load existing patterns from file if it exists
+        existing_data: Dict[str, Any] = {"patterns": {}}
+        if file_path.exists():
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    existing_data = yaml.safe_load(f) or {"patterns": {}}
+            except (yaml.YAMLError, IOError):
+                pass
+
+        # Add the new pattern
+        pattern_data = {
+            "category": pattern.category,
+            "description": pattern.description,
+            "detection_signature": pattern.detection_signature,
+        }
+
+        if pattern.source_examples:
+            pattern_data["source_examples"] = pattern.source_examples
+        if pattern.epub_versions != [2, 3]:
+            pattern_data["epub_versions"] = pattern.epub_versions
+        if pattern.requires:
+            pattern_data["requires"] = list(pattern.requires)
+        if pattern.conflicts_with:
+            pattern_data["conflicts_with"] = list(pattern.conflicts_with)
+        if pattern.generator_config:
+            pattern_data["generator_config"] = pattern.generator_config
+
+        existing_data["patterns"][pattern.id] = pattern_data
+
+        # Write back to file
+        with open(file_path, "w", encoding="utf-8") as f:
+            yaml.dump(
+                existing_data,
+                f,
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+
+        return file_path
