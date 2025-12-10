@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import subprocess
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from ebooklib import epub
 
 from ..constants import GeneratorType, NotesSystemType, TocStyle
@@ -259,7 +259,7 @@ class EpubGenerator(BaseGenerator):
         content = re.sub(r"\[image:(\w+)\]", replace_image_marker, content)
         chapter_item.content = content
 
-    def _get_font_path(self, font_name: str, specific_config: Dict[str, Any]) -> str | None:
+    def _get_font_path(self, font_name: str, specific_config: Dict[str, Any]) -> Optional[str]:
         """
         Tries to find a font file.
         Placeholder: very simplified. Real version would search system paths, project paths etc.
@@ -278,7 +278,7 @@ class EpubGenerator(BaseGenerator):
         # print(f"Warning: Font '{font_name}' not found.")
         return None
 
-    def _create_section_content(self, book: epub.EpubBook, chapter_number: int, section_number: int, section_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str | None:
+    def _create_section_content(self, book: epub.EpubBook, chapter_number: int, section_number: int, section_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> Optional[str]:
         """
         Creates and adds a single section's content within a chapter.
         This is a placeholder and will be expanded with epub_components.

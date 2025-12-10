@@ -1,10 +1,13 @@
 """
 Configuration Loader for the Synthetic Data Generation package.
 """
-import yaml
-import jsonschema
-import os
 import copy
+import os
+from typing import Any, Dict, Optional
+
+import jsonschema
+import yaml
+
 
 class ConfigLoader:
     """
@@ -12,7 +15,7 @@ class ConfigLoader:
     """
     DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "default_config.yaml")
 
-    def __init__(self, default_config_path: str = None):
+    def __init__(self, default_config_path: Optional[str] = None):
         if default_config_path is not None:
             self.default_config_path = default_config_path
         else:
@@ -65,10 +68,10 @@ class ConfigLoader:
 
     def load_and_validate_config(
         self,
-        file_path: str = None,
-        schema: dict = None,
-        config_override_object: dict = None
-    ) -> dict:
+        file_path: Optional[str] = None,
+        schema: Optional[Dict[str, Any]] = None,
+        config_override_object: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Loads configuration and validates it.
 
