@@ -34,12 +34,13 @@ This section tracks the immediate priorities to make the package deployment-read
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Add LICENSE file | ⬜ TODO | Choose appropriate license |
-| Add MANIFEST.in | ⬜ TODO | Package data files |
-| Generate API docs | ⬜ TODO | Sphinx or MkDocs |
-| Create CHANGELOG.md | ⬜ TODO | Document version history |
-| Publish to TestPyPI | ⬜ TODO | Test package installation |
-| Publish to PyPI | ⬜ TODO | Final release |
+| Add LICENSE file | ✅ Done | MIT License |
+| Add MANIFEST.in | ✅ Done | Package data files included |
+| Generate API docs | ✅ Done | MkDocs with Material theme |
+| Create CHANGELOG.md | ✅ Done | Keep a Changelog format |
+| Publish workflow | ✅ Done | GitHub Actions for PyPI publishing |
+| Publish to TestPyPI | ⬜ Ready | Test with: `git tag v0.1.0 && git push origin v0.1.0` |
+| Publish to PyPI | ⬜ Ready | Automatic on version tag push |
 
 ---
 
