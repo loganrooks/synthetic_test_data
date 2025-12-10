@@ -8,6 +8,41 @@ The library is functional but has known limitations. All three generators (EPUB,
 
 ---
 
+## Deployment Readiness Checklist
+
+This section tracks the immediate priorities to make the package deployment-ready.
+
+### Phase 1 - Critical (Blocks Deployment)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Fix 59 failing tests | ✅ Done | ConfigLoader API, EPUB components fixed |
+| Write analyzer module tests | ⬜ TODO | EPUB Pattern Analyzer needs test coverage |
+| Set up GitHub Actions CI | ⬜ TODO | pytest, coverage reporting |
+| Expand README with examples | ⬜ TODO | Installation, usage, quick start |
+
+### Phase 2 - High Priority
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Add ruff/black/mypy configuration | ⬜ TODO | Code quality tooling |
+| Complete type hints | ⬜ TODO | Currently ~50-60% coverage |
+| Add CLI entry points | ⬜ TODO | pyproject.toml console_scripts |
+| Implement `add-patterns` command | ⬜ TODO | Currently stubbed in analyzer |
+
+### Phase 3 - Release Prep
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Add LICENSE file | ⬜ TODO | Choose appropriate license |
+| Add MANIFEST.in | ⬜ TODO | Package data files |
+| Generate API docs | ⬜ TODO | Sphinx or MkDocs |
+| Create CHANGELOG.md | ⬜ TODO | Document version history |
+| Publish to TestPyPI | ⬜ TODO | Test package installation |
+| Publish to PyPI | ⬜ TODO | Final release |
+
+---
+
 ## Version 0.2.0 - Stability & Testing
 
 **Focus:** Fix known issues, improve test coverage, stabilize API
