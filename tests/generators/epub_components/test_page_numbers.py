@@ -1,10 +1,11 @@
 import os
 import unittest
-from ebooklib import epub
-import zipfile
 
-from synth_data_gen.generators.epub_components import page_numbers
+from ebooklib import epub
+
 from synth_data_gen.common.utils import EPUB_DIR
+from synth_data_gen.generators.epub_components import page_numbers
+
 
 class TestEpubPageNumbers(unittest.TestCase):
 
@@ -32,9 +33,9 @@ class TestEpubPageNumbers(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         page_numbers.create_epub_pagenum_semantic_pagebreak(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         # DEBUG: Print all item IDs
         chapter_item_uid = "chapter_semantic_pagebreaks" # UID set in SUT
 
@@ -61,7 +62,7 @@ class TestEpubPageNumbers(unittest.TestCase):
             self.assertIn('aria-label="13"', html_content)
         else: # Should not happen if assertIsNotNone passes, but as a fallback
             self.fail(f"Chapter item with UID '{chapter_item_uid}' was None, cannot check content.")
-        
+
         # Verify NAV document is the default one and does not contain page-list
         nav_item = book.get_item_with_href('nav.xhtml') # Default nav file name
         self.assertIsNotNone(nav_item, "NAV document 'nav.xhtml' not found.")
@@ -92,7 +93,7 @@ class TestEpubPageNumbers(unittest.TestCase):
         self.assertIn("a.calibre10-kantpage", css_content)
 
         chapter_item = book.get_item_with_id("c1_kant_pgnum_anchor")
-        
+
         self.assertIsNotNone(chapter_item, "Chapter item with UID 'c1_kant_pgnum_anchor' not found.")
         html_content = chapter_item.get_content().decode('utf-8')
         self.assertIn('<a id="page_A25" class="calibre10-kantpage"/>', html_content)

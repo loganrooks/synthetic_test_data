@@ -2,19 +2,17 @@
 Tests for the validation module.
 """
 
-import pytest
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from synth_data_gen.analyzer.registry import PatternDefinition, PatternRegistry
 from synth_data_gen.analyzer.validation import (
     ValidationResult,
+    _generate_epub_with_pattern,
+    generate_validation_report,
     round_trip_validate,
     validate_all_patterns,
-    generate_validation_report,
-    _generate_epub_with_pattern,
 )
-from synth_data_gen.analyzer.registry import PatternRegistry, PatternDefinition
 
 
 class TestValidationResult:

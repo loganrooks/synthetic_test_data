@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4, landscape, letter
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 from reportlab.platypus import (
@@ -21,7 +21,7 @@ from reportlab.platypus import (
 )
 
 from ..common.utils import ensure_output_directories
-from ..constants import PdfVariant, Defaults, ConfigKeys
+from ..constants import ConfigKeys, PdfVariant
 from ..core.base import BaseGenerator
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ class PdfGenerator(BaseGenerator):
         Generates a single PDF file based on the chosen variant in specific_config.
         """
         ensure_output_directories(os.path.dirname(output_path))
-        
+
         variant = specific_config.get(ConfigKeys.PDF_VARIANT, PdfVariant.SINGLE_COLUMN_TEXT.value)
 
         layout_config = specific_config.get("layout", {})
@@ -162,7 +162,7 @@ class PdfGenerator(BaseGenerator):
         layout_config = specific_config.get("layout_settings", {})
         page_margins_config = layout_config.get("page_margins", {"top_mm": 20, "bottom_mm": 20, "left_mm": 25, "right_mm": 25})
         page_setup_config = specific_config.get("page_setup", {})
-        
+
         # Convert mm to points for reportlab
         mm_to_points = 2.8346456693
         left_margin_pt = page_margins_config.get("left_mm", 25) * mm_to_points
@@ -215,7 +215,7 @@ class PdfGenerator(BaseGenerator):
             topMargin=top_margin_pt,
             bottomMargin=bottom_margin_pt
         )
-        
+
         # Set additional metadata if provided in config
         if "subject" in specific_config:
             doc.subject = specific_config["subject"]
@@ -223,12 +223,12 @@ class PdfGenerator(BaseGenerator):
             doc.keywords = specific_config["keywords"]
         if "creator_tool" in specific_config:
             doc.creator = specific_config["creator_tool"]
-            
+
         styles = getSampleStyleSheet()
         styleN = styles['Normal']
         styleH1 = styles['h1']
         # styleH2 = styles['h2'] # Defined in _add_pdf_chapter_content now
-        
+
         # Apply font settings from config to normal style
         styleN.fontName = specific_config.get("base_font_family", "Helvetica")
         styleN.fontSize = specific_config.get("base_font_size_pt", 12)
@@ -240,7 +240,7 @@ class PdfGenerator(BaseGenerator):
 
 
         story: List[Any] = []
-        
+
         # Determine page count first, though its direct enforcement here is conceptual
         # The actual page count is an emergent property of content and flowables.
         # This call ensures _determine_count is exercised with page_count_config.
@@ -298,13 +298,13 @@ class PdfGenerator(BaseGenerator):
         # Add tables if configured
         table_generation_config = specific_config.get("table_generation", {})
         pdf_tables_occurrence_config = table_generation_config.get("pdf_tables_occurrence_config")
-        
+
         if pdf_tables_occurrence_config is not None:
             num_tables_to_generate = self._determine_count(pdf_tables_occurrence_config, "pdf_tables")
             for _ in range(num_tables_to_generate):
                 self._add_pdf_table_content(story, specific_config, global_config)
                 story.append(Spacer(1, 0.1*inch)) # Add some space after a table
-        
+
         # Add figures if configured
         figure_generation_config = specific_config.get("figure_generation", {})
         pdf_figures_occurrence_config = figure_generation_config.get("pdf_figures_occurrence_config")
@@ -316,7 +316,7 @@ class PdfGenerator(BaseGenerator):
                 current_figure_detail = figure_details_list[i] if i < len(figure_details_list) else {}
                 self._add_pdf_figure_content(story, current_figure_detail, figure_generation_config, global_config)
                 story.append(Spacer(1, 0.1*inch)) # Add some space after a figure
-        
+
 
         watermark_settings = specific_config.get("watermark_settings", {})
         watermark_enabled = watermark_settings.get("enable", False)
@@ -353,7 +353,7 @@ class PdfGenerator(BaseGenerator):
 
         if combined_on_page_items:
             from functools import partial
-            
+
             # Placeholder for actual page number and total pages, book title etc.
             # These would ideally be resolved dynamically or passed if available.
             book_title_val = specific_config.get("title", "Default Title")
@@ -375,16 +375,10 @@ class PdfGenerator(BaseGenerator):
                     elif item_spec["type"] == "header_footer":
                         h_conf = item_spec["header_config"]
                         f_conf = item_spec["footer_config"]
-                        
+
                         # Header
                         if h_conf.get("enable", False):
-                            if first_page and h_conf.get("include_on_first_page", False):
-                                self._draw_page_header_footer(canvas, doc, h_conf, {},
-                                                              doc.page, # current page
-                                                              0, # total pages (unknown here)
-                                                              book_title_val, author_val, publisher_val, str(year_val),
-                                                              is_header=True)
-                            elif not first_page: # Always draw on later pages if enabled
+                            if first_page and h_conf.get("include_on_first_page", False) or not first_page:
                                 self._draw_page_header_footer(canvas, doc, h_conf, {},
                                                               doc.page, # current page
                                                               0, # total pages (unknown here)
@@ -392,19 +386,13 @@ class PdfGenerator(BaseGenerator):
                                                               is_header=True)
                         # Footer
                         if f_conf.get("enable", False):
-                            if first_page and f_conf.get("include_on_first_page", True): # Default true for footer on first page
+                            if first_page and f_conf.get("include_on_first_page", True) or not first_page: # Default true for footer on first page
                                 self._draw_page_header_footer(canvas, doc, {}, f_conf,
                                                               doc.page, # current page
                                                               0, # total pages (unknown here)
                                                               book_title_val, author_val, publisher_val, str(year_val),
                                                               is_header=False)
-                            elif not first_page: # Always draw on later pages if enabled
-                                self._draw_page_header_footer(canvas, doc, {}, f_conf,
-                                                              doc.page, # current page
-                                                              0, # total pages (unknown here)
-                                                              book_title_val, author_val, publisher_val, str(year_val),
-                                                              is_header=False)
-            
+
             on_first_page_handler = partial(_master_on_page_handler, items=combined_on_page_items, first_page=True)
             on_later_pages_handler = partial(_master_on_page_handler, items=combined_on_page_items, first_page=False)
 
@@ -474,8 +462,8 @@ class PdfGenerator(BaseGenerator):
         styleN.fontName = specific_config.get("base_font_family", "Helvetica")
         styleN.fontSize = specific_config.get("base_font_size_pt", 12)
         styleN.leading = styleN.fontSize * 1.2
-        
-        col_width = (letter[0] - 1.5*inch) / 2 
+
+        col_width = (letter[0] - 1.5*inch) / 2
         col_gutter = 0.5 * inch
         frame_height = letter[1] - 2*inch
 
@@ -496,17 +484,17 @@ class PdfGenerator(BaseGenerator):
         current_y = letter[1] - inch
         for item in story_col1:
             item_height = item.wrapOn(c, col_width, frame_height)[1]
-            if current_y - item_height < inch: break 
+            if current_y - item_height < inch: break
             item.drawOn(c, 0.5*inch, current_y - item_height)
             current_y -= (item_height + 0.05*inch)
 
-        current_y = letter[1] - inch 
+        current_y = letter[1] - inch
         for item in story_col2:
             item_height = item.wrapOn(c, col_width, frame_height)[1]
             if current_y - item_height < inch: break
             item.drawOn(c, 0.5*inch + col_width + col_gutter, current_y - item_height)
             current_y -= (item_height + 0.05*inch)
-            
+
         try:
             c.save()
         except Exception as e:
@@ -536,15 +524,15 @@ class PdfGenerator(BaseGenerator):
         The subsequent text should appear after the image area. This tests the parser's ability to handle non-linear text blocks.
         This final part of the text should clearly be below the image area.
         """
-        
+
         p_above = Paragraph(text_content.split("The subsequent text")[0], styleN)
-        p_above.wrapOn(c, letter[0] - 2*inch, 3*inch) 
+        p_above.wrapOn(c, letter[0] - 2*inch, 3*inch)
         p_above.drawOn(c, inch, letter[1] - inch - p_above.height)
 
         p_below_text = "The subsequent text" + text_content.split("The subsequent text")[1]
         p_below = Paragraph(p_below_text, styleN)
-        p_below.wrapOn(c, letter[0] - 2*inch, img_y - inch - 0.2*inch) 
-        p_below.drawOn(c, inch, inch ) 
+        p_below.wrapOn(c, letter[0] - 2*inch, img_y - inch - 0.2*inch)
+        p_below.drawOn(c, inch, inch )
 
         try:
             c.save()
@@ -555,21 +543,21 @@ class PdfGenerator(BaseGenerator):
         """Simulates OCR degradation based on accuracy level."""
         if accuracy >= 1.0:
             return text
-        
+
         degraded_text_list = list(text) # Use a different variable name
         # Ensure num_chars_to_degrade is an int and positive
         num_chars_to_degrade = max(0, int(len(degraded_text_list) * (1.0 - accuracy)))
-        
+
         # Get indices of characters that are not newlines or spaces
         possible_indices = [i for i, char in enumerate(degraded_text_list) if char not in ['\n', ' ']]
         random.shuffle(possible_indices) # Shuffle in place
-        
+
         # Degrade characters
         for i in range(min(num_chars_to_degrade, len(possible_indices))):
             idx_to_change = possible_indices[i]
             # Simple substitution with 'x'. Can be made more complex.
             degraded_text_list[idx_to_change] = 'x'
-                
+
         return "".join(degraded_text_list)
 
     def _apply_handwritten_annotation(self, canvas_obj: canvas.Canvas, page_width: float, page_height: float, annotation_settings: Dict[str, Any]):
@@ -578,11 +566,11 @@ class PdfGenerator(BaseGenerator):
         font_name = annotation_settings.get("annotation_font_family", "Helvetica")
         font_size_min, font_size_max = annotation_settings.get("annotation_font_size_pt_range", [8, 12])
         font_size = random.uniform(font_size_min, font_size_max)
-        
+
         color_rgb = annotation_settings.get("annotation_color_rgb", [0,0,0]) # Default black
         opacity_min, opacity_max = annotation_settings.get("annotation_opacity_range", [0.5, 1.0])
         opacity = random.uniform(opacity_min, opacity_max)
-        
+
         rotation_min, rotation_max = annotation_settings.get("annotation_rotation_degrees_range", [-5, 5])
         rotation = random.uniform(rotation_min, rotation_max)
 
@@ -593,22 +581,22 @@ class PdfGenerator(BaseGenerator):
         # Ensure text is somewhat within bounds, considering rotation might push it out
         # A more robust approach would calculate text width/height after rotation.
         text_width = canvas_obj.stringWidth(text, font_name, font_size)
-        
+
         # Attempt to keep it roughly centered for simplicity, with some randomness
         # Max x/y should prevent text from starting too close to the edge
         max_x_start = page_width - text_width - 20 # 20 as a small buffer
         max_y_start = page_height - font_size - 20 # 20 as a small buffer
-        
+
         x = random.uniform(20, max_x_start if max_x_start > 20 else page_width / 2)
         y = random.uniform(font_size + 20, max_y_start if max_y_start > (font_size + 20) else page_height / 2)
 
         canvas_obj.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=opacity)
         canvas_obj.setFont(font_name, font_size)
-        
+
         canvas_obj.translate(x, y)
         canvas_obj.rotate(rotation)
         canvas_obj.drawString(0, 0, text) # Draw at new origin (0,0) after translate
-        
+
         canvas_obj.restoreState()
 
     def _apply_ocr_noise(self, canvas_obj: canvas.Canvas, page_width: float, page_height: float, noise_level: float, noise_type: str = "speckle"):
@@ -630,7 +618,7 @@ class PdfGenerator(BaseGenerator):
         for _ in range(num_particles):
             x = random.uniform(0, page_width)
             y = random.uniform(0, page_height)
-            
+
             if noise_type == "salt-and-pepper":
                 particle_size = random.uniform(0.5, 1.5) # pixels/points for salt-pepper
                 if random.random() < 0.5:
@@ -668,9 +656,9 @@ class PdfGenerator(BaseGenerator):
                                  is_header: bool):
         """Draws the header or footer content on the page."""
         canvas_obj.saveState()
-        
+
         config_to_use = header_config if is_header else footer_config
-        
+
         content_left = config_to_use.get("left_content", "")
         content_center = config_to_use.get("center_content", "")
         content_right = config_to_use.get("right_content", "")
@@ -697,12 +685,12 @@ class PdfGenerator(BaseGenerator):
             content_right = content_right.replace(key, value)
 
         canvas_obj.setFont(font_name, font_size)
-        
+
         # Get page dimensions and margins from the document object
         # Margins are already in points
         page_width = doc.width + doc.leftMargin + doc.rightMargin
         page_height = doc.height + doc.topMargin + doc.bottomMargin
-        
+
         margin_left = doc.leftMargin
         margin_right = doc.rightMargin
         margin_top = doc.topMargin
@@ -715,7 +703,7 @@ class PdfGenerator(BaseGenerator):
 
         if content_left:
             canvas_obj.drawString(margin_left, y_position, content_left)
-        
+
         if content_center:
             text_width = canvas_obj.stringWidth(content_center, font_name, font_size)
             canvas_obj.drawCentredString(page_width / 2, y_position, content_center)
@@ -723,7 +711,7 @@ class PdfGenerator(BaseGenerator):
         if content_right:
             text_width = canvas_obj.stringWidth(content_right, font_name, font_size)
             canvas_obj.drawRightString(page_width - margin_right, y_position, content_right)
-            
+
         canvas_obj.restoreState()
 
     def _create_pdf_simulated_ocr_high_quality(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
@@ -748,7 +736,7 @@ class PdfGenerator(BaseGenerator):
         styleN.leading = 14 # Increased leading for OCR text
         styleH1 = styles['h1']
         styleH1.fontName = styleN.fontName # Keep consistent for OCR feel
-        
+
         story = []
         story.append(Paragraph("Fragment from a Scanned Text (High Quality OCR)", styleH1))
         story.append(Spacer(1, 0.2*inch))
@@ -758,14 +746,14 @@ class PdfGenerator(BaseGenerator):
         exist in some way independently of those individuals. Plato's theory of Forms is a classic exampIe of realism regarding universals.
         This text simulates a fairly clean OCR capture. There might be an occasional misrecognized character, like 'I' for 'l' or 'rn' for 'm'.
         """
-        
+
         ocr_simulation_settings = specific_config.get("ocr_simulation_settings", {})
         ocr_accuracy_level = ocr_simulation_settings.get("ocr_accuracy_level", 1.0)
         skew_chance = ocr_simulation_settings.get("skew_chance", 0.0)
         max_skew_angle = ocr_simulation_settings.get("max_skew_angle", 0.0) # Default to 0 if not specified
 
         degraded_ocr_text = self._degrade_text(ocr_text, ocr_accuracy_level)
-        
+
         # Apply skew before adding content to story or drawing
         # For this variant, we apply it once to the canvas before drawing the story.
         # A more complex implementation might apply it per page or per item.
@@ -791,7 +779,7 @@ class PdfGenerator(BaseGenerator):
         frame_width = letter[0] - 2*inch
         frame_height = letter[1] - 2*inch
         current_y = letter[1] - inch
-        
+
         for item in story:
             item_width, item_height = item.wrapOn(c, frame_width, frame_height)
             if current_y - item_height < inch:
@@ -799,10 +787,10 @@ class PdfGenerator(BaseGenerator):
                 c.setTitle(specific_config.get("title", "Simulated High-Quality OCR PDF"))
                 c.setAuthor(specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator")))
                 current_y = letter[1] - inch
-            
+
             item.drawOn(c, inch, current_y - item_height)
             current_y -= (item_height + 0.1*inch)
-        
+
         # Apply noise after all main content is drawn on the current page (if any)
         # For multi-page, this would need to be called after each c.showPage() potentially
         # or before c.save() for the final page.
@@ -818,7 +806,7 @@ class PdfGenerator(BaseGenerator):
         if random.random() < include_annotations_chance:
             # Pass relevant parts of ocr_simulation_settings to the annotation method
             self._apply_handwritten_annotation(c, letter[0], letter[1], ocr_simulation_settings)
-            
+
         try:
             c.save()
         except Exception as e:
@@ -835,7 +823,7 @@ class PdfGenerator(BaseGenerator):
         text = watermark_settings.get("text", "WATERMARK")
         font_name = watermark_settings.get("font_name", "Helvetica")
         font_size = watermark_settings.get("font_size", 50)
-        
+
         color_str = watermark_settings.get("color", "#C0C0C0")
         try:
             if isinstance(color_str, str) and color_str.startswith("#"):
@@ -854,7 +842,7 @@ class PdfGenerator(BaseGenerator):
 
         canvas.setFillColor(parsed_color, alpha=opacity)
         canvas.setFont(font_name, font_size)
-        
+
         text_width = canvas.stringWidth(text, font_name, font_size)
 
         if isinstance(position_setting, tuple) and len(position_setting) == 2:
@@ -899,19 +887,19 @@ class PdfGenerator(BaseGenerator):
 
         c.setFont("Helvetica-Bold", 16)
         c.drawString(inch, letter[1] - inch, "Main Title: The Structure of Knowledge")
-        c.bookmarkPage("main_title_key_debug") 
-        c.addOutlineEntry("Main Title", "main_title_key_debug", level=0) 
+        c.bookmarkPage("main_title_key_debug")
+        c.addOutlineEntry("Main Title", "main_title_key_debug", level=0)
 
         c.setFont("Helvetica-Bold", 14)
         c.drawString(inch, letter[1] - 1.5*inch, "Chapter 1: Foundational Concepts")
         c.bookmarkPage("chapter1_key_debug")
         c.addOutlineEntry("Chapter 1: Foundational Concepts", "chapter1_key_debug", level=1)
-        
+
         c.setFont("Helvetica", 12)
         text_c1 = c.beginText(inch, letter[1] - 2*inch)
         text_c1.textLine("This is the content of the first chapter for debugging bookmarks.")
         c.drawText(text_c1)
-        
+
         try:
             c.save()
         except Exception as e:
@@ -921,19 +909,19 @@ class PdfGenerator(BaseGenerator):
         c = canvas.Canvas(filepath, pagesize=letter)
         c.setTitle(specific_config.get("title", "PDF with Visual Hyperlinked ToC"))
         c.setAuthor(specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator")))
-        
+
         c.setFont("Helvetica-Bold", 18)
         c.drawCentredString(letter[0]/2, letter[1] - inch, "Table of Contents")
 
         visual_toc_config = specific_config.get("visual_toc", {})
         max_depth = visual_toc_config.get("max_depth", 3) # Default from spec
         page_number_style = visual_toc_config.get("page_number_style", "none") # Default to none
-        
+
         # Dynamically generate ToC items from chapters_config
         toc_items_with_levels = []
         chapters_config = specific_config.get("chapters_config", {})
         chapter_details = chapters_config.get("chapter_details", [])
-        
+
         for idx, detail in enumerate(chapter_details):
             # For now, assume all chapters are level 1 and generate a unique target
             toc_items_with_levels.append({
@@ -950,12 +938,12 @@ class PdfGenerator(BaseGenerator):
                 target = item_data["target"]
                 page_num_val = item_data.get("page_start")
                 page_num_str = str(page_num_val) if page_num_val is not None else "N/A"
-                
+
                 # Basic indentation based on level for visual hierarchy
                 indent = (item_data["level"] - 1) * 0.25 * inch
-                
+
                 c.setFont("Helvetica", 12)
-                
+
                 if page_number_style == "dot_leader":
                     # Calculate proper dot leader width
                     text_width = c.stringWidth(text, "Helvetica", 12)
@@ -993,7 +981,7 @@ class PdfGenerator(BaseGenerator):
             if detail_data["level"] <= max_depth:
                 c.showPage()
                 c.setFont("Helvetica-Bold", 16)
-                
+
     def _create_toc_entry_table(self, title: str, page_ref: str, level: int,
                                    page_number_style: str, available_width: float) -> Table:
         """
@@ -1120,7 +1108,7 @@ class PdfGenerator(BaseGenerator):
         return toc_flowables
 
     def _create_pdf_running_headers_footers(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
-        
+
         def draw_header_footer(canvas_item, doc): # Renamed canvas to canvas_item to avoid conflict
             canvas_item.saveState()
             header_config = specific_config.get("running_header", {})
@@ -1129,7 +1117,7 @@ class PdfGenerator(BaseGenerator):
             if header_config.get("enable", False):
                 canvas_item.setFont(header_config.get("font_family", 'Helvetica-Oblique'), header_config.get("font_size_pt", 9))
                 canvas_item.drawString(inch, letter[1] - 0.75 * inch, header_config.get("left_content", "Synthetic Treatise"))
-            
+
             if footer_config.get("enable", False):
                 canvas_item.setFont(footer_config.get("font_family", 'Helvetica'), footer_config.get("font_size_pt", 9))
                 canvas_item.drawString(inch, 0.75 * inch, footer_config.get("left_content", f"Page {doc.page}"))
@@ -1138,7 +1126,7 @@ class PdfGenerator(BaseGenerator):
         doc = SimpleDocTemplate(filepath, pagesize=letter)
         doc.title = specific_config.get("title", "PDF with Headers/Footers")
         doc.author = specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator"))
-        
+
         styles = getSampleStyleSheet()
         styleN = styles['Normal']
         styleH1 = styles['h1']
@@ -1150,7 +1138,7 @@ class PdfGenerator(BaseGenerator):
         for i in range(5): # Reduced for brevity
             story.append(Paragraph(f"This is paragraph {i+1} of the first chapter.", styleN))
             story.append(Spacer(1, 0.1*inch))
-        
+
         try:
             doc.build(story, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
         except Exception as e:
@@ -1163,11 +1151,11 @@ class PdfGenerator(BaseGenerator):
 
         c.setFont(specific_config.get("base_font_family", "Helvetica"), specific_config.get("base_font_size_pt", 12))
         text_y = letter[1] - inch
-        
+
         line1 = "Main text. Reference here.<sup>1</sup>"
         c.drawString(inch, text_y, line1)
         text_y -= 0.3*inch
-        
+
         line2 = "More text. Another reference.<sup>2</sup>"
         c.drawString(inch, text_y, line2)
 
@@ -1177,7 +1165,7 @@ class PdfGenerator(BaseGenerator):
         fn_y = inch + 0.5*inch
         fn1_text = "<sup>1</sup> First footnote."
         c.drawString(inch, fn_y + 0.3*inch, fn1_text)
-        
+
         fn2_text = "<sup>2</sup> Second footnote."
         c.drawString(inch, fn_y, fn2_text)
 
@@ -1189,7 +1177,7 @@ class PdfGenerator(BaseGenerator):
     def _create_pdf_simple_table(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         styles = getSampleStyleSheet()
         styleH1 = styles['h1']
-        
+
         story = []
         story.append(Paragraph(specific_config.get("title", "Philosophical Concepts: A Comparative Table"), styleH1))
         story.append(Spacer(1, 0.3*inch))
@@ -1199,7 +1187,7 @@ class PdfGenerator(BaseGenerator):
             ["Forms", "Plato", "Perfect archetypes."],
             ["Categorical Imperative", "Kant", "Universal law."],
         ]
-        
+
         table = Table(data)
         table_style = TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.grey),
@@ -1216,7 +1204,7 @@ class PdfGenerator(BaseGenerator):
                                 topMargin=inch, bottomMargin=inch)
         doc.title = specific_config.get("title", "PDF with Simple Table")
         doc.author = specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator"))
-        
+
         try:
             doc.build(story)
         except Exception as e:
@@ -1231,7 +1219,7 @@ class PdfGenerator(BaseGenerator):
             styles = getSampleStyleSheet()
             styleH2 = styles['h2']
             styleN = styles['Normal']
-            
+
             p_ch_title = Paragraph(chapter_title, styleH2)
             story.append(p_ch_title)
             story.append(Spacer(1, 0.1*inch))
@@ -1254,10 +1242,10 @@ class PdfGenerator(BaseGenerator):
             # Actual content generation for sections, notes, images would be more complex.
             sections_config = specific_config.get("sections_per_chapter_config", 0)
             num_sections = self._determine_count(sections_config, f"sections_chap_{chapter_number}")
-            
+
             notes_config = specific_config.get("notes_system", {}).get("notes_config", 0)
             num_notes = self._determine_count(notes_config, f"notes_chap_{chapter_number}")
-            
+
             images_config = specific_config.get("multimedia", {}).get("images_config", 0)
             if specific_config.get("multimedia", {}).get("include_images", False):
                 num_images = self._determine_count(images_config, f"images_chap_{chapter_number}")
@@ -1298,13 +1286,13 @@ class PdfGenerator(BaseGenerator):
         for i in range(num_rows -1): # num_rows includes header
             row_data = [f"Data {chr(65+j)}{i+1}" for j in range(num_cols)]
             table_data.append(row_data)
-        
+
         if not table_data: # Ensure table_data is not empty if counts are zero
             table_data = [[""]] # ReportLab Table needs at least one cell
 
         table = Table(table_data)
         table_style_config = specific_config.get("table_generation", {}).get("default_table_style", {}) # Basic support for future styling
-        
+
         # Default style if not specified
         style_commands = [
             ('BACKGROUND', (0,0), (-1,0), table_style_config.get("header_background_color", colors.grey)),
@@ -1314,7 +1302,7 @@ class PdfGenerator(BaseGenerator):
             ('GRID', (0,0), (-1,-1), 1, table_style_config.get("grid_color", colors.black))
         ]
         # Add more styling based on table_style_config if needed
-        
+
         table.setStyle(TableStyle(style_commands))
         story.append(table)
 
@@ -1325,7 +1313,7 @@ class PdfGenerator(BaseGenerator):
         # figure_gen_config was specific_config.get("figure_generation", {}) # specific_config is now current_figure_detail
         # Now, caption_cfg comes from overall_figure_generation_config
         caption_cfg = overall_figure_generation_config.get("caption_config", {})
-        
+
         # Placeholder for the figure itself (e.g., a box)
         # In a real implementation, this would involve creating an Image flowable
         # For now, we'll just add a spacer or a simple paragraph representing the figure.
@@ -1345,7 +1333,7 @@ class PdfGenerator(BaseGenerator):
                 caption_style = styles['Italic'] # Default to italic or allow config
                 caption_style.fontName = caption_cfg.get("font_family", "Helvetica-Oblique")
                 caption_style.fontSize = caption_cfg.get("font_size_pt", 9)
-                
+
                 alignment_str = caption_cfg.get("alignment", "CENTER").upper()
                 if alignment_str == "LEFT":
                     caption_style.alignment = TA_LEFT

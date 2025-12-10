@@ -1,6 +1,9 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_content_dialogue(filename="content_dialogue.epub"):
     """
@@ -33,7 +36,7 @@ def create_epub_content_dialogue(filename="content_dialogue.epub"):
         {"title": "Dialogue on Consciousness", "filename": "c1_dialogue.xhtml", "content": chapter_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -74,7 +77,7 @@ The epigraph sets a tone or introduces a key theme for the ensuing discussion.</
         {"title": "Chapter with Epigraph", "filename": "c1_epigraph.xhtml", "content": chapter_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -118,7 +121,7 @@ where quotes are visually set apart from the main text using specific classes an
         {"title": "Styled Blockquotes", "filename": "c1_blockquote.xhtml", "content": chapter_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -160,7 +163,7 @@ enhancing navigation and coherence in scholarly or complex works.</p>
         {"title": "Chapter 2 (XRef Target)", "filename": "c2_xref.xhtml", "content": chapter2_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -196,7 +199,7 @@ This tests the reading system's handling of such CSS-driven pagination control.<
         {"title": "Forced Page Breaks Example", "filename": "c1_forcebreak.xhtml", "content": chapter_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())

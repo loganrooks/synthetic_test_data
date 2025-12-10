@@ -7,11 +7,11 @@ Provides a structured catalog of all supported patterns with:
 - Generator configuration mappings
 """
 
-import os
-import yaml
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
+
+import yaml
 
 
 @dataclass
@@ -96,7 +96,7 @@ class PatternRegistry:
     def _load_pattern_file(self, file_path: Path) -> None:
         """Load patterns from a single YAML file."""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 if not data or "patterns" not in data:
                     return
@@ -109,13 +109,13 @@ class PatternRegistry:
                     if pattern.category not in self._categories:
                         self._categories[pattern.category] = []
                     self._categories[pattern.category].append(pattern_id)
-        except (yaml.YAMLError, IOError):
+        except (OSError, yaml.YAMLError):
             pass  # Skip invalid files
 
     def _load_constraints(self, file_path: Path) -> None:
         """Load pattern constraints from constraints.yaml."""
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 if not data or "constraints" not in data:
                     return
@@ -123,7 +123,7 @@ class PatternRegistry:
                 for constraint_data in data["constraints"]:
                     constraint = PatternConstraint.from_dict(constraint_data)
                     self.constraints.append(constraint)
-        except (yaml.YAMLError, IOError):
+        except (OSError, yaml.YAMLError):
             pass
 
     def get_pattern(self, pattern_id: str) -> Optional[PatternDefinition]:
@@ -284,9 +284,9 @@ class PatternRegistry:
         existing_data: Dict[str, Any] = {"patterns": {}}
         if file_path.exists():
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     existing_data = yaml.safe_load(f) or {"patterns": {}}
-            except (yaml.YAMLError, IOError):
+            except (OSError, yaml.YAMLError):
                 pass
 
         # Add the new pattern

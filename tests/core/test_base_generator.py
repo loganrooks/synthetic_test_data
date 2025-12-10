@@ -1,5 +1,7 @@
 import pytest
+
 from synth_data_gen.core.base import BaseGenerator
+
 
 # A concrete implementation of BaseGenerator for testing purposes
 class ConcreteGenerator(BaseGenerator):

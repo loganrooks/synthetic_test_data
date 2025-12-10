@@ -1,6 +1,9 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_pagenum_semantic_pagebreak(filename="pagenum_semantic_pagebreak.epub"):
     """
@@ -34,7 +37,7 @@ This marks page 12 of the original print edition.</p>
         {"title": "Semantic Pagebreaks", "filename": "c1_pgnum_semantic.xhtml", "content": chapter_content, "uid": "chapter_semantic_pagebreaks"}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_pgnum_semantic_toc"),) # Ensure chapters[0] is the correct item
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav()) # Use default NAV
@@ -73,7 +76,7 @@ The content here would correspond to page A25 of the first edition.</p>
         {"title": "Kant Anchor Page Markers", "filename": "c1_kant_pgnum_anchor.xhtml", "content": chapter_content, "uid": "c1_kant_pgnum_anchor"}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_kant_pgnum_anchor_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -105,7 +108,7 @@ These markers, like <code><a id="page_125" class="calibre3-taylorpage"></a></cod
         {"title": "Taylor Anchor Page Markers", "filename": "c1_taylor_pgnum_anchor.xhtml", "content": chapter_content}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_taylor_pgnum_anchor_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -139,7 +142,7 @@ often a result of OCR or specific conversion processes from PDFs where page numb
         {"title": "Deleuze Plain Text Page Numbers", "filename": "c1_deleuze_pgnum_plain.xhtml", "content": chapter_content, "uid": "c1_deleuze_pgnum_plain"}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_deleuze_pgnum_plain_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())

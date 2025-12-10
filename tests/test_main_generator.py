@@ -1,15 +1,17 @@
-import pytest
 import os
 import shutil
 from pathlib import Path
+
+import pytest
 from pytest_mock import MockerFixture
 
 # Adjust the import path based on your project structure
 # This assumes tests/ is at the same level as synth_data_gen/
-from synth_data_gen import generate_data, InvalidConfigError
+from synth_data_gen import InvalidConfigError, generate_data
 from synth_data_gen.generators.epub import EpubGenerator
-from synth_data_gen.generators.pdf import PdfGenerator
 from synth_data_gen.generators.markdown import MarkdownGenerator
+from synth_data_gen.generators.pdf import PdfGenerator
+
 
 @pytest.fixture
 def cleanup_main_generator_output():
@@ -74,7 +76,7 @@ def test_generate_data_default_config(mocker: MockerFixture, cleanup_main_genera
 def test_generate_data_custom_config_obj(mocker: MockerFixture, cleanup_main_generator_output):
     """Test generate_data with a custom config_obj."""
     mock_epub_generate_custom = mocker.patch.object(EpubGenerator, 'generate')
-    
+
     custom_base = "custom_test_output"
     custom_set = "custom_set"
     expected_custom_output_dir = Path(custom_base) / custom_set
@@ -91,7 +93,7 @@ def test_generate_data_custom_config_obj(mocker: MockerFixture, cleanup_main_gen
         return str(output_file_path)
 
     mock_epub_generate_custom.side_effect = mock_custom_epub_creation_side_effect
-    
+
     custom_config = {
         "output_directory_base": "custom_test_output",
         "output_set_name": "custom_set",
@@ -108,16 +110,16 @@ def test_generate_data_custom_config_obj(mocker: MockerFixture, cleanup_main_gen
     # The output_dir is now determined by the mock's side_effect based on call_args
     # We expect it to be called with something like:
     # custom_test_output/custom_set/custom_epubs/epub_1.epub
-    
+
     # Check that the mock was called
     mock_epub_generate_custom.assert_called_once()
-    
+
     # Verify the output directory based on the mock call's output_file_path argument
     called_output_path = Path(mock_epub_generate_custom.call_args[0][2])
     output_dir = called_output_path.parent
-    
+
     assert output_dir.exists(), f"Custom output directory {output_dir} should be created."
-    
+
     files_in_output_dir = list(output_dir.glob("*.epub")) # Check for epub as specified
     assert len(files_in_output_dir) > 0, "At least one EPUB file should be created in the custom output directory."
 

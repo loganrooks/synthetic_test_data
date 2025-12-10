@@ -2,16 +2,14 @@
 Tests for the PatternRegistry module.
 """
 
+
 import pytest
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
 import yaml
 
 from synth_data_gen.analyzer.registry import (
-    PatternRegistry,
-    PatternDefinition,
     PatternConstraint,
+    PatternDefinition,
+    PatternRegistry,
 )
 
 

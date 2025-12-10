@@ -2,20 +2,19 @@
 Tests for the EpubAnalyzer module.
 """
 
-import pytest
 import zipfile
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-import io
+from unittest.mock import MagicMock
+
+import pytest
 
 from synth_data_gen.analyzer.epub_analyzer import (
-    EpubAnalyzer,
     AnalysisResult,
+    EpubAnalyzer,
     PatternMatch,
     UnknownPattern,
 )
-from synth_data_gen.analyzer.registry import PatternRegistry, PatternDefinition
+from synth_data_gen.analyzer.registry import PatternDefinition, PatternRegistry
 
 
 class TestPatternMatch:

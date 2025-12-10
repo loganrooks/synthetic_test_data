@@ -1,6 +1,9 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_taylor_hegel_headers(filename="taylor_hegel_headers.epub"):
     """
@@ -74,7 +77,7 @@ def create_epub_sennet_style_headers(filename="sennet_style_headers.epub"):
 
     chapter_details = [
         {
-            "title": "Part One: Craftsman", 
+            "title": "Part One: Craftsman",
             "filename": "part_sennet_1.xhtml",
             "content": """
 <h1 class="title" id="part1"><span class="small">PART ONE</span>Craftsman</h1>
@@ -114,7 +117,7 @@ def create_epub_div_style_headers(filename="div_style_headers.epub"):
 
     chapter_details = [
         {
-            "title": "Main Section Title", 
+            "title": "Main Section Title",
             "filename": "chap_div_h1.xhtml",
             "content": """
 <div class="title-chapter" id="main_title_div"><span class="b">THE QUESTION OF BEING</span></div>
@@ -368,7 +371,7 @@ featuring a number, a horizontal rule (simulated with underscores), and the titl
 """
     chapter_details = [
         {
-            "title": "The Unities of Discourse", 
+            "title": "The Unities of Discourse",
             "filename": "chap_foucault_1.xhtml",
             "content": chapter_content
         }

@@ -1,9 +1,11 @@
 import os
 import unittest
+
 from ebooklib import epub
 
-from synth_data_gen.generators.epub_components import content_types
 from synth_data_gen.common.utils import EPUB_DIR
+from synth_data_gen.generators.epub_components import content_types
+
 
 class TestEpubContentTypes(unittest.TestCase):
 
@@ -174,7 +176,7 @@ class TestEpubContentTypes(unittest.TestCase):
                 html_content = item.get_content().decode('utf-8')
                 if 'id="target_section"' in html_content:
                     target_found_in_c2 = True
-        
+
         self.assertTrue(xref_found_in_c1, "Cross-reference link not found in chapter 1.")
         self.assertTrue(target_found_in_c2, "Cross-reference target id not found in chapter 2.")
 
