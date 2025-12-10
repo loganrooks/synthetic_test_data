@@ -10,13 +10,14 @@ Provides commands for:
 
 import argparse
 import sys
-import yaml
 from pathlib import Path
 from typing import List, Optional
 
-from .registry import PatternRegistry
+import yaml
+
 from .epub_analyzer import EpubAnalyzer
-from .validation import validate_all_patterns, generate_validation_report
+from .registry import PatternRegistry
+from .validation import generate_validation_report, validate_all_patterns
 
 
 def main(args: Optional[List[str]] = None) -> int:
@@ -178,7 +179,6 @@ def cmd_discover(args: argparse.Namespace) -> int:
 
 def cmd_add_patterns(args: argparse.Namespace) -> int:
     """Handle add-patterns command."""
-    from .registry import PatternDefinition
 
     candidates_file = args.candidates_file
 
@@ -189,7 +189,7 @@ def cmd_add_patterns(args: argparse.Namespace) -> int:
     print(f"Processing {candidates_file}...")
     print()
 
-    with open(candidates_file, "r", encoding="utf-8") as f:
+    with open(candidates_file, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     if not data or "candidates" not in data:

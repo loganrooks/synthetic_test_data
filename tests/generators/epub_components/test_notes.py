@@ -1,10 +1,12 @@
 import os
 import unittest
-from ebooklib import epub
 import zipfile
 
-from synth_data_gen.generators.epub_components import notes
+from ebooklib import epub
+
 from synth_data_gen.common.utils import EPUB_DIR
+from synth_data_gen.generators.epub_components import notes
+
 
 class TestEpubNotes(unittest.TestCase):
 
@@ -32,9 +34,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_footnote_hegel_sol_ref(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         # Check for CSS
         css_item = book.get_item_with_href('style/fn_hegel_sol_ref.css')
         self.assertIsNotNone(css_item)
@@ -71,21 +73,21 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_footnote_hegel_por_author(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         # Check for CSS
         css_item = book.get_item_with_href('style/fn_hegel_por_author.css')
         self.assertIsNotNone(css_item, "CSS file 'style/fn_hegel_por_author.css' not found.")
-        if css_item: 
+        if css_item:
             css_content = css_item.get_content().decode('utf-8')
             self.assertIn("sup.calibre11-hpor", css_content)
             self.assertIn(".fn-author-hpor", css_content)
 
         # Check for chapter content
         chapter_found = False
-        for item in book.get_items(): 
-            if not isinstance(item, epub.EpubHtml): 
+        for item in book.get_items():
+            if not isinstance(item, epub.EpubHtml):
                 continue
             if item.file_name == "c1_hegel_por_author_fn.xhtml":
                 html_content = item.get_content().decode('utf-8')
@@ -110,9 +112,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_footnote_marx_engels_reader(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/fn_marx_engels.css')
         self.assertIsNotNone(css_item, "CSS file 'style/fn_marx_engels.css' not found.")
         if css_item:
@@ -139,7 +141,7 @@ class TestEpubNotes(unittest.TestCase):
                 self.assertIn('<div class="endnote-item-mer" id="footnote01">', html_content)
                 self.assertIn('This refers to the utopian socialists\' views on labor.', html_content)
                 notes_page_found = True
-        
+
         self.assertTrue(main_content_found, f"Main content file '{main_chap_filename}' not found or content incorrect.")
         self.assertTrue(notes_page_found, f"Notes page file '{notes_page_filename}' not found or content incorrect.")
 
@@ -157,9 +159,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_footnote_marcuse_dual_style(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/fn_marcuse_dual.css')
         self.assertIsNotNone(css_item, "CSS file 'style/fn_marcuse_dual.css' not found.")
         if css_item:
@@ -197,9 +199,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_footnote_adorno_unlinked(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/fn_adorno_unlinked.css')
         self.assertIsNotNone(css_item, "CSS file 'style/fn_adorno_unlinked.css' not found.")
         if css_item:
@@ -242,9 +244,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_footnote_derrida_grammatology_dual(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/fn_derrida_gram.css')
         self.assertIsNotNone(css_item, "CSS file 'style/fn_derrida_gram.css' not found.")
         if css_item:
@@ -255,7 +257,7 @@ class TestEpubNotes(unittest.TestCase):
         main_chap_found = False
         fn1_page_found = False
         endnotes_page_found = False
-        main_chap_filename = "Text/c1_grammatology.xhtml" 
+        main_chap_filename = "Text/c1_grammatology.xhtml"
         fn1_filename = "Text/fn_gram_c1_01.xhtml"
         endnotes_filename = "Text/notes_gram_consolidated.xhtml"
 
@@ -275,7 +277,7 @@ class TestEpubNotes(unittest.TestCase):
                 self.assertIn('<h2>Endnotes</h2>', html_content)
                 self.assertIn('<p id="en_logo">1. For an extended discussion of logocentrism', html_content)
                 endnotes_page_found = True
-        
+
         self.assertTrue(main_chap_found, f"Main chapter file '{main_chap_filename}' not found or content incorrect.")
         self.assertTrue(fn1_page_found, f"Footnote file '{fn1_filename}' not found or content incorrect.")
         self.assertTrue(endnotes_page_found, f"Endnotes file '{endnotes_filename}' not found or content incorrect.")
@@ -294,9 +296,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_pippin_style_endnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/pippin_notes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/pippin_notes.css' not found.")
         if css_item:
@@ -321,7 +323,7 @@ class TestEpubNotes(unittest.TestCase):
                 self.assertIn('<h1>Test Notes</h1>', html_content)
                 self.assertIn('<p id="fn1">This is a test note.</p>', html_content)
                 notes_page_found = True
-        
+
         self.assertTrue(chapter_found, f"Chapter file '{chap_filename}' not found or content incorrect.")
         self.assertTrue(notes_page_found, f"Notes page file '{notes_filename}' not found or content incorrect.")
 
@@ -339,9 +341,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_heidegger_ge_style_endnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/heidegger_ge.css')
         self.assertIsNotNone(css_item, "CSS file 'style/heidegger_ge.css' not found.")
         if css_item:
@@ -367,7 +369,7 @@ class TestEpubNotes(unittest.TestCase):
                 self.assertIn('<p class="endnote-heidegger-ge" id="ftn_fn1">', html_content)
                 self.assertIn("This is the first note, in the style of Heidegger's German Existentialism EPUBs.</p>", html_content)
                 notes_page_found = True
-        
+
         self.assertTrue(chapter_found, f"Chapter file '{chap_filename}' not found or content incorrect.")
         self.assertTrue(notes_page_found, f"Notes page file '{notes_filename}' not found or content incorrect.")
 
@@ -385,14 +387,14 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_heidegger_metaphysics_style_footnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/heidegger_meta.css')
         self.assertIsNotNone(css_item, "CSS file 'style/heidegger_meta.css' not found.")
         if css_item:
             css_content = css_item.get_content().decode('utf-8')
-            self.assertIn("sup a", css_content) 
+            self.assertIn("sup a", css_content)
             self.assertIn("section.notesSet", css_content)
             self.assertIn("li.noteEntry", css_content)
 
@@ -425,9 +427,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_same_page_footnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/notes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/notes.css' not found.")
         if css_item:
@@ -439,7 +441,7 @@ class TestEpubNotes(unittest.TestCase):
 
         chapter_found = False
         found_item_content = None
-        chap_filename = "chap_footnotes.xhtml" 
+        chap_filename = "chap_footnotes.xhtml"
         for item in book.get_items(): # Changed from get_items_of_type
             if isinstance(item, epub.EpubHtml) and item.file_name == chap_filename: # Check type here
                 found_item_content = item.get_content().decode('utf-8')
@@ -448,12 +450,12 @@ class TestEpubNotes(unittest.TestCase):
         self.assertTrue(chapter_found, f"Chapter item '{chap_filename}' not found.")
         if chapter_found and found_item_content:
             self.assertIn('<h1>Chapter 1: The Burden of Proof</h1>', found_item_content)
-            self.assertIn('<sup id="fnref1"><a href="#fn1">1</a></sup>', found_item_content) 
-            self.assertIn('<sup id="fnref2"><a href="#fn2">2</a></sup>', found_item_content) 
+            self.assertIn('<sup id="fnref1"><a href="#fn1">1</a></sup>', found_item_content)
+            self.assertIn('<sup id="fnref2"><a href="#fn2">2</a></sup>', found_item_content)
             self.assertIn('<hr class="footnote-separator"/>', found_item_content)
-            self.assertIn('<div class="footnotes">', found_item_content) 
-            self.assertIn('<p id="fn1" class="footnote"><a href="#fnref1">1.</a> This claim is often debated in AI ethics circles, particularly concerning generative models.</p>', found_item_content) 
-            self.assertIn('<p id="fn2" class="footnote"><a href="#fnref2">2.</a> See Turing\'s arguments on "Lady Lovelace\'s Objection" regarding machine originality.</p>', found_item_content) 
+            self.assertIn('<div class="footnotes">', found_item_content)
+            self.assertIn('<p id="fn1" class="footnote"><a href="#fnref1">1.</a> This claim is often debated in AI ethics circles, particularly concerning generative models.</p>', found_item_content)
+            self.assertIn('<p id="fn2" class="footnote"><a href="#fnref2">2.</a> See Turing\'s arguments on "Lady Lovelace\'s Objection" regarding machine originality.</p>', found_item_content)
 
     def test_create_epub_endnotes_separate_file_creates_file(self):
         filename = "endnotes_separate_file.epub"
@@ -469,9 +471,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_endnotes_separate_file(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/endnotes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/endnotes.css' not found.")
         if css_item:
@@ -482,9 +484,9 @@ class TestEpubNotes(unittest.TestCase):
         chapter1_found = False
         chapter2_found = False
         notes_page_found = False
-        chap1_filename = "chap_main.xhtml" 
-        chap2_filename = "chap_main_page2.xhtml" 
-        notes_filename = "endnotes.xhtml" 
+        chap1_filename = "chap_main.xhtml"
+        chap2_filename = "chap_main_page2.xhtml"
+        notes_filename = "endnotes.xhtml"
 
         for item in book.get_items(): # Changed from get_items_of_type
             if isinstance(item, epub.EpubHtml): # Check type here
@@ -504,7 +506,7 @@ class TestEpubNotes(unittest.TestCase):
                     self.assertIn('<div id="en2" class="endnote-item"><p><a href="chap_main.xhtml#enref2">2.</a> This refers to the Socratic paradox, "I know that I know nothing."</p></div>', html_content)
                     self.assertIn('<div id="en3" class="endnote-item"><p><a href="chap_main_page2.xhtml#enref3">3.</a> Foucault\'s analysis of power structures is detailed in "Discipline and Punish".</p></div>', html_content)
                     notes_page_found = True
-        
+
         self.assertTrue(chapter1_found, f"Chapter file '{chap1_filename}' not found or content incorrect.")
         self.assertTrue(chapter2_found, f"Chapter file '{chap2_filename}' not found or content incorrect.")
         self.assertTrue(notes_page_found, f"Notes page file '{notes_filename}' not found or content incorrect.")
@@ -523,23 +525,23 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_kant_style_footnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/kant_notes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")
         if css_item:
             css_content = css_item.get_content().decode('utf-8')
             self.assertIn(".calibre9 {", css_content)
-            self.assertIn("p.footnotes {", css_content) 
+            self.assertIn("p.footnotes {", css_content)
 
         chapter_found = False
-        chap_filename = "chap_kant_fn.xhtml" 
-        for item in book.get_items(): 
-            if not isinstance(item, epub.EpubHtml): 
+        chap_filename = "chap_kant_fn.xhtml"
+        for item in book.get_items():
+            if not isinstance(item, epub.EpubHtml):
                 continue
-            
-            if item.file_name == chap_filename: 
+
+            if item.file_name == chap_filename:
                 html_content = item.get_content().decode('utf-8')
                 self.assertIn('<sup class="calibre18"><em class="calibre1"><a id="Fkantfn1" href="#Fkantfr1" class="calibre9">1</a></em></sup>', html_content)
                 self.assertIn('<p id="Fkantfr1" class="footnotes"><sup class="calibre18"><em class="calibre1"><a href="#Fkantfn1" class="calibre9">1.</a></em></sup> See Critique of Pure Reason, B19.</p>', html_content)
@@ -561,9 +563,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_dual_note_system(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         css_item = book.get_item_with_href('style/dual_notes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/dual_notes.css' not found.")
         if css_item:
@@ -575,8 +577,8 @@ class TestEpubNotes(unittest.TestCase):
 
         chapter_found = False
         notes_page_found = False
-        chap_filename = "chap_dual.xhtml" 
-        endnotes_filename = "editor_endnotes.xhtml" 
+        chap_filename = "chap_dual.xhtml"
+        endnotes_filename = "editor_endnotes.xhtml"
 
         for item in book.get_items(): # Changed from get_items_of_type
             if isinstance(item, epub.EpubHtml): # Check type here
@@ -593,7 +595,7 @@ class TestEpubNotes(unittest.TestCase):
                     self.assertIn('<div id="editorEN1" class="endnote-item">', html_content)
                     self.assertIn('This passage refers to the political climate of early 19th century Prussia.</p>', html_content)
                     notes_page_found = True
-        
+
         self.assertTrue(chapter_found, f"Chapter file '{chap_filename}' not found or content incorrect.")
         self.assertTrue(notes_page_found, f"Editor's endnotes file '{endnotes_filename}' not found or content incorrect.")
 
@@ -611,10 +613,10 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_hegel_sol_style_footnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
-        css_item = book.get_item_with_href('style/hegel_sol.css') 
+
+        css_item = book.get_item_with_href('style/hegel_sol.css')
         self.assertIsNotNone(css_item, "CSS file 'style/hegel_sol.css' not found.")
         if css_item:
             css_content = css_item.get_content().decode('utf-8')
@@ -622,12 +624,12 @@ class TestEpubNotes(unittest.TestCase):
             self.assertIn("margin: 0; padding: 0; font-size: 0.9em;", css_content) # Check for the properties of .calibre14
 
         chapter_found = False
-        chap_filename = "chap_hegel_sol_fn.xhtml" 
+        chap_filename = "chap_hegel_sol_fn.xhtml"
         for item in book.get_items(): # Changed from get_items_of_type
             if isinstance(item, epub.EpubHtml) and item.file_name == chap_filename: # Check type here
                 html_content = item.get_content().decode('utf-8')
-                self.assertIn('<span><a id="hegelFNref1"/><a href="#hegelFN1"><sup class="calibre30">1</sup></a></span>', html_content) 
-                self.assertIn('<div class="calibre32" id="hegelFN1">', html_content) 
+                self.assertIn('<span><a id="hegelFNref1"/><a href="#hegelFN1"><sup class="calibre30">1</sup></a></span>', html_content)
+                self.assertIn('<div class="calibre32" id="hegelFN1">', html_content)
                 self.assertIn('This is discussed extensively in the opening sections of the Science of Logic. The transition is not merely a juxtaposition but an immanent development.', html_content)
                 chapter_found = True
                 break
@@ -646,9 +648,9 @@ class TestEpubNotes(unittest.TestCase):
         expected_filepath = os.path.join(self.output_dir, filename)
         self.files_to_remove.append(expected_filepath)
         notes.create_epub_kant_style_footnotes(filename=filename)
-        
+
         book = epub.read_epub(expected_filepath)
-        
+
         # # Check for CSS
         # css_item = book.get_item_with_href('style/kant_notes.css')
         # self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")
@@ -668,7 +670,7 @@ class TestEpubNotes(unittest.TestCase):
         #         chapter_found = True
         #         break
         # self.assertTrue(chapter_found, f"Chapter content for Kant style footnotes ('{chap_filename}') not found.")
-        
+
         # Check for CSS
         css_item = book.get_item_with_href('style/kant_notes.css')
         self.assertIsNotNone(css_item, "CSS file 'style/kant_notes.css' not found.")

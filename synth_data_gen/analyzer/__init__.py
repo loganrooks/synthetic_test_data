@@ -8,8 +8,8 @@ Provides tools for:
 - Round-trip validation of generated EPUBs
 """
 
-from .registry import PatternRegistry, PatternDefinition, PatternConstraint
-from .epub_analyzer import EpubAnalyzer, AnalysisResult, PatternMatch
+from .epub_analyzer import AnalysisResult, EpubAnalyzer, PatternMatch
+from .registry import PatternConstraint, PatternDefinition, PatternRegistry
 
 __all__ = [
     "PatternRegistry",

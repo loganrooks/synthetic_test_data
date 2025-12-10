@@ -1,6 +1,7 @@
-import os
-from ebooklib import epub, ITEM_DOCUMENT
+from ebooklib import epub
+
 from synth_data_gen.common.utils import _add_epub_chapters, _write_epub_file
+
 
 def create_epub2_with_guide(filename="epub2_with_guide.epub", write_file=True):
     book = epub.EpubBook()
@@ -19,11 +20,11 @@ def create_epub2_with_guide(filename="epub2_with_guide.epub", write_file=True):
     chapter1_details = {
         "title": "Chapter 1",
         "file_name": "chapter1.xhtml",
-        "content": chapter1_content.encode('utf-8'), 
+        "content": chapter1_content.encode('utf-8'),
         "uid": "ch1" # This uid will be used for the EpubHtml item's id and the Link's uid
     }
     chapters_details = [chapter1_details]
-    epub_html_chapters, toc_link_items = _add_epub_chapters(book, chapters_details, {}) 
+    epub_html_chapters, toc_link_items = _add_epub_chapters(book, chapters_details, {})
 
     # Create NAV document (HTML ToC for guide, also used by EPUB3 if it were EPUB3)
     nav_xhtml_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -49,15 +50,15 @@ def create_epub2_with_guide(filename="epub2_with_guide.epub", write_file=True):
 </body>
 </html>
 """
-    nav_doc = epub.EpubHtml(title='Table of Contents', file_name='nav.xhtml', lang='en', uid='nav_xhtml_toc') 
-    nav_doc.content = nav_xhtml_content.encode('utf-8') 
+    nav_doc = epub.EpubHtml(title='Table of Contents', file_name='nav.xhtml', lang='en', uid='nav_xhtml_toc')
+    nav_doc.content = nav_xhtml_content.encode('utf-8')
     book.add_item(nav_doc)
-    
+
     # Set NCX data (machine-readable ToC for EPUB2)
     # toc_link_items is a list of epub.Link objects from _add_epub_chapters
     book.toc = tuple(toc_link_items)
     book.add_item(epub.EpubNcx()) # Explicitly add NCX item using the correct class
-    
+
     # Define Guide items (EPUB2 specific semantic references)
     book.guide = [
         {'type': 'cover', 'title': 'Cover Image', 'href': 'cover.xhtml'},
@@ -68,7 +69,7 @@ def create_epub2_with_guide(filename="epub2_with_guide.epub", write_file=True):
     # Define Spine (linear reading order)
     # Ensure UIDs match those of items added to book.items
     # The nav_doc (HTML ToC) is often included in the spine for EPUB2 if it's meant to be readable.
-    book.spine = [nav_doc.id, epub_html_chapters[0].id] 
+    book.spine = [nav_doc.id, epub_html_chapters[0].id]
 
     if write_file:
         _write_epub_file(book, filename)
@@ -123,14 +124,14 @@ def create_epub_spine_pagemap_ref(filename="spine_pagemap_ref.epub", write_file=
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
     book.toc = tuple(toc_links)
-    
+
     # Create page-map.xml content
     # For simplicity, assume page 1 of c1_pagemap.xhtml is the target
-    page_map_content = """<?xml version="1.0" encoding="UTF-8"?>
+    page_map_content = b"""<?xml version="1.0" encoding="UTF-8"?>
 <page-map xmlns="http://www.idpf.org/2007/opf">
     <page name="1" href="c1_pagemap.xhtml"/>
 </page-map>
-""".encode('utf-8')
+"""
 
     # Create EpubItem for page-map.xml
     page_map_item = epub.EpubItem(
@@ -148,7 +149,7 @@ def create_epub_spine_pagemap_ref(filename="spine_pagemap_ref.epub", write_file=
     # However, ebooklib's spine is a list of UIDs or (UID, linear_value).
     # For page-map, it's typically an attribute on the <spine> element itself: <spine toc="ncx" page-map="page_map_uid">
     # ebooklib handles this via book.page_map = page_map_item.id (or page_map_item.file_name if preferred by some readers)
-    
+
     book.page_map = page_map_item.id # Set the page_map attribute on the book object for ebooklib
 
     book.add_item(epub.EpubNcx())
@@ -162,7 +163,7 @@ def create_epub_structure_split_files(filename_pattern="split_file_chapter_{}.ep
     for i in range(1, num_splits + 1):
         book = epub.EpubBook()
         current_filename = filename_pattern.format(i)
-        
+
         book.set_identifier(f"urn:uuid:sample-split-file-{i}")
         book.set_title(f"Sample Split EPUB - Part {i}")
         book.set_language("en")
@@ -174,7 +175,7 @@ def create_epub_structure_split_files(filename_pattern="split_file_chapter_{}.ep
             "content": chapter_content.encode('utf-8'),
             "uid": f"split_ch_{i}"
         }
-        
+
         epub_chapters, toc_links = _add_epub_chapters(book, [chapter_details], {})
         book.toc = tuple(toc_links)
         book.spine = [epub_chapters[0].id]
@@ -204,10 +205,10 @@ def create_epub_structure_calibre_artifacts(filename="calibre_artifacts.epub", w
     }
     # Use _add_epub_chapters which adds to book.items
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter_details], {})
-    
+
     # Explicitly set spine
     book.spine = [epub_chapters[0].id]
-    
+
     # Set toc for NCX generation
     book.toc = tuple(toc_links)
 
@@ -236,7 +237,7 @@ def create_epub_structure_adobe_artifacts(filename="adobe_artifacts.epub", write
         "uid": "chap_adobe_uid"
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
-    
+
     book.toc = tuple(toc_links)
     book.spine = [epub_chapters[0].id]
     book.add_item(epub.EpubNcx())
@@ -272,11 +273,11 @@ def create_epub_accessibility_epub_type(filename="accessibility_epub_type.epub",
         "uid": "chap_access_uid"
     }
     epub_chapters, toc_links = _add_epub_chapters(book, [chapter1_details], {})
-    
+
     book.toc = tuple(toc_links)
     book.spine = [epub_chapters[0].id]
     book.add_item(epub.EpubNcx())
-    
+
     # Example of adding accessibility metadata (schema.org via link)
     # book.add_metadata(None, 'link', None, {'rel': 'dcterms:conformsTo', 'href': 'http://www.idpf.org/epub/a11y/accessibility-20170105.html#wcag-a'})
     # book.add_metadata(None, 'meta', None, {'property': 'schema:accessMode', 'content': 'textual'})

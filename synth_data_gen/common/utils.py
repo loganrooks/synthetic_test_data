@@ -22,7 +22,7 @@ MD_SUBDIR_NAME = "markdown" # Renamed to avoid conflict with MD_DIR
 
 def ensure_output_directories(base_dir: str):
     """Ensures all necessary output subdirectories exist within the given base_dir."""
-    
+
     # Ensure the base_dir itself exists
     os.makedirs(base_dir, exist_ok=True)
 
@@ -61,9 +61,9 @@ def _create_epub_book(identifier, title, author="Synthetic Data Generator", lang
         if author: book.add_author(author)
         book.add_metadata('DC', 'publisher', 'PhiloGraph Testing Inc.')
         book.add_metadata('DC', 'date', '2025-05-09', others={'event': 'publication'})
-    
+
     if custom_metadata: # For adding specific or overriding metadata
-        for prefix, name, value, others_dict in custom_metadata: 
+        for prefix, name, value, others_dict in custom_metadata:
             book.add_metadata(prefix, name, value, others=others_dict)
     return book
 
@@ -77,7 +77,7 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
         ch_filename = detail.get("filename", f"chap_{i+1:02}.xhtml")
         ch_content = detail.get("content", f"<h1>{ch_title}</h1><p>Content for {ch_title}.</p>")
         ch_uid = detail.get("uid", ch_filename.split('.')[0]) # Use filename as uid if not provided
-        
+
         chapter = epub.EpubHtml(title=ch_title, file_name=ch_filename, lang=book.language, uid=ch_uid)
         if isinstance(ch_content, str):
             chapter.content = ch_content.encode('utf-8')
@@ -92,7 +92,7 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
 
 def _write_epub_file(book, filepath):
     """Helper function to write the EPUB file, with basic custom file handling."""
-    
+
     # Standard EPUB writing
     epub.write_epub(filepath, book, {})
 

@@ -2,20 +2,19 @@
 Tests for the CLI module.
 """
 
-import pytest
-import sys
 import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import io
+
+import pytest
 
 from synth_data_gen.analyzer.cli import (
-    main,
-    cmd_discover,
     cmd_add_patterns,
-    cmd_validate,
     cmd_coverage,
+    cmd_discover,
     cmd_list,
+    cmd_validate,
+    main,
 )
 
 
@@ -167,6 +166,7 @@ class TestCmdAddPatterns:
     def test_empty_candidates(self, tmp_path, capsys):
         """Test handling empty candidates file."""
         import argparse
+
         import yaml
 
         candidates_file = tmp_path / "empty.yaml"
@@ -187,6 +187,7 @@ class TestCmdAddPatterns:
     def test_skip_decision(self, tmp_path, capsys):
         """Test handling skip decision."""
         import argparse
+
         import yaml
 
         candidates_file = tmp_path / "candidates.yaml"
@@ -212,8 +213,9 @@ class TestCmdAddPatterns:
     def test_new_pattern_decision(self, tmp_path, capsys):
         """Test handling new_pattern decision."""
         import argparse
-        import yaml
         import uuid
+
+        import yaml
 
         # Use unique pattern name to avoid conflicts with existing patterns
         unique_pattern_name = f"test_pattern_{uuid.uuid4().hex[:8]}"
@@ -254,6 +256,7 @@ class TestCmdValidate:
     def test_validate_all(self, mock_report, mock_validate, capsys):
         """Test validating all patterns."""
         import argparse
+
         from synth_data_gen.analyzer.validation import ValidationResult
 
         mock_validate.return_value = [
@@ -273,6 +276,7 @@ class TestCmdValidate:
     def test_validate_with_failures(self, mock_report, mock_validate, capsys):
         """Test validate command with failures returns non-zero."""
         import argparse
+
         from synth_data_gen.analyzer.validation import ValidationResult
 
         mock_validate.return_value = [
@@ -291,7 +295,7 @@ class TestCmdValidate:
     def test_validate_by_category(self, mock_report, mock_validate, capsys):
         """Test validating by category."""
         import argparse
-        from synth_data_gen.analyzer.validation import ValidationResult
+
 
         mock_validate.return_value = []
         mock_report.return_value = "Report"

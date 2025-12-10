@@ -1,6 +1,9 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_footnote_hegel_sol_ref(filename="footnote_hegel_sol_ref.epub"):
     """
@@ -38,7 +41,7 @@ This leads to further determinations.</p>
         {"title": "Doctrine of Being (SoL Footnote Refs)", "filename": "c1_hegel_sol_fnref.xhtml", "content": chapter_content}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_hegel_sol_fnref_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -80,7 +83,7 @@ Its realization requires further development through property, contract, and wro
         {"title": "Concept of Right (Author Notes)", "filename": "c1_hegel_por_author_fn.xhtml", "content": chapter_content}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_hegel_por_author_fn_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -129,7 +132,7 @@ def create_epub_footnote_marx_engels_reader(filename="footnote_marx_engels_reade
     notes_page.content = notes_content_xhtml
     notes_page.add_item(style_item)
     book.add_item(notes_page)
-    
+
     book.toc = (
         epub.Link(main_chap.file_name, "Critique of Gotha Program", "main_mer_toc"),
         epub.Link(notes_page.file_name, "Notes", "notes_mer_toc")
@@ -178,7 +181,7 @@ And more numbered insights.<a href="#fn-fnref_num2" id="fn_num2" class="fn-marcu
         {"title": "Marcuse Dual Notes", "filename": "c1_marcuse_dual_fn.xhtml", "content": chapter_content}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_marcuse_dual_fn_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -217,7 +220,7 @@ Identity thinking must be resisted.</p>
         {"title": "Adorno Unlinked Notes", "filename": "c1_adorno_unlinked_fn.xhtml", "content": chapter_content}
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_adorno_unlinked_fn_toc"),)
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -282,7 +285,7 @@ This critique aims to unsettle that dominance.</p>
     endnotes_page.content = endnotes_content
     endnotes_page.add_item(style_item)
     book.add_item(endnotes_page)
-    
+
     book.toc = (
         epub.Link(main_chap.file_name, "The End of the Book", "c1_gram_toc"),
         # Optionally list note files in NCX as per Derrida example in requirements
@@ -332,7 +335,7 @@ def create_epub_pippin_style_endnotes(filename="pippin_style_endnotes.epub"):
     )
     # Also ensure endnotes_page is part of the toc structure if not already handled by spine for linking
     book.add_item(epub.EpubNcx())
-    
+
     # Replace custom NavDoc with default EpubNav to address manifest issues
     # This will generate a nav.xhtml based on book.toc
     # The custom landmarks from the original nav_doc_content will be lost.
@@ -372,7 +375,7 @@ def create_epub_heidegger_ge_style_endnotes(filename="heidegger_ge_endnotes.epub
 
     chapter_details = [
         {
-            "title": "Chapter with Heidegger GE-Style Notes", 
+            "title": "Chapter with Heidegger GE-Style Notes",
             "filename": "chap_heidegger_ge.xhtml",
             "content": """
 <div class="title-chapter"><span class="b">The Essence of Truth</span></div>
@@ -388,7 +391,7 @@ Aletheia, or unhiddenness, becomes a key concept.</span></div>
         epub.Link(endnotes_page.file_name, "Notes", "hge_notes_toc")
     )
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
+    book.add_item(epub.EpubNav())
     book.spine = ['nav'] + chapters + [endnotes_page]
     _write_epub_file(book, filepath)
 
@@ -415,7 +418,7 @@ def create_epub_heidegger_metaphysics_style_footnotes(filename="heidegger_metaph
 
     chapter_details = [
         {
-            "title": "Chapter with Heidegger Metaphysics-Style Notes", 
+            "title": "Chapter with Heidegger Metaphysics-Style Notes",
             "filename": "chap_heidegger_meta_fn.xhtml",
             "content": """
 <h1><span class="chapterNumber">1</span> <span class="chapterTitle">The Question of Being Revisited</span></h1>
@@ -435,11 +438,11 @@ This is not a question about beings, but Being itself.</p>
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, "Chapter 1", "chap_hm_toc"),)
-    
+
     nav_doc_item = epub.EpubNav() # Basic NavDoc
     book.add_item(nav_doc_item)
     book.add_item(epub.EpubNcx()) # For backward compatibility
-    
+
     book.spine = ['nav'] + chapters # 'nav' refers to EpubNav
     _write_epub_file(book, filepath)
 
@@ -564,7 +567,7 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
 
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap1_kant"),)
-    
+
     # Add NCX and Nav items
     ncx = epub.EpubNcx()
     nav = epub.EpubNav()
@@ -600,7 +603,7 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
     nav.content = nav_content_str.encode('utf-8') # ebooklib expects bytes for nav content
 
     book.spine = ['nav'] + chapters
-    
+
 
     _write_epub_file(book, filepath)
 
@@ -625,7 +628,7 @@ def create_epub_hegel_sol_style_footnotes(filename="hegel_sol_footnotes.epub"):
 
     chapter_details = [
         {
-            "title": "Chapter with Hegelian Footnotes", 
+            "title": "Chapter with Hegelian Footnotes",
             "filename": "chap_hegel_sol_fn.xhtml",
             "content": """
 <h1>Chapter 1: Being, Nothing, Becoming</h1>
@@ -709,7 +712,7 @@ def create_epub_dual_note_system(filename="dual_note_system.epub"):
 
     chapter_details = [
         {
-            "title": "Chapter with Dual Notes", 
+            "title": "Chapter with Dual Notes",
             "filename": "chap_dual.xhtml",
             "content": """
 <h1>The State and Ethical Life</h1>
@@ -726,12 +729,12 @@ The individual achieves true self-consciousness through participation in these u
         }
     ]
     chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = (
         epub.Link(chapters[0].file_name, "Chapter Dual Notes", "chap_dual_toc"),
         epub.Link(editor_endnotes_page.file_name, "Editor's Endnotes", "editor_notes_toc")
     )
     book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav()) 
+    book.add_item(epub.EpubNav())
     book.spine = ['nav'] + chapters + [editor_endnotes_page]
     _write_epub_file(book, filepath)

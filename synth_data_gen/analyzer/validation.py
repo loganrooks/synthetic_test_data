@@ -8,14 +8,14 @@ Validates that the library can correctly generate and detect its own patterns:
 4. Verify the pattern is detected
 """
 
-import tempfile
 import shutil
-from pathlib import Path
-from typing import Optional, Tuple, List
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional
 
-from .registry import PatternRegistry, PatternDefinition
-from .epub_analyzer import EpubAnalyzer, AnalysisResult
+from .epub_analyzer import EpubAnalyzer
+from .registry import PatternDefinition, PatternRegistry
 
 
 @dataclass

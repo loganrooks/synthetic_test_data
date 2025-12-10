@@ -4,14 +4,14 @@ EPUB Analyzer for detecting formatting patterns.
 Parses EPUB files and identifies which patterns from the registry they use.
 """
 
-import zipfile
 import re
+import zipfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Set
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 from xml.etree import ElementTree as ET
 
-from .registry import PatternRegistry, PatternDefinition
+from .registry import PatternDefinition, PatternRegistry
 
 
 @dataclass

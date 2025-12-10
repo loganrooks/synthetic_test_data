@@ -28,7 +28,7 @@ class ConfigLoader:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Configuration file not found at {file_path}")
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 data = yaml.safe_load(f)
             return data if data is not None else {}
         except yaml.YAMLError as e:
@@ -50,7 +50,7 @@ class ConfigLoader:
             try:
                 return self._load_single_config_file(self.default_config_path)
             except (FileNotFoundError, yaml.YAMLError):
-                return {} 
+                return {}
         return {}
 
     def _merge_configs(self, base: dict, override: dict) -> dict:

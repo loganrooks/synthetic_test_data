@@ -6,14 +6,13 @@ Consolidated from:
 - tests/test_config_loader.py (pytest-style)
 """
 import copy
-import os
+
+import jsonschema
 import pytest
 import yaml
-import jsonschema
 
-from synth_data_gen.core.config_loader import ConfigLoader
 from synth_data_gen import InvalidConfigError
-
+from synth_data_gen.core.config_loader import ConfigLoader
 
 # =============================================================================
 # Fixtures

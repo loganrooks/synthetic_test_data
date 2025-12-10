@@ -9,13 +9,13 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Type
 
-from .constants import GeneratorType, FileExtension
+from .common.utils import ensure_output_directories
+from .constants import FileExtension, GeneratorType
 from .core.base import BaseGenerator
 from .core.config_loader import ConfigLoader
 from .generators.epub import EpubGenerator
-from .generators.pdf import PdfGenerator
 from .generators.markdown import MarkdownGenerator
-from .common.utils import ensure_output_directories
+from .generators.pdf import PdfGenerator
 
 # Configure module logger
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ def generate_data(
 
     global_settings = config.get("global_settings", {})
     base_output_dir = output_dir_override if output_dir_override else config.get("output_directory_base", "synthetic_output")
-    
+
     ensure_output_directories(base_output_dir)
 
     generated_files: List[str] = []

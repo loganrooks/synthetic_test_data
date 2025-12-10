@@ -145,7 +145,7 @@ class BaseGenerator(ABC):
                         else:
                             logger.warning("Invalid if_false structure in probabilistic config '%s': %s. Defaulting to 0.", context_key_name, if_false_config)
                             determined_count = 0
-                
+
                 if max_total_val is not None:
                     if not (isinstance(max_total_val, int) and max_total_val >= 0):
                         logger.warning("Invalid max_total value for probabilistic config '%s': %s. Ignoring max_total.", context_key_name, max_total_val)

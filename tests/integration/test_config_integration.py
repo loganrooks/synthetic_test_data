@@ -6,13 +6,14 @@ These tests verify that:
 2. Config from file_types[].<type>_specific_settings is passed to generators
 3. Default configs are merged with user configs
 """
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from synth_data_gen import generate_data
 from synth_data_gen.generators.epub import EpubGenerator
-from synth_data_gen.generators.pdf import PdfGenerator
 from synth_data_gen.generators.markdown import MarkdownGenerator
+from synth_data_gen.generators.pdf import PdfGenerator
 
 
 @pytest.fixture
