@@ -46,6 +46,9 @@ synthetic_output/
 *.epub
 *.pdf
 
+# Test artifacts
+synth_data_gen/analyzer/patterns/test_category.yaml
+
 # Environment and secrets
 .env
 .env.*
