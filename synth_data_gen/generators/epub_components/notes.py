@@ -37,7 +37,7 @@ This leads to further determinations.</p>
     chapter_details = [
         {"title": "Doctrine of Being (SoL Footnote Refs)", "filename": "c1_hegel_sol_fnref.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_hegel_sol_fnref_toc"),)
     book.add_item(epub.EpubNcx())
@@ -79,7 +79,7 @@ Its realization requires further development through property, contract, and wro
     chapter_details = [
         {"title": "Concept of Right (Author Notes)", "filename": "c1_hegel_por_author_fn.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_hegel_por_author_fn_toc"),)
     book.add_item(epub.EpubNcx())
@@ -177,7 +177,7 @@ And more numbered insights.<a href="#fn-fnref_num2" id="fn_num2" class="fn-marcu
     chapter_details = [
         {"title": "Marcuse Dual Notes", "filename": "c1_marcuse_dual_fn.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_marcuse_dual_fn_toc"),)
     book.add_item(epub.EpubNcx())
@@ -216,7 +216,7 @@ Identity thinking must be resisted.</p>
     chapter_details = [
         {"title": "Adorno Unlinked Notes", "filename": "c1_adorno_unlinked_fn.xhtml", "content": chapter_content}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_adorno_unlinked_fn_toc"),)
     book.add_item(epub.EpubNcx())
@@ -325,7 +325,7 @@ def create_epub_pippin_style_endnotes(filename="pippin_style_endnotes.epub"):
             "content": """<h1>Test Chapter Content</h1><p>This is test chapter content with a note.<a class="fnref" href="notes_pippin.xhtml#fn1" id="fnref1">1</a></p>"""
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (
         epub.Link(chapters[0].file_name, chapters[0].title, "chap_pippin_toc"),
         epub.Link(endnotes_page.file_name, "Notes", "pippin_notes_toc_ncx") # Ensure unique ID for NCX
@@ -382,7 +382,7 @@ Aletheia, or unhiddenness, becomes a key concept.</span></div>
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (
         epub.Link(chapters[0].file_name, "The Essence of Truth", "chap_hge_toc"),
         epub.Link(endnotes_page.file_name, "Notes", "hge_notes_toc")
@@ -433,7 +433,7 @@ This is not a question about beings, but Being itself.</p>
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, "Chapter 1", "chap_hm_toc"),)
     
     nav_doc_item = epub.EpubNav() # Basic NavDoc
@@ -461,7 +461,7 @@ def create_epub_same_page_footnotes(filename="same_page_footnotes.epub"):
 <p id="fn1" class="footnote"><a href="#fnref1">1.</a> This claim is often debated in AI ethics circles, particularly concerning generative models.</p>
 <p id="fn2" class="footnote"><a href="#fnref2">2.</a> See Turing's arguments on "Lady Lovelace's Objection" regarding machine originality.</p>
 </div>"""}]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_fn"),)
     book.add_item(epub.EpubNcx())
     nav = epub.EpubNav()
@@ -509,7 +509,7 @@ def create_epub_endnotes_separate_file(filename="endnotes_separate_file.epub"):
 <h1>Chapter 2: Power and Knowledge</h1>
 <p>Foucault explored the intricate relationship between power and knowledge systems.<sup id="enref3"><a href="endnotes.xhtml#en3">3</a></sup> His work has been influential in various disciplines.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, "Chapter 1", "chap1_end"), epub.Link(chapters[1].file_name, "Chapter 2", "chap2_end"), epub.Link(endnotes_page.file_name, "Endnotes", "endnotes_toc_link"))
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -561,7 +561,7 @@ def create_epub_kant_style_footnotes(filename="kant_style_footnotes.epub"):
         }
     ]
     # _add_epub_chapters adds chapters to book.items and links default_style_item
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
 
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap1_kant"),)
     
@@ -652,7 +652,7 @@ This initial triad sets the stage for the entire system.</p>
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "chap_hegel_sol_fn_toc"),)
     book.add_item(epub.EpubNcx())
     nav = epub.EpubNav()
@@ -725,7 +725,7 @@ The individual achieves true self-consciousness through participation in these u
 """
         }
     ]
-    chapters = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
     
     book.toc = (
         epub.Link(chapters[0].file_name, "Chapter Dual Notes", "chap_dual_toc"),

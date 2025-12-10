@@ -18,7 +18,7 @@ This simple text serves as a placeholder for such profound discussions.</p>"""},
 <p>Consider the nature of synthetic data: it mimics reality to test systems, yet it is not real. 
 This paradox itself could be a subject of philosophical thought.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "intro"), epub.Link(chapters[1].file_name, chapters[1].title, "thoughts"))
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -39,7 +39,7 @@ def create_epub_ncx_nested(filename="ncx_nested.epub"):
         {"title": "Section 1.2: Second Concept", "filename": "sec_1_2.xhtml", "content": "<h2>Section 1.2: Second Concept</h2><p>Exploring the second concept.</p>"},
         {"title": "Chapter 2: Advanced Topics", "filename": "chap_02.xhtml", "content": "<h1>Chapter 2: Advanced Topics</h1><p>Moving to more complex subjects.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     link_p1_intro = epub.Link(chapters[0].file_name, chapters[0].title, "p1intro_id")
     link_c1 = epub.Link(chapters[1].file_name, chapters[1].title, "c1_id")
     link_s1_1 = epub.Link(chapters[2].file_name, chapters[2].title, "s1_1_id")
@@ -77,7 +77,7 @@ def create_epub_html_toc_linked(filename="html_toc_linked.epub"):
         {"title": "Chapter 2: Developments", "filename": "chap_02.xhtml", "content": "<h1>Chapter 2: Developments</h1><p>Content for chapter 2.</p><h2 id='sec2.1'>Section 2.1: First Development</h2><p>Details of section 2.1.</p>"},
         {"title": "Chapter 3: Conclusions", "filename": "chap_03.xhtml", "content": "<h1>Chapter 3: Conclusions</h1><p>Content for chapter 3.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0]) for ch in chapters)
     book.add_item(epub.EpubNcx())
     nav_doc = epub.EpubNav()
@@ -178,7 +178,7 @@ def create_epub_missing_ncx(filename="missing_ncx.epub"):
         {"title": "Chapter Alpha", "filename": "c_alpha.xhtml", "content": "<h1>Chapter Alpha</h1><p>Content relying on NavDoc.</p>"},
         {"title": "Chapter Beta", "filename": "c_beta.xhtml", "content": "<h1>Chapter Beta</h1><p>More content, NavDoc is key.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     
     nav_html_content=u"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
@@ -302,7 +302,7 @@ def create_epub_ncx_links_to_anchors(filename="ncx_links_to_anchors.epub"):
 <h2 id="sec2_1">Section 2.1</h2>
 <p>Content for section 2.1 of chapter 2.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     # Create NCX links to anchors
     toc_c1_main = epub.Link(chapters[0].file_name + "#main_title", "Chapter One: Anchors Away", "c1_main_anchor")
@@ -345,7 +345,7 @@ def create_epub_ncx_problematic_entries(filename="ncx_problematic_entries.epub")
         {"title": "Another Chapter", "filename": "c3_problem.xhtml",
          "content": """<h1>Yet Another Chapter</h1><p>More content here.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     book.toc = (
         epub.Link(chapters[0].file_name, chapters[0].title, "c1_problem_toc"),
@@ -380,7 +380,7 @@ def create_epub_ncx_inconsistent_depth(filename="ncx_inconsistent_depth.epub"):
         {"title": "Section 2.1 (Under Chapter 2)", "filename": "c2s1_depth.xhtml", "content": "<h2>Section 2.1</h2>"},
         {"title": "Standalone Chapter 3", "filename": "c3_depth.xhtml", "content": "<h1>Standalone Chapter 3</h1>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     # Intentionally create a TOC structure that might imply certain depths,
     # but the actual content structure or a manually edited NCX could differ.
@@ -421,7 +421,7 @@ def create_epub_ncx_lists_footnote_files(filename="ncx_lists_footnote_files.epub
 <p>Some text that refers to a footnote.<sup><a href="../footnotes/fn_c1_01.xhtml#fn1">1</a></sup></p>
 <p>More text with another reference.<sup><a href="../footnotes/fn_c1_02.xhtml#fn2">2</a></sup></p>"""},
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     # Create dummy footnote files (these would typically be in a separate dir)
     fn1_content = "<html><body><p id='fn1'>1. This is the first footnote, in its own file.</p></body></html>"
@@ -489,7 +489,7 @@ def create_epub_html_toc_p_tags(filename="html_toc_p_tags.epub"):
         {"title": "Part II", "filename": "part2.xhtml", "content": p2_content},
         {"title": "Part II - Ch1", "filename": "part2_chap1.xhtml", "content": p2_c1_content},
     ]
-    chapters = _add_epub_chapters(book, chapters_data)
+    chapters, _toc_links = _add_epub_chapters(book, chapters_data)
     
     # Basic NCX for fallback for create_epub_html_toc_p_tags
     # chapters_data for create_epub_html_toc_p_tags has 5 items.
@@ -556,7 +556,7 @@ def create_epub_html_toc_non_linked(filename="html_toc_non_linked.epub"):
         {"title": "Chapter 2: Further Unlinked Thoughts", "filename": "c2_nonlinked.xhtml", "content": "<h1>Chapter 2</h1><p>Content for chapter 2.</p><h2>Section 2.1</h2><p>Detail.</p>"},
         {"title": "Chapter 3: Final Unlinked Words", "filename": "c3_nonlinked.xhtml", "content": "<h1>Chapter 3</h1><p>Content for chapter 3.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     
     # Basic NCX for fallback
     book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0] + "_nl") for ch in chapters)

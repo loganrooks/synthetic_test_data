@@ -25,7 +25,7 @@ def test_create_epub_ncx_simple(mocker: MockerFixture):
     mock_chapter2.file_name = "chap_02.xhtml"
     mock_chapter2.title = "Further Thoughts"
     
-    mock_add_chapters.return_value = [mock_chapter1, mock_chapter2]
+    mock_add_chapters.return_value = ([mock_chapter1, mock_chapter2], [])
 
     # Call the function to be tested
     toc.create_epub_ncx_simple(filename="test_ncx_simple.epub")
@@ -86,7 +86,7 @@ def test_create_epub_ncx_nested(mocker: MockerFixture):
     mock_s1_2 = mocker.MagicMock(spec=epub.EpubHtml, file_name="sec_1_2.xhtml", title="Section 1.2: Second Concept")
     mock_c2 = mocker.MagicMock(spec=epub.EpubHtml, file_name="chap_02.xhtml", title="Chapter 2: Advanced Topics")
     
-    mock_add_chapters.return_value = [mock_p1_intro, mock_c1, mock_s1_1, mock_ss1_1_1, mock_s1_2, mock_c2]
+    mock_add_chapters.return_value = ([mock_p1_intro, mock_c1, mock_s1_1, mock_ss1_1_1, mock_s1_2, mock_c2], [])
 
     toc.create_epub_ncx_nested(filename="test_ncx_nested.epub")
 
@@ -190,7 +190,7 @@ def test_create_epub_html_toc_linked(mocker: MockerFixture):
     mock_ch2 = mocker.MagicMock(spec=epub.EpubHtml, file_name="chap_02.xhtml", title="Chapter 2: Developments")
     mock_ch3 = mocker.MagicMock(spec=epub.EpubHtml, file_name="chap_03.xhtml", title="Chapter 3: Conclusions")
     
-    mock_add_chapters.return_value = [mock_ch1, mock_ch2, mock_ch3]
+    mock_add_chapters.return_value = ([mock_ch1, mock_ch2, mock_ch3], [])
 
     # We will find the HTML ToC page from the book's items after SUT call
     
@@ -341,7 +341,7 @@ def test_create_epub_missing_ncx(mocker: MockerFixture):
     
     mock_c_alpha = mocker.MagicMock(spec=epub.EpubHtml, file_name="c_alpha.xhtml", title="Chapter Alpha")
     mock_c_beta = mocker.MagicMock(spec=epub.EpubHtml, file_name="c_beta.xhtml", title="Chapter Beta")
-    mock_add_chapters.return_value = [mock_c_alpha, mock_c_beta]
+    mock_add_chapters.return_value = ([mock_c_alpha, mock_c_beta], [])
 
     # Mock the EpubHtml for NavDoc
     mock_nav_doc_item_instance = mocker.MagicMock(spec=epub.EpubHtml)
@@ -483,7 +483,7 @@ def test_create_epub_ncx_links_to_anchors(mocker: MockerFixture):
 
     mock_c1 = mocker.MagicMock(spec=epub.EpubHtml, file_name="c1_anchors.xhtml", title="Chapter One")
     mock_c2 = mocker.MagicMock(spec=epub.EpubHtml, file_name="c2_anchors.xhtml", title="Chapter Two")
-    mock_add_chapters.return_value = [mock_c1, mock_c2]
+    mock_add_chapters.return_value = ([mock_c1, mock_c2], [])
     
     added_items_capture = []
     def capture_add_item(item):
@@ -572,7 +572,7 @@ def test_create_epub_ncx_problematic_entries(mocker: MockerFixture):
     mock_c2_problem = mocker.MagicMock(spec=epub.EpubHtml, file_name="c2_problem.xhtml", title=long_title)
     mock_c3 = mocker.MagicMock(spec=epub.EpubHtml, file_name="c3_problem.xhtml", title="Another Chapter")
     
-    mock_add_chapters.return_value = [mock_c1, mock_c2_problem, mock_c3]
+    mock_add_chapters.return_value = ([mock_c1, mock_c2_problem, mock_c3], [])
     
     added_items_capture = []
     def capture_add_item(item):
@@ -624,7 +624,7 @@ def test_create_epub_ncx_inconsistent_depth(mocker: MockerFixture):
     mock_c2s1 = mocker.MagicMock(spec=epub.EpubHtml, file_name="c2s1_depth.xhtml", title="Section 2.1 (Under Chapter 2)")
     mock_c3 = mocker.MagicMock(spec=epub.EpubHtml, file_name="c3_depth.xhtml", title="Standalone Chapter 3")
     
-    mock_add_chapters.return_value = [mock_p1, mock_p1c1, mock_c2, mock_c2s1, mock_c3]
+    mock_add_chapters.return_value = ([mock_p1, mock_p1c1, mock_c2, mock_c2s1, mock_c3], [])
     
     added_items_capture = []
     def capture_add_item(item):
@@ -677,7 +677,7 @@ def test_create_epub_ncx_lists_footnote_files(mocker: MockerFixture):
 
     # Mock main chapter
     mock_main_c1 = mocker.MagicMock(spec=epub.EpubHtml, file_name="text_c1.xhtml", title="Main Text Chapter 1")
-    mock_add_chapters_util.return_value = [mock_main_c1] # _add_epub_chapters returns a list
+    mock_add_chapters_util.return_value = ([mock_main_c1], [])  # _add_epub_chapters returns (chapters, toc_links)
 
     # SUT creates footnote EpubHtml items directly. We'll capture them via add_item.
     added_items_capture = []
@@ -747,7 +747,7 @@ def test_create_epub_html_toc_p_tags(mocker: MockerFixture):
 
     # Mock chapters returned by _add_epub_chapters
     mock_chapters_list = [mocker.MagicMock(spec=epub.EpubHtml, file_name=f"file_{i}.xhtml", title=f"Title {i}") for i in range(5)]
-    mock_add_chapters_util.return_value = mock_chapters_list
+    mock_add_chapters_util.return_value = (mock_chapters_list, [])
     
     added_items_capture = []
     def capture_add_item(item):
@@ -802,7 +802,7 @@ def test_create_epub_html_toc_non_linked(mocker: MockerFixture):
 
     # Mock chapters returned by _add_epub_chapters
     mock_chapters_list = [mocker.MagicMock(spec=epub.EpubHtml, file_name=f"file_{i}.xhtml", title=f"Title {i}") for i in range(3)]
-    mock_add_chapters_util.return_value = mock_chapters_list
+    mock_add_chapters_util.return_value = (mock_chapters_list, [])
     
     added_items_capture = []
     def capture_add_item(item):
@@ -957,12 +957,14 @@ def test_create_nav_document_basic_structure(mocker: MockerFixture):
     mock_book_instance.title = "Test Nav Book"
     mock_book_instance.lang = "en"
     mock_book_instance.uid = "test_nav_uid"
-    mock_book_instance.toc = [] # Will be populated by create_nav_document or its helpers
-
+    # create_nav_document expects epub.Link objects or nested tuples of them for chapters_data
+    # and uses book.toc to generate the ToC HTML
     chapters_data = [
-        {'title': 'Chapter 1 Nav', 'href': 'ch1_nav.xhtml', 'uid': 'ch1_nav_uid', 'children': []},
-        {'title': 'Chapter 2 Nav', 'href': 'ch2_nav.xhtml', 'uid': 'ch2_nav_uid', 'children': []}
+        epub.Link('ch1_nav.xhtml', 'Chapter 1 Nav', 'ch1_nav_uid'),
+        epub.Link('ch2_nav.xhtml', 'Chapter 2 Nav', 'ch2_nav_uid')
     ]
+    # Set book.toc with the same links since the function uses book.toc for ToC generation
+    mock_book_instance.toc = chapters_data
     
     toc_settings = {
         "style": "navdoc_basic", # To guide NavDoc creation
