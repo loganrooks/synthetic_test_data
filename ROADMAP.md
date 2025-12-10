@@ -17,7 +17,7 @@ This section tracks the immediate priorities to make the package deployment-read
 | Task | Status | Notes |
 |------|--------|-------|
 | Fix 59 failing tests | ✅ Done | ConfigLoader API, EPUB components fixed |
-| Write analyzer module tests | ⬜ TODO | EPUB Pattern Analyzer needs test coverage |
+| Write analyzer module tests | ✅ Done | 81 tests added (registry, analyzer, validation, CLI) |
 | Set up GitHub Actions CI | ⬜ TODO | pytest, coverage reporting |
 | Expand README with examples | ⬜ TODO | Installation, usage, quick start |
 
