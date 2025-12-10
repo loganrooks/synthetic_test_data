@@ -1,0 +1,75 @@
+site_name: Synthetic Data Generator
+site_description: A Python library for generating synthetic test data in EPUB, PDF, and Markdown formats
+site_url: https://synth-data-gen.github.io/synth_data_gen
+repo_url: https://github.com/synth-data-gen/synth_data_gen
+repo_name: synth-data-gen/synth_data_gen
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+            docstring_style: google
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+  - User Guide:
+      - Configuration: user-guide/configuration.md
+      - EPUB Generation: user-guide/epub.md
+      - PDF Generation: user-guide/pdf.md
+      - Markdown Generation: user-guide/markdown.md
+  - CLI Reference:
+      - synth-data: cli/synth-data.md
+      - synth-analyze: cli/synth-analyze.md
+  - API Reference:
+      - Core: api/core.md
+      - Generators: api/generators.md
+      - Analyzer: api/analyzer.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - ADRs: architecture/adrs.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/synth-data-gen/synth_data_gen

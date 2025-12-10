@@ -1,6 +1,9 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_citation_kant_intext(filename="citation_kant_intext.epub"):
     """
@@ -121,14 +124,14 @@ for example, <a epub:type="biblioref" href="bibliography_rosen.xhtml#hegel1802" 
     bib_page.content = bib_content
     # bib_page.add_item(style_item) # Already linked in HTML
     book.add_item(bib_page)
-    
+
     book.toc = (
         epub.Link(main_chap.file_name, "Hegel's Early Writings", "c1_rosen_bibref_toc"),
         epub.Link(bib_page.file_name, "Bibliography", "bib_rosen_bibref_toc")
     )
     book.add_item(epub.EpubNcx())
     nav_doc = epub.EpubNav() # Basic NavDoc
-    nav_doc.html_content = u"""<?xml version="1.0" encoding="UTF-8"?>
+    nav_doc.html_content = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head><title>Nav</title></head>
@@ -144,6 +147,6 @@ for example, <a epub:type="biblioref" href="bibliography_rosen.xhtml#hegel1802" 
 </body></html>"""
     nav_doc.properties.append('nav')
     book.add_item(nav_doc)
-    
+
     book.spine = [nav_doc, main_chap, bib_page]
     _write_epub_file(book, filepath)

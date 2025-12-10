@@ -1,0 +1,132 @@
+# Header/title pattern definitions
+# Source: docs/epub_formatting_analysis_report.md
+
+patterns:
+  h1_h6_standard:
+    category: "header_pattern"
+    description: "Standard HTML headers h1-h6"
+    source_examples:
+      - "Most EPUB files"
+    epub_versions: [2, 3]
+    detection_signature:
+      standard_headers:
+        required: true
+        tags: ["h1", "h2", "h3", "h4", "h5", "h6"]
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "standard"
+
+  headers_with_classes:
+    category: "header_pattern"
+    description: "Headers with semantic classes (cn, ct, ah)"
+    source_examples:
+      - "Robert B. Pippin - Hegel's Realm of Shadows"
+    epub_versions: [2, 3]
+    detection_signature:
+      standard_headers:
+        required: true
+      header_classes:
+        - "cn"  # Chapter number
+        - "ct"  # Chapter title
+        - "ah"  # Subheader
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "classed"
+      header_classes:
+        chapter_number: "cn"
+        chapter_title: "ct"
+        subheader: "ah"
+
+  styled_p_headers:
+    category: "header_pattern"
+    description: "Headers using styled <p> tags instead of h1-h6"
+    source_examples:
+      - "Byung-Chul Han works"
+    epub_versions: [2, 3]
+    detection_signature:
+      styled_p:
+        required: true
+        selector: "p.head, p.title, p.chapter-title"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "styled_p"
+      header_element: "p"
+
+  div_headers:
+    category: "header_pattern"
+    description: "Headers using <div> elements"
+    source_examples:
+      - "Kaplan works"
+      - "Baudrillard works"
+    epub_versions: [2, 3]
+    detection_signature:
+      div_headers:
+        required: true
+        selector: "div.chapter-title, div.section-title"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "div"
+      header_element: "div"
+
+  combined_number_title:
+    category: "header_pattern"
+    description: "Separate elements for chapter number and title"
+    source_examples:
+      - "Charles Taylor - Hegel"
+      - "Fredric Jameson works"
+    epub_versions: [2, 3]
+    detection_signature:
+      standard_headers:
+        required: true
+      combined:
+        number_element: "h3.h1 span.small"
+        title_element: "h3.h3a"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "combined"
+      chapter_number_element: "h3"
+      chapter_number_class: "h1"
+      chapter_title_element: "h3"
+      chapter_title_class: "h3a"
+
+  headers_with_edition_markers:
+    category: "header_pattern"
+    description: "Headers containing edition markers like [A 19/B 33]"
+    source_examples:
+      - "Kant - Critique of Pure Reason"
+    epub_versions: [2, 3]
+    detection_signature:
+      standard_headers:
+        required: true
+      edition_markers:
+        pattern: "\\[A \\d+/B \\d+\\]"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "standard"
+      include_edition_markers: true
+      edition_marker_format: "[A {a}/B {b}]"
+
+  headers_with_page_section_markers:
+    category: "header_pattern"
+    description: "Headers with page/section markers (e.g., 21.27)"
+    source_examples:
+      - "Hegel - Science of Logic"
+    epub_versions: [2, 3]
+    detection_signature:
+      standard_headers:
+        required: true
+      page_section_markers:
+        selector: "span.calibre40"
+        pattern: "\\d+\\.\\d+"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      header_style: "standard"
+      include_section_markers: true
+      section_marker_format: "{section}.{paragraph}"

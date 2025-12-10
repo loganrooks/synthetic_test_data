@@ -1,10 +1,11 @@
 import os
 import unittest
-from unittest.mock import patch, MagicMock
-from ebooklib import epub # Reverted to original import
 
-from synth_data_gen.generators.epub_components import citations
+from ebooklib import epub  # Reverted to original import
+
 from synth_data_gen.common.utils import EPUB_DIR
+from synth_data_gen.generators.epub_components import citations
+
 
 class TestEpubCitations(unittest.TestCase):
 
@@ -29,11 +30,11 @@ class TestEpubCitations(unittest.TestCase):
         """
         filename = "citation_kant_intext.epub"
         expected_filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
-        
+
         # Ensure file doesn't exist before test
         if os.path.exists(expected_filepath):
             os.remove(expected_filepath)
-            
+
         citations.create_epub_citation_kant_intext(filename=filename)
         self.assertTrue(os.path.exists(expected_filepath))
 
@@ -43,10 +44,10 @@ class TestEpubCitations(unittest.TestCase):
         """
         filename = "citation_kant_intext.epub"
         citations.create_epub_citation_kant_intext(filename=filename)
-        
+
         filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
         book = epub.read_epub(filepath) # Use epub.read_epub
-        
+
         # Check for CSS style
         css_found = False
         style_item_content = None
@@ -81,10 +82,10 @@ class TestEpubCitations(unittest.TestCase):
         """
         filename = "citation_taylor_intext_italic.epub"
         expected_filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
-        
+
         if os.path.exists(expected_filepath):
             os.remove(expected_filepath)
-            
+
         citations.create_epub_citation_taylor_intext_italic(filename=filename)
         self.assertTrue(os.path.exists(expected_filepath))
 
@@ -94,10 +95,10 @@ class TestEpubCitations(unittest.TestCase):
         """
         filename = "citation_taylor_intext_italic.epub"
         citations.create_epub_citation_taylor_intext_italic(filename=filename)
-        
+
         filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
         book = epub.read_epub(filepath)
-        
+
         # Check for CSS style
         css_found = False
         style_item_content = None
@@ -125,10 +126,10 @@ class TestEpubCitations(unittest.TestCase):
         """
         filename = "citation_rosenzweig_biblioref.epub"
         expected_filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
-        
+
         if os.path.exists(expected_filepath):
             os.remove(expected_filepath)
-            
+
         citations.create_epub_citation_rosenzweig_biblioref(filename=filename)
         self.assertTrue(os.path.exists(expected_filepath))
 
@@ -138,10 +139,10 @@ class TestEpubCitations(unittest.TestCase):
         """
         filename = "citation_rosenzweig_biblioref.epub"
         citations.create_epub_citation_rosenzweig_biblioref(filename=filename)
-        
+
         filepath = os.path.join(EPUB_DIR, "citations_bibliography", filename)
         book = epub.read_epub(filepath)
-        
+
         # Check for CSS style for biblioref
         css_found = False
         style_item_content = None
@@ -175,7 +176,7 @@ class TestEpubCitations(unittest.TestCase):
                     biblioentry_found_in_bib = True
                 if 'epub:type="backlink" href="c1_rosen_bibref.xhtml#ref_hegel1802"' in content:
                     backlink_found_in_bib = True
-        
+
         self.assertTrue(bibliography_page_exists, f"Bibliography page '{bib_page_filename}' not found.")
         self.assertTrue(biblioref_found_in_main, "epub:type=\"biblioref\" not found in main chapter.")
         self.assertTrue(biblioentry_found_in_bib, "epub:type=\"biblioentry\" not found in bibliography page.")

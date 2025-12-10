@@ -1,16 +1,20 @@
+import json  # For JSON frontmatter
+import logging
 import os
-import json # For JSON frontmatter
 import random
-from typing import Any, Dict, List
+from typing import Any, Dict
 
+from ..common.utils import ensure_output_directories
+from ..constants import FrontmatterStyle, GeneratorType
 from ..core.base import BaseGenerator
-from ..common.utils import ensure_output_directories # Assuming MD_DIR is handled by output_path
+
+logger = logging.getLogger(__name__)
 
 class MarkdownGenerator(BaseGenerator):
     """
     Generator for Markdown files.
     """
-    GENERATOR_ID = "markdown"
+    GENERATOR_ID = GeneratorType.MARKDOWN.value
 
     def get_default_specific_config(self) -> Dict[str, Any]:
         """
@@ -32,7 +36,7 @@ class MarkdownGenerator(BaseGenerator):
             },
             "frontmatter": {
                 "include_chance": 1.0,
-                "style": "yaml", # yaml, toml, json
+                "style": FrontmatterStyle.YAML.value,
                 "fields": {
                     "title": True, "author": True, "date": "2025-01-01",
                     "tags": ["synthetic", "test"], "custom_fields": []
@@ -46,47 +50,61 @@ class MarkdownGenerator(BaseGenerator):
             return False
         # Add Markdown-specific validation logic here
         if "md_variant" not in specific_config:
-            print("Warning: md_variant not specified, using default.")
+            logger.warning("md_variant not specified, using default.")
         return True
 
     def _generate_frontmatter(self, config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
         fm_config = config.get("frontmatter", {})
         # The include_chance check is now done in the main generate() method before this is called.
 
-        style = fm_config.get("style", "yaml")
+        style = fm_config.get("style", FrontmatterStyle.YAML.value)
         fields = fm_config.get("fields", {})
-        
+
         title = fields.get("title")
-        if title is True: title = config.get("title", "Synthetic Markdown Document") # Get from main config if True
-        elif not isinstance(title, str): title = "Default Title"
+        if title is True:
+            title = config.get("title", "Synthetic Markdown Document")
+        elif not isinstance(title, str):
+            title = "Default Title"
 
         author = fields.get("author")
-        if author is True: author = global_config.get("default_author", "Synthetic Author")
-        elif not isinstance(author, str): author = "Default Author"
-        
-        date_val = fields.get("date", "YYYY-MM-DD") # Placeholder
-        tags = fields.get("tags", ["test"])
-        custom_fields = fields.get("custom_fields", []) # Expects list of {"key": "k", "value": "v"}
+        if author is True:
+            author = global_config.get("default_author", "Synthetic Author")
+        elif not isinstance(author, str):
+            author = "Default Author"
 
-        if style == "yaml":
+        date_val = fields.get("date", "YYYY-MM-DD")
+        tags = fields.get("tags", ["test"])
+        custom_fields = fields.get("custom_fields", [])
+
+        if style == FrontmatterStyle.YAML.value:
             lines = ["---"]
-            if title: lines.append(f"title: {title}")
-            if author: lines.append(f"author: {author}")
-            if date_val: lines.append(f"date: {date_val}")
-            if tags: lines.append(f"tags: {json.dumps(tags)}") # Ensure proper list format
-            for cf in custom_fields: lines.append(f"{cf.get('key', 'custom')}: {cf.get('value', 'default')}")
+            if title:
+                lines.append(f"title: {title}")
+            if author:
+                lines.append(f"author: {author}")
+            if date_val:
+                lines.append(f"date: {date_val}")
+            if tags:
+                lines.append(f"tags: {json.dumps(tags)}")
+            for cf in custom_fields:
+                lines.append(f"{cf.get('key', 'custom')}: {cf.get('value', 'default')}")
             lines.append("---")
             return "\n".join(lines) + "\n\n"
-        elif style == "toml":
+        elif style == FrontmatterStyle.TOML.value:
             lines = ["+++"]
-            if title: lines.append(f'title = "{title}"')
-            if author: lines.append(f'author = "{author}"')
-            if date_val: lines.append(f'date = "{date_val}"')
-            if tags: lines.append(f'tags = {json.dumps(tags)}') # TOML array
-            for cf in custom_fields: lines.append(f'{cf.get("key", "custom")} = "{cf.get("value", "default")}"')
+            if title:
+                lines.append(f'title = "{title}"')
+            if author:
+                lines.append(f'author = "{author}"')
+            if date_val:
+                lines.append(f'date = "{date_val}"')
+            if tags:
+                lines.append(f'tags = {json.dumps(tags)}')
+            for cf in custom_fields:
+                lines.append(f'{cf.get("key", "custom")} = "{cf.get("value", "default")}"')
             lines.append("+++")
             return "\n".join(lines) + "\n\n"
-        elif style == "json":
+        elif style == FrontmatterStyle.JSON.value:
             fm_obj = {}
             if title: fm_obj["title"] = title
             if author: fm_obj["author"] = author
@@ -102,13 +120,13 @@ class MarkdownGenerator(BaseGenerator):
         Generates a single Markdown file.
         """
         ensure_output_directories(os.path.dirname(output_path))
-        
+
         content = ""
         fm_config = specific_config.get("frontmatter", {})
         # Check include_chance before calling _generate_frontmatter
         # Handles float chance vs random.random(), and exact 1.0 for definite inclusion, 0.0 for definite exclusion.
         should_include_frontmatter_val = fm_config.get("include_chance", 0.0)
-        
+
         if isinstance(should_include_frontmatter_val, float):
             if should_include_frontmatter_val == 1.0: # Definite include
                 content = self._generate_frontmatter(specific_config, global_config)
@@ -119,7 +137,7 @@ class MarkdownGenerator(BaseGenerator):
         elif isinstance(should_include_frontmatter_val, int) and should_include_frontmatter_val == 1: # Handles integer 1
              content = self._generate_frontmatter(specific_config, global_config)
         # If integer 0, do nothing.
-        
+
         variant = specific_config.get("md_variant", "basic_elements")
 
         if variant == "basic_elements":
@@ -151,14 +169,14 @@ The YAML frontmatter above contains intentional syntax errors.
         elif variant == "with_latex":
             content += self._create_md_with_latex_content(specific_config, global_config)
         else:
-            print(f"Warning: Unknown Markdown variant '{variant}'. Generating basic elements.")
+            logger.warning("Unknown Markdown variant '%s'. Generating basic elements.", variant)
             content += self._create_md_basic_elements_content(specific_config, global_config)
 
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(content)
         except Exception as e:
-            print(f"Error creating Markdown {output_path}: {e}") # Consider raising GeneratorError
+            logger.error("Error creating Markdown %s: %s", output_path, e)
             # Or return an error status/message
         return output_path
 
@@ -193,7 +211,7 @@ The YAML frontmatter above contains intentional syntax errors.
         # Keep other basic elements for now, will be driven by their own configs later
         content += "This document serves as a basic test for Markdown parsing.\n"
         content += "We explore *italicized text* and **bold text**. `inline code`.\n"
-        
+
         if num_list_items > 0:
             content += "\n" # Add a newline before the list
             for i in range(num_list_items):
@@ -202,7 +220,7 @@ The YAML frontmatter above contains intentional syntax errors.
                 current_nest_level = i % nest_depth_val if nest_depth_val > 0 else 0
                 content += self._create_md_list_item(specific_config, global_config, nest_level=current_nest_level)
             content += "\n" # Add a newline after the list
-        
+
         content += "A link to a [resource](https://example.com/).\n"
 
         if num_images > 0:
@@ -210,13 +228,13 @@ The YAML frontmatter above contains intentional syntax errors.
             for _ in range(num_images): # Iterate num_images times
                 content += self._create_md_image(specific_config, global_config)
             content += "\n"
-        
+
         content += "---\n> A blockquote.\n"
         return content
 
     def _create_md_extended_elements_content(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:
         gfm_config = specific_config.get("gfm_features", {})
-        
+
         content = "# Extended Markdown Features\n"
 
         # Config-driven table generation
@@ -231,7 +249,7 @@ The YAML frontmatter above contains intentional syntax errors.
                 content += "|---|---|---|\n"
                 content += "| Cell 1.1 | Cell 1.2 | Cell 1.3 |\n"
                 content += "| Cell 2.1 | Cell 2.2 | Cell 2.3 |\n\n"
-        
+
         # Config-driven code block generation
         code_blocks_config = gfm_config.get("md_code_blocks_config", {"count": 0, "include_code_blocks": False})
         num_code_blocks = 0
@@ -242,7 +260,7 @@ The YAML frontmatter above contains intentional syntax errors.
             content += "\n## Code Blocks\n"
             for _ in range(num_code_blocks):
                 content += self._create_md_code_block(specific_config, global_config)
-        
+
         # Config-driven footnote generation
         footnotes_config = gfm_config.get("md_footnotes_occurrence_config", {"count": 0})
         num_footnotes = self._determine_count(footnotes_config, "md_footnotes")
@@ -261,7 +279,7 @@ The YAML frontmatter above contains intentional syntax errors.
             content += "\n## Task Lists\n"
             for _ in range(num_task_lists):
                 content += self._create_md_task_list(specific_config, global_config)
-        
+
         return content
 
     def _create_md_with_embedded_html_content(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str:

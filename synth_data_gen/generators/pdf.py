@@ -1,18 +1,77 @@
+import io
+import logging
 import os
-from typing import Any, Dict, List
 import random
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.lib import colors # Added import
-from reportlab.lib.pagesizes import letter, A4, landscape
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import Paragraph, Spacer, SimpleDocTemplate, Table, TableStyle, Flowable, PageBreak
-from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
-from reportlab.lib import colors
+from typing import Any, Dict, List, Optional
 
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.pagesizes import A4, landscape, letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+from reportlab.platypus import (
+    Flowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+from ..common.utils import ensure_output_directories
+from ..constants import ConfigKeys, PdfVariant
 from ..core.base import BaseGenerator
-from ..common.utils import ensure_output_directories # Assuming PDF_DIR is handled by output_path logic
+
+logger = logging.getLogger(__name__)
+
+
+class TocAnchor(Flowable):
+    """
+    A zero-height flowable that marks positions for ToC page number tracking.
+    When rendered, it records the current page number to a shared dictionary.
+    """
+
+    def __init__(self, toc_key: str, page_tracker: Dict[str, int]):
+        """
+        Args:
+            toc_key: Unique identifier for this ToC entry
+            page_tracker: Shared dictionary to store page numbers
+        """
+        Flowable.__init__(self)
+        self.toc_key = toc_key
+        self.page_tracker = page_tracker
+        self.width = 0
+        self.height = 0
+
+    def draw(self):
+        """Record the current page number when this flowable is rendered."""
+        # canv is set by ReportLab during rendering
+        if hasattr(self, 'canv'):
+            page_num = self.canv.getPageNumber()
+            self.page_tracker[self.toc_key] = page_num
+
+
+class TocPlaceholder(Flowable):
+    """
+    A placeholder flowable for the ToC that will be replaced in the second pass.
+    Used to reserve space during the first pass page calculation.
+    """
+
+    def __init__(self, num_entries: int, entry_height: float = 14):
+        """
+        Args:
+            num_entries: Number of ToC entries to reserve space for
+            entry_height: Height per entry in points
+        """
+        Flowable.__init__(self)
+        self.width = 0  # Full width determined by container
+        self.height = num_entries * entry_height + 20  # Extra padding
+
+    def draw(self):
+        """Placeholder doesn't draw anything - just reserves space."""
+        pass
 
 class PdfGenerator(BaseGenerator):
     """
@@ -32,7 +91,7 @@ class PdfGenerator(BaseGenerator):
                 "columns": 1,
                 "margins_mm": {"top": 20, "bottom": 20, "left": 25, "right": 25}
             },
-            "base_font_family": "Times New Roman",
+            "base_font_family": "Helvetica",  # ReportLab built-in font
             "base_font_size_pt": 12,
             "running_header": {"enable": True, "right_content": "Page {page_number}"},
             "running_footer": {"enable": False},
@@ -40,7 +99,7 @@ class PdfGenerator(BaseGenerator):
             "author": "Default PDF Author",
             "title": "Synthetic PDF Document",
             # Simplified for now, a more complete version would be derived from the spec
-            "pdf_variant": "single_column_text" # Added to select which creation function to call
+            ConfigKeys.PDF_VARIANT: PdfVariant.SINGLE_COLUMN_TEXT.value
         }
 
     def validate_config(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> bool:
@@ -48,7 +107,7 @@ class PdfGenerator(BaseGenerator):
             return False
         # Add PDF-specific validation logic here
         if "pdf_variant" not in specific_config:
-            print("Warning: pdf_variant not specified, using default.")
+            logger.warning("pdf_variant not specified, using default.")
         # Example: check if generation_method is valid
         # generation_method = specific_config.get("generation_method", "from_html")
         # if generation_method not in ["from_html", "direct_draw", "ocr_simulation"]:
@@ -61,24 +120,15 @@ class PdfGenerator(BaseGenerator):
         Generates a single PDF file based on the chosen variant in specific_config.
         """
         ensure_output_directories(os.path.dirname(output_path))
-        
-        variant = specific_config.get("pdf_variant", "single_column_text")
-        # For simplicity, we'll call the old functions directly, adapting them slightly.
-        # In a full refactor, their logic would be integrated more deeply.
 
-        # Adapt parameters for the chosen creation function
-        # The old functions took 'filename' which was just the basename.
-        # We now have 'output_path' which is the full path.
-        
-        # Note: The original functions print to console. This behavior might be
-        # undesirable in a library. Consider logging instead.
+        variant = specific_config.get(ConfigKeys.PDF_VARIANT, PdfVariant.SINGLE_COLUMN_TEXT.value)
 
         layout_config = specific_config.get("layout", {})
         num_columns = layout_config.get("columns", 1)
 
-        if variant == "multi_column_text" or (variant == "single_column_text" and num_columns == 2):
+        if variant == PdfVariant.MULTI_COLUMN_TEXT.value or (variant == PdfVariant.SINGLE_COLUMN_TEXT.value and num_columns == 2):
             self._create_pdf_text_multi_column(output_path, specific_config, global_config)
-        elif variant == "single_column_text": # Handles num_columns == 1 or not specified
+        elif variant == PdfVariant.SINGLE_COLUMN_TEXT.value:
             self._create_pdf_text_single_column(output_path, specific_config, global_config)
         elif variant == "text_flow_around_image":
             self._create_pdf_text_flow_around_image(output_path, specific_config, global_config)
@@ -86,25 +136,22 @@ class PdfGenerator(BaseGenerator):
             self._create_pdf_simulated_ocr_high_quality(output_path, specific_config, global_config)
         elif variant == "with_bookmarks":
             self._create_pdf_with_bookmarks(output_path, specific_config, global_config)
-        elif variant == "visual_toc_hyperlinked":
-            visual_toc_config = specific_config.get("visual_toc", {})
-            if visual_toc_config.get("enable", True): # Default to True if 'enable' is missing for this variant
+        elif variant == PdfVariant.VISUAL_TOC_HYPERLINKED.value:
+            visual_toc_config = specific_config.get(ConfigKeys.VISUAL_TOC, {})
+            if visual_toc_config.get(ConfigKeys.ENABLE, True):
                 self._create_pdf_visual_toc_hyperlinked(output_path, specific_config, global_config)
             else:
-                # Fallback if ToC is explicitly disabled for this variant
-                print(f"Info: Visual ToC variant selected but 'visual_toc.enable' is false. Generating single_column_text instead.")
+                logger.info("Visual ToC variant selected but 'visual_toc.enable' is false. Generating single_column_text instead.")
                 self._create_pdf_text_single_column(output_path, specific_config, global_config)
-        elif variant == "running_headers_footers":
+        elif variant == PdfVariant.RUNNING_HEADERS_FOOTERS.value:
             self._create_pdf_running_headers_footers(output_path, specific_config, global_config)
-        elif variant == "bottom_page_footnotes":
+        elif variant == PdfVariant.BOTTOM_PAGE_FOOTNOTES.value:
             self._create_pdf_bottom_page_footnotes(output_path, specific_config, global_config)
-        elif variant == "simple_table":
+        elif variant == PdfVariant.SIMPLE_TABLE.value:
             self._create_pdf_simple_table(output_path, specific_config, global_config)
         else:
-            # Default to single column or raise an error for unknown variant
-            print(f"Warning: Unknown PDF variant '{variant}'. Generating single_column_text instead.")
+            logger.warning("Unknown PDF variant '%s'. Generating single_column_text instead.", variant)
             self._create_pdf_text_single_column(output_path, specific_config, global_config)
-            # Or raise GeneratorError(f"Unknown PDF variant: {variant}")
 
         return output_path
 
@@ -115,7 +162,7 @@ class PdfGenerator(BaseGenerator):
         layout_config = specific_config.get("layout_settings", {})
         page_margins_config = layout_config.get("page_margins", {"top_mm": 20, "bottom_mm": 20, "left_mm": 25, "right_mm": 25})
         page_setup_config = specific_config.get("page_setup", {})
-        
+
         # Convert mm to points for reportlab
         mm_to_points = 2.8346456693
         left_margin_pt = page_margins_config.get("left_mm", 25) * mm_to_points
@@ -129,7 +176,7 @@ class PdfGenerator(BaseGenerator):
         rotation = page_setup_config.get("rotation", 0)
 
         mixed_chance = specific_config.get("mixed_page_sizes_orientations_chance", 0.0)
-        if random.random() < mixed_chance:
+        if mixed_chance > 0.0 and random.random() < mixed_chance:
             possible_page_sizes = ["letter", "a4"]
             possible_orientations = ["portrait", "landscape"]
             possible_rotations = [0, 90, 180, 270] # Add 180 if SUT handles it later
@@ -154,9 +201,9 @@ class PdfGenerator(BaseGenerator):
         if rotation == 90 or rotation == 270:
             # Applying landscape effectively swaps width and height
             current_pagesize = landscape(current_pagesize)
-        
-        # TODO: Handle 180 rotation if it means flipping content,
-        # for now, it doesn't change dimensions.
+
+        # Note: 180-degree rotation is handled via page rotation metadata in onPage handler
+        # This sets the PDF /Rotate property which tells readers to display the page rotated
 
         doc = SimpleDocTemplate(
             filepath,
@@ -168,7 +215,7 @@ class PdfGenerator(BaseGenerator):
             topMargin=top_margin_pt,
             bottomMargin=bottom_margin_pt
         )
-        
+
         # Set additional metadata if provided in config
         if "subject" in specific_config:
             doc.subject = specific_config["subject"]
@@ -176,12 +223,12 @@ class PdfGenerator(BaseGenerator):
             doc.keywords = specific_config["keywords"]
         if "creator_tool" in specific_config:
             doc.creator = specific_config["creator_tool"]
-            
+
         styles = getSampleStyleSheet()
         styleN = styles['Normal']
         styleH1 = styles['h1']
         # styleH2 = styles['h2'] # Defined in _add_pdf_chapter_content now
-        
+
         # Apply font settings from config to normal style
         styleN.fontName = specific_config.get("base_font_family", "Helvetica")
         styleN.fontSize = specific_config.get("base_font_size_pt", 12)
@@ -193,7 +240,7 @@ class PdfGenerator(BaseGenerator):
 
 
         story: List[Any] = []
-        
+
         # Determine page count first, though its direct enforcement here is conceptual
         # The actual page count is an emergent property of content and flowables.
         # This call ensures _determine_count is exercised with page_count_config.
@@ -204,32 +251,60 @@ class PdfGenerator(BaseGenerator):
         story.append(p_title)
         story.append(Spacer(1, 0.2*inch))
 
-        # Add Visual ToC if enabled
+        # Visual ToC configuration
         visual_toc_config = specific_config.get("visual_toc", {})
-        if visual_toc_config.get("enable", False):
-            toc_flowables = self.get_visual_toc_flowables(specific_config, global_config)
-            story.extend(toc_flowables)
-            story.append(PageBreak()) # Add a page break after ToC
+        toc_enabled = visual_toc_config.get("enable", False)
 
+        # Page number tracker for two-pass ToC generation
+        page_tracker: Dict[str, int] = {}
+
+        # Get chapter details for ToC key generation
         chapters_config = specific_config.get("chapters_config", 1)
+        chapter_details = []
+        if isinstance(chapters_config, dict):
+            chapter_details = chapters_config.get("chapter_details", [])
         num_chapters_to_generate = self._determine_count(chapters_config, "chapters")
 
+        # Generate toc_keys for chapters
+        toc_keys = []
         for i in range(num_chapters_to_generate):
+            if i < len(chapter_details):
+                detail = chapter_details[i]
+                title = detail.get("title", f"Chapter {i+1}")
+                toc_key = detail.get("toc_key")
+                if not toc_key:
+                    toc_key = f"toc_item_{i}_{title.lower().replace(' ', '_').replace('.', '')}"
+            else:
+                toc_key = f"chapter_{i+1}"
+            toc_keys.append(toc_key)
+
+        # Add placeholder ToC (will be replaced in second pass if enabled)
+        toc_placeholder_index = len(story)  # Track where ToC should go
+        if toc_enabled:
+            # First pass: add placeholder to reserve space
+            story.append(TocPlaceholder(num_chapters_to_generate))
+            story.append(PageBreak())
+
+        # Add chapters with TocAnchor markers for page tracking
+        for i in range(num_chapters_to_generate):
+            # Add anchor to track page number
+            story.append(TocAnchor(toc_keys[i], page_tracker))
+
             chapter_title_str = f"Chapter {i+1}: A Synthetic Exploration"
             self._add_pdf_chapter_content(story, i + 1, chapter_title_str, specific_config, global_config)
-            if i < num_chapters_to_generate -1: # Add spacer between chapters, but not after the last one
-                 story.append(Spacer(1, 0.2*inch))
+            if i < num_chapters_to_generate - 1:
+                story.append(Spacer(1, 0.2*inch))
 
         # Add tables if configured
         table_generation_config = specific_config.get("table_generation", {})
         pdf_tables_occurrence_config = table_generation_config.get("pdf_tables_occurrence_config")
-        
+
         if pdf_tables_occurrence_config is not None:
             num_tables_to_generate = self._determine_count(pdf_tables_occurrence_config, "pdf_tables")
             for _ in range(num_tables_to_generate):
                 self._add_pdf_table_content(story, specific_config, global_config)
                 story.append(Spacer(1, 0.1*inch)) # Add some space after a table
-        
+
         # Add figures if configured
         figure_generation_config = specific_config.get("figure_generation", {})
         pdf_figures_occurrence_config = figure_generation_config.get("pdf_figures_occurrence_config")
@@ -241,7 +316,7 @@ class PdfGenerator(BaseGenerator):
                 current_figure_detail = figure_details_list[i] if i < len(figure_details_list) else {}
                 self._add_pdf_figure_content(story, current_figure_detail, figure_generation_config, global_config)
                 story.append(Spacer(1, 0.1*inch)) # Add some space after a figure
-        
+
 
         watermark_settings = specific_config.get("watermark_settings", {})
         watermark_enabled = watermark_settings.get("enable", False)
@@ -260,6 +335,13 @@ class PdfGenerator(BaseGenerator):
         # Let's create a combined handler.
 
         combined_on_page_items = []
+
+        # Add page rotation if non-zero (0, 90, 180, 270 are valid PDF rotation values)
+        if rotation in [90, 180, 270]:
+            combined_on_page_items.append(
+                {"type": "page_rotation", "rotation": rotation}
+            )
+
         if watermark_enabled:
             combined_on_page_items.append(
                 {"type": "watermark", "config": watermark_settings}
@@ -271,7 +353,7 @@ class PdfGenerator(BaseGenerator):
 
         if combined_on_page_items:
             from functools import partial
-            
+
             # Placeholder for actual page number and total pages, book title etc.
             # These would ideally be resolved dynamically or passed if available.
             book_title_val = specific_config.get("title", "Default Title")
@@ -283,22 +365,20 @@ class PdfGenerator(BaseGenerator):
 
             def _master_on_page_handler(canvas, doc, items, first_page: bool):
                 for item_spec in items:
-                    if item_spec["type"] == "watermark":
+                    if item_spec["type"] == "page_rotation":
+                        # Set PDF page rotation metadata (0, 90, 180, 270)
+                        # This tells PDF readers to display the page rotated
+                        canvas.setPageRotation(item_spec["rotation"])
+                    elif item_spec["type"] == "watermark":
                         if not first_page or item_spec["config"].get("include_on_first_page", True): # Default true for watermark
                              self._draw_watermark_wrapped_for_onpage(canvas, doc, item_spec["config"])
                     elif item_spec["type"] == "header_footer":
                         h_conf = item_spec["header_config"]
                         f_conf = item_spec["footer_config"]
-                        
+
                         # Header
                         if h_conf.get("enable", False):
-                            if first_page and h_conf.get("include_on_first_page", False):
-                                self._draw_page_header_footer(canvas, doc, h_conf, {},
-                                                              doc.page, # current page
-                                                              0, # total pages (unknown here)
-                                                              book_title_val, author_val, publisher_val, str(year_val),
-                                                              is_header=True)
-                            elif not first_page: # Always draw on later pages if enabled
+                            if first_page and h_conf.get("include_on_first_page", False) or not first_page:
                                 self._draw_page_header_footer(canvas, doc, h_conf, {},
                                                               doc.page, # current page
                                                               0, # total pages (unknown here)
@@ -306,33 +386,70 @@ class PdfGenerator(BaseGenerator):
                                                               is_header=True)
                         # Footer
                         if f_conf.get("enable", False):
-                            if first_page and f_conf.get("include_on_first_page", True): # Default true for footer on first page
+                            if first_page and f_conf.get("include_on_first_page", True) or not first_page: # Default true for footer on first page
                                 self._draw_page_header_footer(canvas, doc, {}, f_conf,
                                                               doc.page, # current page
                                                               0, # total pages (unknown here)
                                                               book_title_val, author_val, publisher_val, str(year_val),
                                                               is_header=False)
-                            elif not first_page: # Always draw on later pages if enabled
-                                self._draw_page_header_footer(canvas, doc, {}, f_conf,
-                                                              doc.page, # current page
-                                                              0, # total pages (unknown here)
-                                                              book_title_val, author_val, publisher_val, str(year_val),
-                                                              is_header=False)
-            
+
             on_first_page_handler = partial(_master_on_page_handler, items=combined_on_page_items, first_page=True)
             on_later_pages_handler = partial(_master_on_page_handler, items=combined_on_page_items, first_page=False)
 
         try:
-            if on_first_page_handler and on_later_pages_handler:
-                doc.build(story, onFirstPage=on_first_page_handler, onLaterPages=on_later_pages_handler)
-            elif on_first_page_handler: # Should not happen if onLater is also set
-                doc.build(story, onFirstPage=on_first_page_handler)
-            elif on_later_pages_handler: # Should not happen if onFirst is also set
-                 doc.build(story, onLaterPages=on_later_pages_handler)
+            def _build_doc(doc_instance, story_list):
+                """Helper to build with appropriate page handlers."""
+                if on_first_page_handler and on_later_pages_handler:
+                    doc_instance.build(story_list, onFirstPage=on_first_page_handler, onLaterPages=on_later_pages_handler)
+                elif on_first_page_handler:
+                    doc_instance.build(story_list, onFirstPage=on_first_page_handler)
+                elif on_later_pages_handler:
+                    doc_instance.build(story_list, onLaterPages=on_later_pages_handler)
+                else:
+                    doc_instance.build(story_list)
+
+            if toc_enabled and page_tracker is not None:
+                # TWO-PASS TOC GENERATION
+                # First pass: Build to BytesIO to capture page numbers
+                first_pass_buffer = io.BytesIO()
+                first_pass_doc = SimpleDocTemplate(
+                    first_pass_buffer,
+                    pagesize=current_pagesize,
+                    leftMargin=left_margin_pt,
+                    rightMargin=right_margin_pt,
+                    topMargin=top_margin_pt,
+                    bottomMargin=bottom_margin_pt
+                )
+                _build_doc(first_pass_doc, story)
+                first_pass_buffer.close()
+
+                # Now page_tracker has captured page numbers from TocAnchor flowables
+                logger.debug("Two-pass ToC: captured page numbers: %s", page_tracker)
+
+                # Second pass: Replace TocPlaceholder with actual ToC
+                # Find and replace the TocPlaceholder in the story
+                new_story = []
+                for flowable in story:
+                    if isinstance(flowable, TocPlaceholder):
+                        # Replace with actual ToC using captured page numbers
+                        toc_flowables = self.get_visual_toc_flowables(
+                            specific_config, global_config, page_numbers=page_tracker
+                        )
+                        new_story.extend(toc_flowables)
+                    elif isinstance(flowable, TocAnchor):
+                        # Create fresh TocAnchor for second pass (page_tracker already filled)
+                        # We still include it to maintain consistent page flow
+                        new_story.append(TocAnchor(flowable.toc_key, {}))
+                    else:
+                        new_story.append(flowable)
+
+                # Build final document
+                _build_doc(doc, new_story)
             else:
-                doc.build(story)
+                # Single pass (no ToC)
+                _build_doc(doc, story)
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}") # Consider raising GeneratorError
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_text_multi_column(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -345,8 +462,8 @@ class PdfGenerator(BaseGenerator):
         styleN.fontName = specific_config.get("base_font_family", "Helvetica")
         styleN.fontSize = specific_config.get("base_font_size_pt", 12)
         styleN.leading = styleN.fontSize * 1.2
-        
-        col_width = (letter[0] - 1.5*inch) / 2 
+
+        col_width = (letter[0] - 1.5*inch) / 2
         col_gutter = 0.5 * inch
         frame_height = letter[1] - 2*inch
 
@@ -367,21 +484,21 @@ class PdfGenerator(BaseGenerator):
         current_y = letter[1] - inch
         for item in story_col1:
             item_height = item.wrapOn(c, col_width, frame_height)[1]
-            if current_y - item_height < inch: break 
+            if current_y - item_height < inch: break
             item.drawOn(c, 0.5*inch, current_y - item_height)
             current_y -= (item_height + 0.05*inch)
 
-        current_y = letter[1] - inch 
+        current_y = letter[1] - inch
         for item in story_col2:
             item_height = item.wrapOn(c, col_width, frame_height)[1]
             if current_y - item_height < inch: break
             item.drawOn(c, 0.5*inch + col_width + col_gutter, current_y - item_height)
             current_y -= (item_height + 0.05*inch)
-            
+
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_text_flow_around_image(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -407,40 +524,40 @@ class PdfGenerator(BaseGenerator):
         The subsequent text should appear after the image area. This tests the parser's ability to handle non-linear text blocks.
         This final part of the text should clearly be below the image area.
         """
-        
+
         p_above = Paragraph(text_content.split("The subsequent text")[0], styleN)
-        p_above.wrapOn(c, letter[0] - 2*inch, 3*inch) 
+        p_above.wrapOn(c, letter[0] - 2*inch, 3*inch)
         p_above.drawOn(c, inch, letter[1] - inch - p_above.height)
 
         p_below_text = "The subsequent text" + text_content.split("The subsequent text")[1]
         p_below = Paragraph(p_below_text, styleN)
-        p_below.wrapOn(c, letter[0] - 2*inch, img_y - inch - 0.2*inch) 
-        p_below.drawOn(c, inch, inch ) 
+        p_below.wrapOn(c, letter[0] - 2*inch, img_y - inch - 0.2*inch)
+        p_below.drawOn(c, inch, inch )
 
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _degrade_text(self, text: str, accuracy: float) -> str:
         """Simulates OCR degradation based on accuracy level."""
         if accuracy >= 1.0:
             return text
-        
+
         degraded_text_list = list(text) # Use a different variable name
         # Ensure num_chars_to_degrade is an int and positive
         num_chars_to_degrade = max(0, int(len(degraded_text_list) * (1.0 - accuracy)))
-        
+
         # Get indices of characters that are not newlines or spaces
         possible_indices = [i for i, char in enumerate(degraded_text_list) if char not in ['\n', ' ']]
         random.shuffle(possible_indices) # Shuffle in place
-        
+
         # Degrade characters
         for i in range(min(num_chars_to_degrade, len(possible_indices))):
             idx_to_change = possible_indices[i]
             # Simple substitution with 'x'. Can be made more complex.
             degraded_text_list[idx_to_change] = 'x'
-                
+
         return "".join(degraded_text_list)
 
     def _apply_handwritten_annotation(self, canvas_obj: canvas.Canvas, page_width: float, page_height: float, annotation_settings: Dict[str, Any]):
@@ -449,11 +566,11 @@ class PdfGenerator(BaseGenerator):
         font_name = annotation_settings.get("annotation_font_family", "Helvetica")
         font_size_min, font_size_max = annotation_settings.get("annotation_font_size_pt_range", [8, 12])
         font_size = random.uniform(font_size_min, font_size_max)
-        
+
         color_rgb = annotation_settings.get("annotation_color_rgb", [0,0,0]) # Default black
         opacity_min, opacity_max = annotation_settings.get("annotation_opacity_range", [0.5, 1.0])
         opacity = random.uniform(opacity_min, opacity_max)
-        
+
         rotation_min, rotation_max = annotation_settings.get("annotation_rotation_degrees_range", [-5, 5])
         rotation = random.uniform(rotation_min, rotation_max)
 
@@ -464,83 +581,23 @@ class PdfGenerator(BaseGenerator):
         # Ensure text is somewhat within bounds, considering rotation might push it out
         # A more robust approach would calculate text width/height after rotation.
         text_width = canvas_obj.stringWidth(text, font_name, font_size)
-        
+
         # Attempt to keep it roughly centered for simplicity, with some randomness
         # Max x/y should prevent text from starting too close to the edge
         max_x_start = page_width - text_width - 20 # 20 as a small buffer
         max_y_start = page_height - font_size - 20 # 20 as a small buffer
-        
+
         x = random.uniform(20, max_x_start if max_x_start > 20 else page_width / 2)
         y = random.uniform(font_size + 20, max_y_start if max_y_start > (font_size + 20) else page_height / 2)
 
         canvas_obj.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=opacity)
         canvas_obj.setFont(font_name, font_size)
-        
+
         canvas_obj.translate(x, y)
         canvas_obj.rotate(rotation)
         canvas_obj.drawString(0, 0, text) # Draw at new origin (0,0) after translate
-        
+
         canvas_obj.restoreState()
-        
-        font_family = annotation_settings.get("annotation_font_family", "Helvetica") # Default if not specified
-        font_size_range = annotation_settings.get("annotation_font_size_pt_range", [10, 14])
-        font_size = random.uniform(font_size_range[0], font_size_range[1])
-        
-        color_rgb = annotation_settings.get("annotation_color_rgb", [0,0,0]) # Default black
-        opacity_range = annotation_settings.get("annotation_opacity_range", [0.6, 0.9])
-        opacity = random.uniform(opacity_range[0], opacity_range[1])
-        
-        rotation_range = annotation_settings.get("annotation_rotation_degrees_range", [-15, 15])
-        rotation = random.uniform(rotation_range[0], rotation_range[1])
-
-        # Position randomly on the page, avoiding extreme edges
-        # Ensure text_width is calculated *after* setting font, if needed for precise placement
-        # For simplicity, let's pick a random x, y within a margin.
-        margin = 0.5 * inch
-        max_x = page_width - margin - canvas_obj.stringWidth(text, font_family, font_size) # Approx
-        max_y = page_height - margin - font_size # Approx
-        
-        # Ensure max_x and max_y are not less than margin to avoid negative ranges for randint
-        pos_x = random.uniform(margin, max(margin, max_x))
-        pos_y = random.uniform(margin, max(margin, max_y))
-
-        canvas_obj.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2], alpha=opacity)
-        # Note: ReportLab's setFillColorRGB doesn't take alpha directly. setFillAlpha is separate.
-        # Correcting to use setFillColorRGB and then setFillAlpha.
-        # However, the test expects setFillColorRGB(r,g,b) and setFillAlpha(a) separately.
-        # The SUT for watermark used canvas.setFillColor(parsed_color, alpha=opacity)
-        # Let's use setFillColor for consistency if parsed_color is available, or setFillColorRGB + setFillAlpha
-        
-        # Re-checking: The test asserts setFillColorRGB.assert_any_call(0.2, 0.2, 0.8)
-        # and setFillAlpha.assert_any_call(mocker.ANY)
-        # So, we should use these two methods.
-        
-        canvas_obj.setFillColorRGB(color_rgb[0], color_rgb[1], color_rgb[2])
-        canvas_obj.setFillAlpha(opacity)
-
-        canvas_obj.setFont(font_family, font_size)
-        
-        canvas_obj.translate(pos_x, pos_y)
-        canvas_obj.rotate(rotation)
-        canvas_obj.drawString(0, 0, text) # Draw at the new (translated and rotated) origin
-        
-        canvas_obj.restoreState()
-        # More complex logic based on annotation_style will be added later.
-        
-        annotation_texts = annotation_settings.get("annotation_text_options", ["Default Annotation"])
-        text_to_draw = random.choice(annotation_texts) if annotation_texts else "Default Annotation"
-        
-        # Basic font and color
-        # TODO: Use annotation_font_family and other style settings
-        canvas_obj.setFont("Helvetica", 10)
-        canvas_obj.setFillColorRGB(random.random(), random.random(), random.random())
-
-        # Random position
-        x_pos = random.uniform(page_width * 0.1, page_width * 0.9)
-        y_pos = random.uniform(page_height * 0.1, page_height * 0.9)
-
-        canvas_obj.drawString(x_pos, y_pos, text_to_draw)
-
 
     def _apply_ocr_noise(self, canvas_obj: canvas.Canvas, page_width: float, page_height: float, noise_level: float, noise_type: str = "speckle"):
         """Applies random noise (dots or small rects) to the canvas."""
@@ -561,7 +618,7 @@ class PdfGenerator(BaseGenerator):
         for _ in range(num_particles):
             x = random.uniform(0, page_width)
             y = random.uniform(0, page_height)
-            
+
             if noise_type == "salt-and-pepper":
                 particle_size = random.uniform(0.5, 1.5) # pixels/points for salt-pepper
                 if random.random() < 0.5:
@@ -599,9 +656,9 @@ class PdfGenerator(BaseGenerator):
                                  is_header: bool):
         """Draws the header or footer content on the page."""
         canvas_obj.saveState()
-        
+
         config_to_use = header_config if is_header else footer_config
-        
+
         content_left = config_to_use.get("left_content", "")
         content_center = config_to_use.get("center_content", "")
         content_right = config_to_use.get("right_content", "")
@@ -628,12 +685,12 @@ class PdfGenerator(BaseGenerator):
             content_right = content_right.replace(key, value)
 
         canvas_obj.setFont(font_name, font_size)
-        
+
         # Get page dimensions and margins from the document object
         # Margins are already in points
         page_width = doc.width + doc.leftMargin + doc.rightMargin
         page_height = doc.height + doc.topMargin + doc.bottomMargin
-        
+
         margin_left = doc.leftMargin
         margin_right = doc.rightMargin
         margin_top = doc.topMargin
@@ -646,7 +703,7 @@ class PdfGenerator(BaseGenerator):
 
         if content_left:
             canvas_obj.drawString(margin_left, y_position, content_left)
-        
+
         if content_center:
             text_width = canvas_obj.stringWidth(content_center, font_name, font_size)
             canvas_obj.drawCentredString(page_width / 2, y_position, content_center)
@@ -654,7 +711,7 @@ class PdfGenerator(BaseGenerator):
         if content_right:
             text_width = canvas_obj.stringWidth(content_right, font_name, font_size)
             canvas_obj.drawRightString(page_width - margin_right, y_position, content_right)
-            
+
         canvas_obj.restoreState()
 
     def _create_pdf_simulated_ocr_high_quality(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
@@ -679,7 +736,7 @@ class PdfGenerator(BaseGenerator):
         styleN.leading = 14 # Increased leading for OCR text
         styleH1 = styles['h1']
         styleH1.fontName = styleN.fontName # Keep consistent for OCR feel
-        
+
         story = []
         story.append(Paragraph("Fragment from a Scanned Text (High Quality OCR)", styleH1))
         story.append(Spacer(1, 0.2*inch))
@@ -689,14 +746,14 @@ class PdfGenerator(BaseGenerator):
         exist in some way independently of those individuals. Plato's theory of Forms is a classic exampIe of realism regarding universals.
         This text simulates a fairly clean OCR capture. There might be an occasional misrecognized character, like 'I' for 'l' or 'rn' for 'm'.
         """
-        
+
         ocr_simulation_settings = specific_config.get("ocr_simulation_settings", {})
         ocr_accuracy_level = ocr_simulation_settings.get("ocr_accuracy_level", 1.0)
         skew_chance = ocr_simulation_settings.get("skew_chance", 0.0)
         max_skew_angle = ocr_simulation_settings.get("max_skew_angle", 0.0) # Default to 0 if not specified
 
         degraded_ocr_text = self._degrade_text(ocr_text, ocr_accuracy_level)
-        
+
         # Apply skew before adding content to story or drawing
         # For this variant, we apply it once to the canvas before drawing the story.
         # A more complex implementation might apply it per page or per item.
@@ -722,7 +779,7 @@ class PdfGenerator(BaseGenerator):
         frame_width = letter[0] - 2*inch
         frame_height = letter[1] - 2*inch
         current_y = letter[1] - inch
-        
+
         for item in story:
             item_width, item_height = item.wrapOn(c, frame_width, frame_height)
             if current_y - item_height < inch:
@@ -730,10 +787,10 @@ class PdfGenerator(BaseGenerator):
                 c.setTitle(specific_config.get("title", "Simulated High-Quality OCR PDF"))
                 c.setAuthor(specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator")))
                 current_y = letter[1] - inch
-            
+
             item.drawOn(c, inch, current_y - item_height)
             current_y -= (item_height + 0.1*inch)
-        
+
         # Apply noise after all main content is drawn on the current page (if any)
         # For multi-page, this would need to be called after each c.showPage() potentially
         # or before c.save() for the final page.
@@ -749,11 +806,11 @@ class PdfGenerator(BaseGenerator):
         if random.random() < include_annotations_chance:
             # Pass relevant parts of ocr_simulation_settings to the annotation method
             self._apply_handwritten_annotation(c, letter[0], letter[1], ocr_simulation_settings)
-            
+
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _draw_watermark_wrapped_for_onpage(self, canvas: canvas.Canvas, doc, watermark_settings: Dict[str, Any]):
         """Wrapper to call _draw_watermark with page dimensions from doc for onPage events."""
@@ -766,7 +823,7 @@ class PdfGenerator(BaseGenerator):
         text = watermark_settings.get("text", "WATERMARK")
         font_name = watermark_settings.get("font_name", "Helvetica")
         font_size = watermark_settings.get("font_size", 50)
-        
+
         color_str = watermark_settings.get("color", "#C0C0C0")
         try:
             if isinstance(color_str, str) and color_str.startswith("#"):
@@ -785,7 +842,7 @@ class PdfGenerator(BaseGenerator):
 
         canvas.setFillColor(parsed_color, alpha=opacity)
         canvas.setFont(font_name, font_size)
-        
+
         text_width = canvas.stringWidth(text, font_name, font_size)
 
         if isinstance(position_setting, tuple) and len(position_setting) == 2:
@@ -830,41 +887,41 @@ class PdfGenerator(BaseGenerator):
 
         c.setFont("Helvetica-Bold", 16)
         c.drawString(inch, letter[1] - inch, "Main Title: The Structure of Knowledge")
-        c.bookmarkPage("main_title_key_debug") 
-        c.addOutlineEntry("Main Title", "main_title_key_debug", level=0) 
+        c.bookmarkPage("main_title_key_debug")
+        c.addOutlineEntry("Main Title", "main_title_key_debug", level=0)
 
         c.setFont("Helvetica-Bold", 14)
         c.drawString(inch, letter[1] - 1.5*inch, "Chapter 1: Foundational Concepts")
         c.bookmarkPage("chapter1_key_debug")
         c.addOutlineEntry("Chapter 1: Foundational Concepts", "chapter1_key_debug", level=1)
-        
+
         c.setFont("Helvetica", 12)
         text_c1 = c.beginText(inch, letter[1] - 2*inch)
         text_c1.textLine("This is the content of the first chapter for debugging bookmarks.")
         c.drawText(text_c1)
-        
+
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_visual_toc_hyperlinked(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
         c.setTitle(specific_config.get("title", "PDF with Visual Hyperlinked ToC"))
         c.setAuthor(specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator")))
-        
+
         c.setFont("Helvetica-Bold", 18)
         c.drawCentredString(letter[0]/2, letter[1] - inch, "Table of Contents")
 
         visual_toc_config = specific_config.get("visual_toc", {})
         max_depth = visual_toc_config.get("max_depth", 3) # Default from spec
         page_number_style = visual_toc_config.get("page_number_style", "none") # Default to none
-        
+
         # Dynamically generate ToC items from chapters_config
         toc_items_with_levels = []
         chapters_config = specific_config.get("chapters_config", {})
         chapter_details = chapters_config.get("chapter_details", [])
-        
+
         for idx, detail in enumerate(chapter_details):
             # For now, assume all chapters are level 1 and generate a unique target
             toc_items_with_levels.append({
@@ -881,25 +938,39 @@ class PdfGenerator(BaseGenerator):
                 target = item_data["target"]
                 page_num_val = item_data.get("page_start")
                 page_num_str = str(page_num_val) if page_num_val is not None else "N/A"
-                
+
                 # Basic indentation based on level for visual hierarchy
                 indent = (item_data["level"] - 1) * 0.25 * inch
-                
-                c.setFont("Helvetica", 12)
-                
-                final_text = text
-                if page_number_style == "dot_leader":
-                    available_width_for_dots = (letter[0] - (inch + indent) - inch) - c.stringWidth(text, "Helvetica", 12) - c.stringWidth(page_num_str, "Helvetica", 12)
-                    dots = ""
-                    if available_width_for_dots > 0.5 * inch :
-                        dots = " ..... "
-                    final_text = f"{text}{dots}{page_num_str}"
-                elif page_number_style == "no_page_numbers":
-                    final_text = text # No page number
-                else: # Default or other styles, just append page number for now
-                    final_text = f"{text} {page_num_str}"
 
-                c.drawString(inch + indent, y_pos, final_text)
+                c.setFont("Helvetica", 12)
+
+                if page_number_style == "dot_leader":
+                    # Calculate proper dot leader width
+                    text_width = c.stringWidth(text, "Helvetica", 12)
+                    page_num_width = c.stringWidth(page_num_str, "Helvetica", 12)
+                    total_available = letter[0] - (inch + indent) - inch  # Left and right margins
+                    space_for_dots = total_available - text_width - page_num_width - 10  # 10pt padding
+
+                    # Generate dots to fill the space (each " . " is about 7pt at 12pt font)
+                    dot_pattern = " . "
+                    dot_width = c.stringWidth(dot_pattern, "Helvetica", 12)
+                    num_dots = max(3, int(space_for_dots / dot_width)) if dot_width > 0 else 3
+                    dots = dot_pattern * num_dots
+
+                    # Draw title, dots, and page number separately for proper alignment
+                    c.drawString(inch + indent, y_pos, text)
+                    page_num_x = letter[0] - inch - page_num_width
+                    c.drawRightString(page_num_x, y_pos, dots)
+                    c.drawString(page_num_x, y_pos, page_num_str)
+                    final_text = text + dots + page_num_str  # For link width calculation
+                elif page_number_style == "no_page_numbers":
+                    final_text = text
+                    c.drawString(inch + indent, y_pos, final_text)
+                else:
+                    # Default: title and page number with space
+                    final_text = f"{text} {page_num_str}"
+                    c.drawString(inch + indent, y_pos, final_text)
+
                 link_width = c.stringWidth(final_text, "Helvetica", 12)
                 c.linkURL(f"#{target}", (inch + indent, y_pos - 0.1*inch, inch + indent + link_width, y_pos + 0.1*inch), relative=1)
                 y_pos -= 0.3*inch
@@ -910,54 +981,134 @@ class PdfGenerator(BaseGenerator):
             if detail_data["level"] <= max_depth:
                 c.showPage()
                 c.setFont("Helvetica-Bold", 16)
-                
-    def get_visual_toc_flowables(self, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> List[Flowable]:
+
+    def _create_toc_entry_table(self, title: str, page_ref: str, level: int,
+                                   page_number_style: str, available_width: float) -> Table:
+        """
+        Creates a single ToC entry as a Table with proper dot leaders.
+
+        Args:
+            title: The chapter/section title
+            page_ref: The page number or reference placeholder
+            level: The nesting level (1-based) for indentation
+            page_number_style: One of "dot_leader", "no_page_numbers", or other
+            available_width: The total available width for the ToC entry
+
+        Returns:
+            A Table flowable representing the ToC entry
+        """
+        indent = (level - 1) * 0.25 * inch
+        content_width = available_width - indent
+
+        if page_number_style == "no_page_numbers":
+            # Simple single-column table with just the title
+            data = [[title]]
+            col_widths = [content_width]
+        elif page_number_style == "dot_leader":
+            # Three-column table: title, dot leader, page number
+            # Estimate widths - title gets most space, page number minimal
+            page_num_width = 0.5 * inch
+            dot_width = 0.75 * inch
+            title_width = content_width - page_num_width - dot_width
+
+            # Generate dot leader string
+            dot_char = " . "
+            dots = dot_char * 15  # Approximate fill - will be constrained by column width
+
+            data = [[title, dots, page_ref]]
+            col_widths = [title_width, dot_width, page_num_width]
+        else:
+            # Default: two-column table with title and page number
+            page_num_width = 0.5 * inch
+            title_width = content_width - page_num_width
+            data = [[title, page_ref]]
+            col_widths = [title_width, page_num_width]
+
+        table = Table(data, colWidths=col_widths)
+
+        # Style the table to look like a ToC entry (no borders, proper alignment)
+        style_commands = [
+            ('ALIGN', (0, 0), (0, 0), 'LEFT'),           # Title left-aligned
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ]
+
+        if page_number_style == "dot_leader":
+            style_commands.extend([
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),     # Dots centered
+                ('ALIGN', (2, 0), (2, 0), 'RIGHT'),      # Page number right-aligned
+            ])
+        elif page_number_style != "no_page_numbers":
+            style_commands.append(('ALIGN', (-1, 0), (-1, 0), 'RIGHT'))  # Page number right-aligned
+
+        # Add left indent via padding on first column
+        if indent > 0:
+            style_commands.append(('LEFTPADDING', (0, 0), (0, 0), indent))
+
+        table.setStyle(TableStyle(style_commands))
+        return table
+
+    def get_visual_toc_flowables(
+        self,
+        specific_config: Dict[str, Any],
+        global_config: Dict[str, Any],
+        page_numbers: Optional[Dict[str, int]] = None
+    ) -> List[Flowable]:
         """
         Generates the Visual Table of Contents as a list of Flowable objects.
-        This method will be refactored to produce actual ToC flowables.
+        Uses a Table-based approach for proper dot leader rendering.
+
+        Args:
+            specific_config: PDF-specific configuration
+            global_config: Global configuration settings
+            page_numbers: Optional dict mapping toc_key to actual page numbers
+                         (from two-pass rendering)
+
+        Returns:
+            List of Table flowables representing ToC entries
         """
-        # Placeholder for now to make the initial test pass (no AttributeError)
-        # and then fail the subsequent type checks.
         toc_flowables = []
         chapter_details = specific_config.get("chapters_config", {}).get("chapter_details", [])
-        max_depth = specific_config.get("visual_toc", {}).get("max_depth", 1) # Default to 1 if not specified
-            
-        # Get a default style sheet to copy from for indentation
-        styles = getSampleStyleSheet()
-        default_style = styles['Normal']
+        max_depth = specific_config.get("visual_toc", {}).get("max_depth", 1)
+        page_number_style = specific_config.get("visual_toc", {}).get("page_number_style", "none")
 
-        
-        
+        # Calculate available width (default to letter width minus margins)
+        page_margins = specific_config.get("page_setup", {}).get("margins_mm", {})
+        mm_to_points = 2.8346456693
+        left_margin = page_margins.get("left_mm", 25) * mm_to_points
+        right_margin = page_margins.get("right_mm", 25) * mm_to_points
+        available_width = letter[0] - left_margin - right_margin
+
         for i, chapter in enumerate(chapter_details):
             level = chapter.get("level", 1)
             if level <= max_depth:
                 title = chapter.get("title", "Untitled Chapter")
-                # Generate a key for page number reference.
-                toc_key = chapter.get("toc_key")  # Assumes 'toc_key' is in chapter_details from config
-                if not toc_key:
-                    # Fallback key generation if not provided in config
-                    toc_key = f"toc_item_{i}_{title.lower().replace(' ', '_').replace('.', '')}"
-                page_ref_placeholder = f"(PAGE_REF:{toc_key})"
-                page_number_style = specific_config.get("visual_toc", {}).get("page_number_style", "none")
 
-                # Create a new style for each paragraph to set indent
-                current_style = ParagraphStyle(name=f'TOCEntryLevel{level}', parent=default_style)
-                current_style.leftIndent = (level - 1) * 0.25 * inch
-                # Add other style properties if needed, e.g., font size based on level
-                # current_style.fontSize = 12 - (level - 1) # Example: decrease font size for deeper levels
-                
-                text_for_flowable = title
-                if page_number_style == "dot_leader":
-                    text_for_flowable = f"{title} ...DOTS... {page_ref_placeholder}"
-                elif page_number_style != "no_page_numbers":
-                    text_for_flowable = f"{title} {page_ref_placeholder}"
-                # If 'no_page_numbers', text_for_flowable remains just the title
-                    
-                toc_flowables.append(Paragraph(text_for_flowable, current_style))
+                # Generate a key for page number reference
+                toc_key = chapter.get("toc_key")
+                if not toc_key:
+                    toc_key = f"toc_item_{i}_{title.lower().replace(' ', '_').replace('.', '')}"
+
+                # Get page number: first from passed page_numbers, then from config, then placeholder
+                if page_numbers and toc_key in page_numbers:
+                    page_ref = str(page_numbers[toc_key])
+                elif chapter.get("page_start") is not None:
+                    page_ref = str(chapter.get("page_start"))
+                else:
+                    page_ref = f"(PAGE_REF:{toc_key})"
+
+                toc_entry = self._create_toc_entry_table(
+                    title, page_ref, level, page_number_style, available_width
+                )
+                toc_flowables.append(toc_entry)
+
         return toc_flowables
 
     def _create_pdf_running_headers_footers(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
-        
+
         def draw_header_footer(canvas_item, doc): # Renamed canvas to canvas_item to avoid conflict
             canvas_item.saveState()
             header_config = specific_config.get("running_header", {})
@@ -966,7 +1117,7 @@ class PdfGenerator(BaseGenerator):
             if header_config.get("enable", False):
                 canvas_item.setFont(header_config.get("font_family", 'Helvetica-Oblique'), header_config.get("font_size_pt", 9))
                 canvas_item.drawString(inch, letter[1] - 0.75 * inch, header_config.get("left_content", "Synthetic Treatise"))
-            
+
             if footer_config.get("enable", False):
                 canvas_item.setFont(footer_config.get("font_family", 'Helvetica'), footer_config.get("font_size_pt", 9))
                 canvas_item.drawString(inch, 0.75 * inch, footer_config.get("left_content", f"Page {doc.page}"))
@@ -975,7 +1126,7 @@ class PdfGenerator(BaseGenerator):
         doc = SimpleDocTemplate(filepath, pagesize=letter)
         doc.title = specific_config.get("title", "PDF with Headers/Footers")
         doc.author = specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator"))
-        
+
         styles = getSampleStyleSheet()
         styleN = styles['Normal']
         styleH1 = styles['h1']
@@ -987,11 +1138,11 @@ class PdfGenerator(BaseGenerator):
         for i in range(5): # Reduced for brevity
             story.append(Paragraph(f"This is paragraph {i+1} of the first chapter.", styleN))
             story.append(Spacer(1, 0.1*inch))
-        
+
         try:
             doc.build(story, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_bottom_page_footnotes(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         c = canvas.Canvas(filepath, pagesize=letter)
@@ -1000,11 +1151,11 @@ class PdfGenerator(BaseGenerator):
 
         c.setFont(specific_config.get("base_font_family", "Helvetica"), specific_config.get("base_font_size_pt", 12))
         text_y = letter[1] - inch
-        
+
         line1 = "Main text. Reference here.<sup>1</sup>"
         c.drawString(inch, text_y, line1)
         text_y -= 0.3*inch
-        
+
         line2 = "More text. Another reference.<sup>2</sup>"
         c.drawString(inch, text_y, line2)
 
@@ -1014,19 +1165,19 @@ class PdfGenerator(BaseGenerator):
         fn_y = inch + 0.5*inch
         fn1_text = "<sup>1</sup> First footnote."
         c.drawString(inch, fn_y + 0.3*inch, fn1_text)
-        
+
         fn2_text = "<sup>2</sup> Second footnote."
         c.drawString(inch, fn_y, fn2_text)
 
         try:
             c.save()
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _create_pdf_simple_table(self, filepath: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
         styles = getSampleStyleSheet()
         styleH1 = styles['h1']
-        
+
         story = []
         story.append(Paragraph(specific_config.get("title", "Philosophical Concepts: A Comparative Table"), styleH1))
         story.append(Spacer(1, 0.3*inch))
@@ -1036,7 +1187,7 @@ class PdfGenerator(BaseGenerator):
             ["Forms", "Plato", "Perfect archetypes."],
             ["Categorical Imperative", "Kant", "Universal law."],
         ]
-        
+
         table = Table(data)
         table_style = TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.grey),
@@ -1053,11 +1204,11 @@ class PdfGenerator(BaseGenerator):
                                 topMargin=inch, bottomMargin=inch)
         doc.title = specific_config.get("title", "PDF with Simple Table")
         doc.author = specific_config.get("author", global_config.get("default_author", "Synthetic Data Generator"))
-        
+
         try:
             doc.build(story)
         except Exception as e:
-            print(f"Error creating PDF {filepath}: {e}")
+            logger.error("Error creating PDF %s: %s", filepath, e)
 
     def _add_pdf_chapter_content(self, story: List, chapter_number: int, chapter_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
             """
@@ -1068,7 +1219,7 @@ class PdfGenerator(BaseGenerator):
             styles = getSampleStyleSheet()
             styleH2 = styles['h2']
             styleN = styles['Normal']
-            
+
             p_ch_title = Paragraph(chapter_title, styleH2)
             story.append(p_ch_title)
             story.append(Spacer(1, 0.1*inch))
@@ -1091,10 +1242,10 @@ class PdfGenerator(BaseGenerator):
             # Actual content generation for sections, notes, images would be more complex.
             sections_config = specific_config.get("sections_per_chapter_config", 0)
             num_sections = self._determine_count(sections_config, f"sections_chap_{chapter_number}")
-            
+
             notes_config = specific_config.get("notes_system", {}).get("notes_config", 0)
             num_notes = self._determine_count(notes_config, f"notes_chap_{chapter_number}")
-            
+
             images_config = specific_config.get("multimedia", {}).get("images_config", 0)
             if specific_config.get("multimedia", {}).get("include_images", False):
                 num_images = self._determine_count(images_config, f"images_chap_{chapter_number}")
@@ -1135,13 +1286,13 @@ class PdfGenerator(BaseGenerator):
         for i in range(num_rows -1): # num_rows includes header
             row_data = [f"Data {chr(65+j)}{i+1}" for j in range(num_cols)]
             table_data.append(row_data)
-        
+
         if not table_data: # Ensure table_data is not empty if counts are zero
             table_data = [[""]] # ReportLab Table needs at least one cell
 
         table = Table(table_data)
         table_style_config = specific_config.get("table_generation", {}).get("default_table_style", {}) # Basic support for future styling
-        
+
         # Default style if not specified
         style_commands = [
             ('BACKGROUND', (0,0), (-1,0), table_style_config.get("header_background_color", colors.grey)),
@@ -1151,7 +1302,7 @@ class PdfGenerator(BaseGenerator):
             ('GRID', (0,0), (-1,-1), 1, table_style_config.get("grid_color", colors.black))
         ]
         # Add more styling based on table_style_config if needed
-        
+
         table.setStyle(TableStyle(style_commands))
         story.append(table)
 
@@ -1162,7 +1313,7 @@ class PdfGenerator(BaseGenerator):
         # figure_gen_config was specific_config.get("figure_generation", {}) # specific_config is now current_figure_detail
         # Now, caption_cfg comes from overall_figure_generation_config
         caption_cfg = overall_figure_generation_config.get("caption_config", {})
-        
+
         # Placeholder for the figure itself (e.g., a box)
         # In a real implementation, this would involve creating an Image flowable
         # For now, we'll just add a spacer or a simple paragraph representing the figure.
@@ -1182,7 +1333,7 @@ class PdfGenerator(BaseGenerator):
                 caption_style = styles['Italic'] # Default to italic or allow config
                 caption_style.fontName = caption_cfg.get("font_family", "Helvetica-Oblique")
                 caption_style.fontSize = caption_cfg.get("font_size_pt", 9)
-                
+
                 alignment_str = caption_cfg.get("alignment", "CENTER").upper()
                 if alignment_str == "LEFT":
                     caption_style.alignment = TA_LEFT

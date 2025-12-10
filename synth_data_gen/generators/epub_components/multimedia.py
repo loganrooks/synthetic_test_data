@@ -1,6 +1,9 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_image_as_special_text(filename="image_as_special_text.epub"):
     """
@@ -22,7 +25,7 @@ def create_epub_image_as_special_text(filename="image_as_special_text.epub"):
     dummy_image_content = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x05\x00\x00\x00\x05\x08\x02\x00\x00\x00\x02\x08\x17\x9f\x00\x00\x00\x0cIDATx\x9cc`\x00\x00\x00\x04\x00\x01\xf1\x0f\x8e\x0e\x00\x00\x00\x00IEND\xaeB`\x82' # 5x5 black PNG
     image_item = epub.EpubItem(uid="img_special_char", file_name="images/special_char_placeholder.png", media_type="image/png", content=dummy_image_content)
     book.add_item(image_item)
-    
+
     # Add cover image to manifest if it's a common pattern with such images
     # book.set_cover("images/cover_placeholder.png", dummy_image_content) # Example
 
@@ -38,7 +41,7 @@ rather than purely illustrative figures. Another instance: <img alt="[another sy
         {"title": "Image as Special Text", "filename": "c1_img_special_text.xhtml", "content": chapter_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     book.toc = toc_links
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -80,10 +83,10 @@ in the <code>META-INF</code> directory, referencing font files.</p>
         {"title": "Obfuscated Font Test", "filename": "c1_font_obf.xhtml", "content": chapter_content}
     ]
     epub_chapters, toc_links = _add_epub_chapters(book, chapter_details, default_style_item=style_item)
-    
+
     # Create a dummy encryption.xml content
     # This is a simplified example. Real encryption.xml can be more complex.
-    encryption_xml_content = u"""<?xml version="1.0" encoding="UTF-8"?>
+    encryption_xml_content = """<?xml version="1.0" encoding="UTF-8"?>
 <encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#">
   <enc:EncryptedData>
     <enc:EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding" />

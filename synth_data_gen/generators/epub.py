@@ -1,32 +1,29 @@
+import logging
 import os
-import subprocess
 import re
-import random # Added import
-from typing import Any, Dict, List
+import subprocess
+from typing import Any, Dict, List, Optional
+
 from ebooklib import epub
 
+from ..common.utils import ensure_output_directories
+from ..constants import GeneratorType, NotesSystemType, TocStyle
 from ..core.base import BaseGenerator
-# Assuming utils.py contains the necessary helper functions.
-# Adjust if these were moved/refactored elsewhere during initial migration.
-from ..common.utils import ensure_output_directories #, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+logger = logging.getLogger(__name__)
 
 # Import epub_components - these might be refactored into helper classes or methods
 from .epub_components import (
-    citations,
-    content_types,
-    headers,
     multimedia,
-    notes,
-    page_numbers,
-    structure,
     toc,
 )
+
 
 class EpubGenerator(BaseGenerator):
     """
     Generator for EPUB files.
     """
-    GENERATOR_ID = "epub"
+    GENERATOR_ID = GeneratorType.EPUB.value
 
     def get_default_specific_config(self) -> Dict[str, Any]:
         """
@@ -48,9 +45,9 @@ class EpubGenerator(BaseGenerator):
             "include_ncx": "auto",
             "include_nav_doc": "auto",
             "font_embedding": {"enable": False},
-            "toc_settings": {"style": "navdoc_full", "max_depth": 3, "include_landmarks": True, "include_page_list_in_toc": True},
+            "toc_settings": {"style": TocStyle.NAVDOC_FULL.value, "max_depth": 3, "include_landmarks": True, "include_page_list_in_toc": True},
             "page_numbering": {"style": "epub3_semantic", "link_to_page_markers": True},
-            "notes_system": {"type": "footnotes_same_page", "notes_config": 0},
+            "notes_system": {"type": NotesSystemType.FOOTNOTES_SAME_PAGE.value, "notes_config": 0},
             "citations_bibliography": {"in_text_citation_style": "none", "bibliography_style": {"style": "dedicated_file_list"}},
             "multimedia": {"include_images": True, "images_config": 0},
             "content_elements": {
@@ -69,52 +66,17 @@ class EpubGenerator(BaseGenerator):
         """
         if not super().validate_config(specific_config, global_config):
             return False
-        
+
         # Example: Check for required fields in epub_specific_settings
         if "epub_version" not in specific_config:
-            print("Warning: epub_version not found in specific_config, using default.")
-            # Or raise InvalidConfigError
-        
+            logger.warning("epub_version not found in specific_config, using default.")
+
         # Add more detailed validation based on epub_specific_settings schema
         # For example, check types, ranges, allowed values for various keys.
         # This is a placeholder for more comprehensive validation.
         return True
 
-    def _determine_count(self, config_value: Any, element_name_for_logging: str = "element") -> int:
-        """
-        Determines the count of an element based on its configuration value.
-        Handles integer, range object, or probabilistic object.
-        """
-        if isinstance(config_value, int):
-            return config_value
-        elif isinstance(config_value, dict):
-            if "min" in config_value and "max" in config_value:
-                min_val = config_value.get("min", 0)
-                max_val = config_value.get("max", 0)
-                if not (isinstance(min_val, int) and isinstance(max_val, int) and min_val <= max_val):
-                    print(f"Warning: Invalid range for {element_name_for_logging}: {config_value}. Defaulting to 0.")
-                    return 0
-                return random.randint(min_val, max_val)
-            elif "chance" in config_value:
-                chance = config_value.get("chance", 0.0)
-                # per_unit_of = config_value.get("per_unit_of", "document") # Not used in this simplified version yet
-                max_total = config_value.get("max_total", 1) # Default to generating 1 if chance met
-                
-                if not (isinstance(chance, float) and 0.0 <= chance <= 1.0):
-                    print(f"Warning: Invalid chance for {element_name_for_logging}: {chance}. Defaulting to 0.")
-                    return 0
-                
-                if random.random() < chance:
-                    # For simplicity, if chance hits, generate 1 up to max_total.
-                    # A more complex version might involve another random number for count.
-                    return min(1, max_total) if isinstance(max_total, int) and max_total >=0 else 1
-                return 0
-            else:
-                print(f"Warning: Unknown dictionary structure for {element_name_for_logging} count: {config_value}. Defaulting to 0.")
-                return 0
-        else:
-            print(f"Warning: Unknown config type for {element_name_for_logging} count: {config_value}. Defaulting to 0.")
-            return 0
+    # Note: _determine_count is inherited from BaseGenerator
 
     def _create_chapter_content(self, book: epub.EpubBook, chapter_number: int, chapter_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> epub.EpubHtml:
         """
@@ -123,7 +85,7 @@ class EpubGenerator(BaseGenerator):
         """
         # Placeholder content generation
         chapter_content_html = f"<h1>{chapter_title}</h1>"
-        
+
         # Simulate sections using _determine_count
         default_sections_config = self.get_default_specific_config().get("content_elements", {}).get("sections_per_chapter_config", 1)
         sections_config = specific_config.get("sections_per_chapter_config", default_sections_config)
@@ -139,7 +101,7 @@ class EpubGenerator(BaseGenerator):
             # For now, to keep the existing structure somewhat, we add a placeholder to the HTML.
             # This will be refined when _create_section_content is fully implemented.
             # chapter_content_html += f"<!-- Section {chapter_number}.{section_number} content generated by _create_section_content -->"
-        
+
         # Add content from content_types.py (e.g., blockquotes, lists)
         # Example: chapter_content_html += content_types.generate_blockquote(specific_config.get("content_elements", {}).get("blockquote_styles", {}))
 
@@ -164,7 +126,7 @@ class EpubGenerator(BaseGenerator):
 
         c = epub.EpubHtml(title=chapter_title, file_name=f'chap_{chapter_number}.xhtml', lang=specific_config.get("language", global_config.get("default_language", "en")))
         c.content = current_chapter_html_content # Content after potential citations, before notes
-        
+
         # Add notes (placeholder call, actual note addition will modify c.content or add related items)
         if num_notes > 0: # Only call if notes are expected
             self._add_notes_to_chapter(book, c, chapter_number, num_notes, specific_config, global_config)
@@ -192,8 +154,8 @@ class EpubGenerator(BaseGenerator):
 
         note_type = notes_system_config.get("type")
         notes_data = notes_system_config.get("data", {})
-        
-        if note_type == "footnotes_same_page" and notes_data:
+
+        if note_type == NotesSystemType.FOOTNOTES_SAME_PAGE.value and notes_data:
             content = chapter_item.content
             footnotes_html_list = []
             note_counter = 0
@@ -203,15 +165,15 @@ class EpubGenerator(BaseGenerator):
             def replace_note_marker(match):
                 nonlocal note_counter
                 note_key = match.group(1)
-                
+
                 if note_key in notes_data and note_key not in processed_keys:
                     note_counter += 1
                     processed_keys.add(note_key)
                     note_text = notes_data[note_key].get("content", "")
-                    
+
                     ref_id = f"fnref-{chapter_number}-{note_counter}"
                     note_id = f"fn-{chapter_number}-{note_counter}"
-                    
+
                     footnote_link = f'<sup id="{ref_id}"><a href="#{note_id}">{note_counter}</a></sup>'
                     footnotes_html_list.append(
                         f'<p id="{note_id}" class="footnote"><a href="#{ref_id}">{note_counter}.</a> {note_text}</p>'
@@ -227,7 +189,7 @@ class EpubGenerator(BaseGenerator):
                 footnotes_section_html += "\n".join(footnotes_html_list)
                 footnotes_section_html += "\n</div>"
                 content += "\n" + footnotes_section_html
-            
+
             chapter_item.content = content
 
     def _add_images_to_chapter(self, book: epub.EpubBook, chapter_item: epub.EpubHtml, chapter_number: int, num_images: int, specific_config: Dict[str, Any], global_config: Dict[str, Any]):
@@ -241,7 +203,7 @@ class EpubGenerator(BaseGenerator):
 
         image_data_map = multimedia_config.get("image_data", {})
         content = chapter_item.content
-        
+
         # Ensure multimedia.os.path.exists is available, typically imported in multimedia.py
         # For this direct implementation, we'll assume os is imported in this file.
         # from .epub_components import multimedia # multimedia.os.path.exists
@@ -255,7 +217,7 @@ class EpubGenerator(BaseGenerator):
                 img_path_on_disk = img_spec.get("path")
                 alt_text = img_spec.get("alt_text", "")
                 filename_in_epub = img_spec.get("filename_in_epub", f"{image_key}.png") # Default to .png
-                
+
                 # Path inside EPUB, typically in an 'images' folder
                 epub_image_path = f"images/{filename_in_epub}"
 
@@ -263,7 +225,7 @@ class EpubGenerator(BaseGenerator):
                     try:
                         with open(img_path_on_disk, 'rb') as f_img:
                             image_binary_content = f_img.read()
-                        
+
                         # Determine media type (simplified)
                         media_type = 'image/png' # Default
                         if filename_in_epub.lower().endswith('.jpg') or filename_in_epub.lower().endswith('.jpeg'):
@@ -282,18 +244,18 @@ class EpubGenerator(BaseGenerator):
                         book.add_item(img_item)
                         processed_keys.add(image_key)
                         return f'<img src="{epub_image_path}" alt="{alt_text}" />'
-                    except IOError as e:
-                        print(f"Warning: Could not read image file {img_path_on_disk}: {e}")
+                    except OSError as e:
+                        logger.warning("Could not read image file %s: %s", img_path_on_disk, e)
                         return match.group(0) # Return original marker on error
                 else:
-                    print(f"Warning: Image path {img_path_on_disk} for key '{image_key}' not found.")
+                    logger.warning("Image path %s for key '%s' not found.", img_path_on_disk, image_key)
                     return match.group(0) # Return original marker if path not found
             return match.group(0)
 
         content = re.sub(r"\[image:(\w+)\]", replace_image_marker, content)
         chapter_item.content = content
 
-    def _get_font_path(self, font_name: str, specific_config: Dict[str, Any]) -> str | None:
+    def _get_font_path(self, font_name: str, specific_config: Dict[str, Any]) -> Optional[str]:
         """
         Tries to find a font file.
         Placeholder: very simplified. Real version would search system paths, project paths etc.
@@ -301,18 +263,18 @@ class EpubGenerator(BaseGenerator):
         # For testing, assume fonts are in a 'fonts' subdir or directly accessible if full path given
         if os.path.exists(font_name): # Allows absolute paths or paths relative to CWD for tests
             return font_name
-        
+
         # Try common extensions if just a name is given
         common_extensions = ['.ttf', '.otf']
         for ext in common_extensions:
             if os.path.exists(font_name + ext):
                 return font_name + ext
-        
+
         # Placeholder for more sophisticated search (e.g. in a bundled 'fonts' dir)
         # print(f"Warning: Font '{font_name}' not found.")
         return None
 
-    def _create_section_content(self, book: epub.EpubBook, chapter_number: int, section_number: int, section_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> str | None:
+    def _create_section_content(self, book: epub.EpubBook, chapter_number: int, section_number: int, section_title: str, specific_config: Dict[str, Any], global_config: Dict[str, Any]) -> Optional[str]:
         """
         Creates and adds a single section's content within a chapter.
         This is a placeholder and will be expanded with epub_components.
@@ -331,7 +293,7 @@ class EpubGenerator(BaseGenerator):
                     "<p>Text with a citation [cite:smith2020].</p>"
                     "<p>Combined: [note:noteB], then an image [image:imgB], and a citation [cite:doe2021].</p>"
                 )
-        
+
         # Placeholder: In a real implementation, this would generate section HTML
         # based on more generic configuration.
         # For now, it might return a simple placeholder or None if not the special test case.
@@ -378,7 +340,7 @@ class EpubGenerator(BaseGenerator):
         # Correct way to add publisher using ebooklib
         publisher_name = specific_config.get("publisher", global_config.get("default_publisher", "SynthPress"))
         book.add_metadata('DC', 'publisher', publisher_name)
-        
+
         # Add additional custom metadata
         metadata_settings = specific_config.get("metadata_settings", {})
         additional_metadata = metadata_settings.get("additional_metadata", [])
@@ -405,7 +367,7 @@ class EpubGenerator(BaseGenerator):
             chapter_number = i + 1
             chapter_title = f"Chapter {chapter_number}" # Placeholder title
             # Actual title generation will be more complex, possibly using epub_components.structure
-            
+
             chapter_item = self._create_chapter_content(book, chapter_number, chapter_title, specific_config, global_config)
             chapters_content.append(chapter_item)
             # book.add_item(chapter_item) # Already added in _create_chapter_content
@@ -414,7 +376,7 @@ class EpubGenerator(BaseGenerator):
         default_specific_config = self.get_default_specific_config()
         toc_settings = specific_config.get("toc_settings", default_specific_config["toc_settings"])
         epub_version_str = str(specific_config.get("epub_version", default_specific_config["epub_version"])) # Ensure string for startswith
-        
+
         include_ncx_flag = specific_config.get("include_ncx", default_specific_config["include_ncx"])
         include_nav_doc_flag = specific_config.get("include_nav_doc", default_specific_config["include_nav_doc"])
 
@@ -425,20 +387,16 @@ class EpubGenerator(BaseGenerator):
             if epub_version_str.startswith("3"):
                 actual_include_nav_doc = True
         # If include_nav_doc_flag is False (explicitly), actual_include_nav_doc remains False.
-        
+
         actual_include_ncx = False
         if isinstance(include_ncx_flag, bool):
             actual_include_ncx = include_ncx_flag  # Prioritize explicit boolean
         elif include_ncx_flag == "auto":
-            if epub_version_str.startswith("2"):
-                actual_include_ncx = True
-            # For EPUB3, "auto" for NCX means include it if NavDoc is NOT being included.
-            # If NavDoc is explicitly False, and NCX is auto, then NCX should be true.
-            elif epub_version_str.startswith("3") and not actual_include_nav_doc:
+            if epub_version_str.startswith("2") or epub_version_str.startswith("3") and not actual_include_nav_doc:
                 actual_include_ncx = True
         # If include_ncx_flag is True (explicitly), actual_include_ncx is True.
         # If include_ncx_flag is False (explicitly), actual_include_ncx remains False.
-        
+
         if actual_include_ncx:
             toc.create_ncx(book, chapters_content, toc_settings)
             # create_ncx is expected to set book.toc and add the NCX item
@@ -450,7 +408,7 @@ class EpubGenerator(BaseGenerator):
             if nav_item:
                 book.add_item(nav_item)
             # create_nav_document is expected to add the NavDoc item
-        
+
         if not actual_include_ncx and not actual_include_nav_doc:
             book.toc = () # Ensure toc is empty if no ToC was generated
 
@@ -490,7 +448,7 @@ class EpubGenerator(BaseGenerator):
                     try:
                         with open(font_path, 'rb') as f_content:
                             font_content = f_content.read()
-                        
+
                         # Determine filename for EPUB (e.g., fonts/font_name.ttf)
                         base_font_name = os.path.basename(font_path) # Use the path returned by _get_font_path
                         epub_font_filename = f"fonts/{base_font_name}"
@@ -501,7 +459,7 @@ class EpubGenerator(BaseGenerator):
                         media_type = 'application/vnd.ms-opentype' # Default for TTF/OTF
                         if epub_font_filename.lower().endswith('.otf'):
                             media_type = 'application/font-sfnt' # More generic for OTF
-                        
+
                         font_item = epub.EpubItem(
                             uid=f"font_{base_font_name.split('.')[0]}",
                             file_name=epub_font_filename,
@@ -509,9 +467,9 @@ class EpubGenerator(BaseGenerator):
                             content=font_content
                         )
                         book.add_item(font_item)
-                    except IOError as e:
-                        print(f"Warning: Could not read font file {font_path}: {e}")
-        
+                    except OSError as e:
+                        logger.warning("Could not read font file %s: %s", font_path, e)
+
         style = 'BODY {color: black;}' # Basic style
         # Potentially add @font-face rules here if fonts were embedded
         # For now, just a basic CSS
@@ -531,16 +489,16 @@ class EpubGenerator(BaseGenerator):
                         capture_output=True, text=True, check=False
                     )
                     if result.returncode != 0:
-                        print(f"EPUBCheck for {output_path} found issues:\n{result.stderr}")
+                        logger.warning("EPUBCheck for %s found issues:\n%s", output_path, result.stderr)
                     else:
-                        print(f"EPUBCheck for {output_path} passed.")
+                        logger.info("EPUBCheck for %s passed.", output_path)
                 except Exception as e:
-                    print(f"Error running EPUBCheck for {output_path}: {e}")
+                    logger.error("Error running EPUBCheck for %s: %s", output_path, e)
             elif epubcheck_path:
-                print(f"Warning: EPUBCheck path '{epubcheck_path}' not found. Skipping validation.")
+                logger.warning("EPUBCheck path '%s' not found. Skipping validation.", epubcheck_path)
             else:
-                print("Warning: EPUBCheck path not configured. Skipping validation.")
-        
+                logger.warning("EPUBCheck path not configured. Skipping validation.")
+
         return output_path
 
 # Example of how epub_components might be used (conceptual)
@@ -552,13 +510,13 @@ class EpubGenerator(BaseGenerator):
     # for chap_idx, chap_data in enumerate(chapters_data):
     #     xhtml_content = ""
     #     xhtml_content += headers.generate_chapter_header(chap_data, specific_config)
-        
+
     #     for sec_idx, sec_data in enumerate(chap_data.get("sections", [])):
     #         xhtml_content += headers.generate_section_header(sec_data, specific_config)
     #         # Paragraphs, lists, blockquotes from content_types
     #         # Images from multimedia
     #         # Notes from notes
-        
+
     #     # Create epub.EpubHtml item
     #     # Add to book and generated_chapters list
 

@@ -1,0 +1,115 @@
+# Table of Contents pattern definitions
+# Source: docs/epub_formatting_analysis_report.md
+
+patterns:
+  ncx_flat:
+    category: "toc_style"
+    description: "Simple flat NCX (depth 1-2)"
+    source_examples:
+      - "Hegel - Science of Logic"
+    epub_versions: [2, 3]
+    detection_signature:
+      ncx:
+        required: true
+        max_depth: 2
+    requires: []
+    conflicts_with: []
+    generator_config:
+      toc_settings:
+        style: "ncx"
+        max_depth: 2
+
+  ncx_nested:
+    category: "toc_style"
+    description: "Deeply nested NCX with 3+ levels"
+    source_examples:
+      - "Kant - Critique of Pure Reason"
+      - "Charles Taylor - Hegel"
+    epub_versions: [2, 3]
+    detection_signature:
+      ncx:
+        required: true
+        min_depth: 3
+    requires: []
+    conflicts_with: []
+    generator_config:
+      toc_settings:
+        style: "ncx"
+        max_depth: 4
+
+  navdoc_basic:
+    category: "toc_style"
+    description: "EPUB3 Navigation Document (basic)"
+    source_examples:
+      - "Robert B. Pippin - Hegel's Realm of Shadows"
+    epub_versions: [3]
+    detection_signature:
+      navdoc:
+        required: true
+        has_landmarks: false
+    requires:
+      - "epub3_container"
+    conflicts_with:
+      - "epub2_only"
+    generator_config:
+      epub_version: 3
+      toc_settings:
+        style: "navdoc"
+        include_landmarks: false
+
+  navdoc_full:
+    category: "toc_style"
+    description: "EPUB3 Navigation Document with landmarks and page-list"
+    source_examples:
+      - "Heidegger - Metaphysics of German Idealism"
+    epub_versions: [3]
+    detection_signature:
+      navdoc:
+        required: true
+        has_landmarks: true
+        has_page_list: true
+    requires:
+      - "epub3_container"
+    conflicts_with:
+      - "epub2_only"
+    generator_config:
+      epub_version: 3
+      toc_settings:
+        style: "navdoc"
+        include_landmarks: true
+        include_page_list: true
+
+  html_toc_p_classes:
+    category: "toc_style"
+    description: "HTML ToC using <p> tags with toc classes"
+    source_examples:
+      - "Kant - Critique of Pure Reason"
+      - "Hegel - Philosophy of Right"
+    epub_versions: [2, 3]
+    detection_signature:
+      html_toc:
+        required: true
+        selector: "p.toc, p.tocb, p.tocc"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      toc_settings:
+        include_html_toc: true
+        html_toc_style: "p_classes"
+
+  html_toc_nested_lists:
+    category: "toc_style"
+    description: "HTML ToC using nested <ul>/<ol> lists"
+    source_examples:
+      - "Standard EPUB structure"
+    epub_versions: [2, 3]
+    detection_signature:
+      html_toc:
+        required: true
+        selector: "nav ul, nav ol, .toc ul, .toc ol"
+    requires: []
+    conflicts_with: []
+    generator_config:
+      toc_settings:
+        include_html_toc: true
+        html_toc_style: "nested_lists"

@@ -1,24 +1,27 @@
 import os
+
 from ebooklib import epub
-from ...common.utils import EPUB_DIR, _create_epub_book, _add_epub_chapters, _write_epub_file
+
+from ...common.utils import EPUB_DIR, _add_epub_chapters, _create_epub_book, _write_epub_file
+
 
 def create_epub_ncx_simple(filename="ncx_simple.epub"):
     filepath = os.path.join(EPUB_DIR, "toc", filename)
     book = _create_epub_book("synth-epub-ncx-simple-001", "Simple NCX EPUB")
     chapter_details = [
-        {"title": "Introduction", "filename": "chap_01.xhtml", 
+        {"title": "Introduction", "filename": "chap_01.xhtml",
          "content": """<h1>Chapter 1: Introduction</h1>
 <p>This is the first chapter of a synthetically generated EPUB file. 
 Its purpose is to test basic NCX Table of Contents functionality.</p>
 <p>Philosophical inquiry often begins with fundamental questions about existence, knowledge, values, reason, mind, and language. 
 This simple text serves as a placeholder for such profound discussions.</p>"""},
-        {"title": "Further Thoughts", "filename": "chap_02.xhtml", 
+        {"title": "Further Thoughts", "filename": "chap_02.xhtml",
          "content": """<h1>Chapter 2: Further Thoughts</h1>
 <p>This second chapter continues the exploration, albeit in a very simple manner for testing purposes.</p>
 <p>Consider the nature of synthetic data: it mimics reality to test systems, yet it is not real. 
 This paradox itself could be a subject of philosophical thought.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "intro"), epub.Link(chapters[1].file_name, chapters[1].title, "thoughts"))
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
@@ -39,7 +42,7 @@ def create_epub_ncx_nested(filename="ncx_nested.epub"):
         {"title": "Section 1.2: Second Concept", "filename": "sec_1_2.xhtml", "content": "<h2>Section 1.2: Second Concept</h2><p>Exploring the second concept.</p>"},
         {"title": "Chapter 2: Advanced Topics", "filename": "chap_02.xhtml", "content": "<h1>Chapter 2: Advanced Topics</h1><p>Moving to more complex subjects.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     link_p1_intro = epub.Link(chapters[0].file_name, chapters[0].title, "p1intro_id")
     link_c1 = epub.Link(chapters[1].file_name, chapters[1].title, "c1_id")
     link_s1_1 = epub.Link(chapters[2].file_name, chapters[2].title, "s1_1_id")
@@ -77,7 +80,7 @@ def create_epub_html_toc_linked(filename="html_toc_linked.epub"):
         {"title": "Chapter 2: Developments", "filename": "chap_02.xhtml", "content": "<h1>Chapter 2: Developments</h1><p>Content for chapter 2.</p><h2 id='sec2.1'>Section 2.1: First Development</h2><p>Details of section 2.1.</p>"},
         {"title": "Chapter 3: Conclusions", "filename": "chap_03.xhtml", "content": "<h1>Chapter 3: Conclusions</h1><p>Content for chapter 3.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
     book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0]) for ch in chapters)
     book.add_item(epub.EpubNcx())
     nav_doc = epub.EpubNav()
@@ -108,7 +111,7 @@ def create_epub_ncx_with_pagelist(filename="ncx_page_list.epub"):
 <p>Content for page 4.<a id="page_4" /></p>"""
     c2 = epub.EpubHtml(title="Chapter 2", file_name="chap_02.xhtml", lang="en")
     c2.content = c2_content
-    
+
     book.add_item(c1)
     book.add_item(c2)
     chapters = [c1, c2]
@@ -117,7 +120,7 @@ def create_epub_ncx_with_pagelist(filename="ncx_page_list.epub"):
         epub.Link(chapters[0].file_name, chapters[0].title, "chap1_toc"),
         epub.Link(chapters[1].file_name, chapters[1].title, "chap2_toc")
     )
-    
+
     # Create NCX with pageList
     ncx = epub.EpubNcx()
     # ebooklib's EpubNcx doesn't directly support adding pageTargets to pageList easily.
@@ -172,15 +175,15 @@ def create_epub_missing_ncx(filename="missing_ncx.epub"):
     """
     filepath = os.path.join(EPUB_DIR, "toc", filename)
     book = _create_epub_book("synth-epub-no-ncx-001", "Missing NCX EPUB (NavDoc Only)")
-    book.epub_version = "3.0" 
+    book.epub_version = "3.0"
 
     chapter_details = [
         {"title": "Chapter Alpha", "filename": "c_alpha.xhtml", "content": "<h1>Chapter Alpha</h1><p>Content relying on NavDoc.</p>"},
         {"title": "Chapter Beta", "filename": "c_beta.xhtml", "content": "<h1>Chapter Beta</h1><p>More content, NavDoc is key.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
-    
-    nav_html_content=u"""<?xml version="1.0" encoding="UTF-8"?>
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
+
+    nav_html_content="""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
 <head>
@@ -209,9 +212,9 @@ def create_epub_missing_ncx(filename="missing_ncx.epub"):
     nav_doc_item.content = nav_html_content
     nav_doc_item.properties.append('nav') # Crucial for EPUB3 NavDoc
     book.add_item(nav_doc_item)
-    
+
     # DO NOT add epub.EpubNcx()
-    
+
     style = 'BODY {color: steelblue;}'
     main_css = epub.EpubItem(uid="style_missing_ncx", file_name="style/main_missing_ncx.css", media_type="text/css", content=style)
     book.add_item(main_css)
@@ -241,7 +244,7 @@ def create_epub_navdoc_full(filename="navdoc_full.epub"):
 <p>Content for page 3.<span epub:type="pagebreak" id="page_3" title="3"/></p>"""
     c2 = epub.EpubHtml(title="Chapter 2", file_name="ch2.xhtml", lang="en")
     c2.content = ch2_content
-    
+
     cover_page = epub.EpubHtml(title="Cover", file_name="cover.xhtml", lang="en")
     cover_page.content = "<h1>The Great Synthetic Novel</h1><p>by A. Coder</p>"
     # For a real cover, you'd add an image and set book.set_cover(...)
@@ -255,7 +258,7 @@ def create_epub_navdoc_full(filename="navdoc_full.epub"):
     # This replaces the custom nav_html_content to ensure a parsable nav document.
     # The "full" aspect (landmarks, page-list) from the original custom nav is lost with this approach,
     # but the immediate goal is to pass the test that checks for a non-empty, parsable nav document.
-    
+
     # Set book.toc for EpubNav and EpubNcx (if re-enabled)
     book.toc = (epub.Link(chapters[0].file_name, chapters[0].title, "c1_ncx"),
                 epub.Link(chapters[1].file_name, chapters[1].title, "c2_ncx"))
@@ -302,13 +305,13 @@ def create_epub_ncx_links_to_anchors(filename="ncx_links_to_anchors.epub"):
 <h2 id="sec2_1">Section 2.1</h2>
 <p>Content for section 2.1 of chapter 2.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     # Create NCX links to anchors
     toc_c1_main = epub.Link(chapters[0].file_name + "#main_title", "Chapter One: Anchors Away", "c1_main_anchor")
     toc_c1_s1_1 = epub.Link(chapters[0].file_name + "#sec1_1", "Section 1.1", "c1_s1_1_anchor")
     toc_c1_s1_2 = epub.Link(chapters[0].file_name + "#sec1_2", "Section 1.2", "c1_s1_2_anchor")
-    
+
     toc_c2_main = epub.Link(chapters[1].file_name + "#chap2_title", "Chapter Two: More Anchors", "c2_main_anchor")
     toc_c2_s2_1 = epub.Link(chapters[1].file_name + "#sec2_1", "Section 2.1", "c2_s2_1_anchor")
 
@@ -316,7 +319,7 @@ def create_epub_ncx_links_to_anchors(filename="ncx_links_to_anchors.epub"):
         (toc_c1_main, (toc_c1_s1_1, toc_c1_s1_2)),
         (toc_c2_main, (toc_c2_s2_1,))
     )
-    
+
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     style = 'BODY {color: teal;}'
@@ -336,7 +339,7 @@ def create_epub_ncx_problematic_entries(filename="ncx_problematic_entries.epub")
     book = _create_epub_book("synth-epub-ncx-problem-001", "NCX Problematic Entries EPUB")
 
     long_title = "This is an excessively long title for a chapter that really should have been summarized, but for the sake of testing problematic NCX entries, we are putting a whole paragraph, or at least a very long sentence, into the navLabel text to see how parsers and reading systems handle such an edge case. It might be truncated, or it might cause display issues, or it might be handled perfectly fine. The point is to test the boundaries and robustness of the system when faced with non-standard or poorly formed metadata within the NCX Table of Contents structure."
-    
+
     chapter_details = [
         {"title": "Normal Chapter", "filename": "c1_problem.xhtml",
          "content": """<h1>A Normally Titled Chapter</h1><p>Some standard content.</p>"""},
@@ -345,14 +348,14 @@ def create_epub_ncx_problematic_entries(filename="ncx_problematic_entries.epub")
         {"title": "Another Chapter", "filename": "c3_problem.xhtml",
          "content": """<h1>Yet Another Chapter</h1><p>More content here.</p>"""}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     book.toc = (
         epub.Link(chapters[0].file_name, chapters[0].title, "c1_problem_toc"),
         epub.Link(chapters[1].file_name, chapters[1].title, "c2_problem_toc"), # This will use the long_title
         epub.Link(chapters[2].file_name, chapters[2].title, "c3_problem_toc")
     )
-    
+
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     style = 'BODY {color: firebrick;}'
@@ -380,13 +383,13 @@ def create_epub_ncx_inconsistent_depth(filename="ncx_inconsistent_depth.epub"):
         {"title": "Section 2.1 (Under Chapter 2)", "filename": "c2s1_depth.xhtml", "content": "<h2>Section 2.1</h2>"},
         {"title": "Standalone Chapter 3", "filename": "c3_depth.xhtml", "content": "<h1>Standalone Chapter 3</h1>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     # Intentionally create a TOC structure that might imply certain depths,
     # but the actual content structure or a manually edited NCX could differ.
     # ebooklib generates depth based on tuple nesting.
     # We'll make a flat-looking structure in NCX for some nested content.
-    
+
     link_p1 = epub.Link(chapters[0].file_name, chapters[0].title, "p1_d_id")
     link_p1c1 = epub.Link(chapters[1].file_name, chapters[1].title, "p1c1_d_id") # Should be under p1
     link_c2 = epub.Link(chapters[2].file_name, chapters[2].title, "c2_d_id")
@@ -396,7 +399,7 @@ def create_epub_ncx_inconsistent_depth(filename="ncx_inconsistent_depth.epub"):
     # This structure is flat, but content implies nesting.
     # A real inconsistent depth would be if NCX had <navPoint dtb:depth="1"> containing another <navPoint dtb:depth="1">
     book.toc = (link_p1, link_p1c1, link_c2, link_c2s1, link_c3) # Flat NCX
-    
+
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav())
     style = 'BODY {color: darkolivegreen;}'
@@ -421,7 +424,7 @@ def create_epub_ncx_lists_footnote_files(filename="ncx_lists_footnote_files.epub
 <p>Some text that refers to a footnote.<sup><a href="../footnotes/fn_c1_01.xhtml#fn1">1</a></sup></p>
 <p>More text with another reference.<sup><a href="../footnotes/fn_c1_02.xhtml#fn2">2</a></sup></p>"""},
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
 
     # Create dummy footnote files (these would typically be in a separate dir)
     fn1_content = "<html><body><p id='fn1'>1. This is the first footnote, in its own file.</p></body></html>"
@@ -441,7 +444,7 @@ def create_epub_ncx_lists_footnote_files(filename="ncx_lists_footnote_files.epub
         epub.Link(fn1_page.file_name, "Footnote 1 (File)", "fn1_file_toc"),
         epub.Link(fn2_page.file_name, "Footnote 2 (File)", "fn2_file_toc")
     )
-    
+
     book.add_item(epub.EpubNcx())
     book.add_item(epub.EpubNav()) # Basic Nav for compatibility
     style = 'BODY {color: indigo;}'
@@ -449,10 +452,10 @@ def create_epub_ncx_lists_footnote_files(filename="ncx_lists_footnote_files.epub
     book.add_item(nav_css)
     for item in [chapters[0], fn1_page, fn2_page]:
         item.add_item(nav_css) # Apply style to all content docs
-        
+
     # Spine order: main content, then footnote files (or as per typical structure)
     # For this test, putting them in spine might not be typical but tests NCX linking.
-    book.spine = ['nav'] + chapters + [fn1_page, fn2_page] 
+    book.spine = ['nav'] + chapters + [fn1_page, fn2_page]
     _write_epub_file(book, filepath)
 
 def create_epub_html_toc_p_tags(filename="html_toc_p_tags.epub"):
@@ -489,8 +492,8 @@ def create_epub_html_toc_p_tags(filename="html_toc_p_tags.epub"):
         {"title": "Part II", "filename": "part2.xhtml", "content": p2_content},
         {"title": "Part II - Ch1", "filename": "part2_chap1.xhtml", "content": p2_c1_content},
     ]
-    chapters = _add_epub_chapters(book, chapters_data)
-    
+    chapters, _toc_links = _add_epub_chapters(book, chapters_data)
+
     # Basic NCX for fallback for create_epub_html_toc_p_tags
     # chapters_data for create_epub_html_toc_p_tags has 5 items.
     # chapters[0] = part1.xhtml
@@ -503,7 +506,7 @@ def create_epub_html_toc_p_tags(filename="html_toc_p_tags.epub"):
     ncx_p1_c1 = epub.Link(chapters[1].file_name, "Chapter 1: First Principles", "ncx_p1_c1_p_tag_corrected")
     ncx_p1_c1_s1 = epub.Link(chapters[1].file_name + "#sec1", "Section 1.1: Initial Thoughts", "ncx_p1_c1_s1_p_tag_corrected")
     ncx_p1_c2 = epub.Link(chapters[2].file_name, "Chapter 2: Second Principles", "ncx_p1_c2_p_tag_corrected")
-    
+
     ncx_p2 = epub.Link(chapters[3].file_name, "Part II: The Structure", "ncx_p2_p_tag_corrected")
     ncx_p2_c1 = epub.Link(chapters[4].file_name, "Chapter 3: Building Blocks", "ncx_p2_c1_p_tag_corrected")
 
@@ -529,7 +532,7 @@ def create_epub_html_toc_p_tags(filename="html_toc_p_tags.epub"):
     html_toc_page.add_item(main_css) # Style for the ToC page itself
     for ch in chapters:
         ch.add_item(main_css)
-        
+
     book.spine = ['nav', html_toc_page] + chapters
     _write_epub_file(book, filepath)
 
@@ -556,8 +559,8 @@ def create_epub_html_toc_non_linked(filename="html_toc_non_linked.epub"):
         {"title": "Chapter 2: Further Unlinked Thoughts", "filename": "c2_nonlinked.xhtml", "content": "<h1>Chapter 2</h1><p>Content for chapter 2.</p><h2>Section 2.1</h2><p>Detail.</p>"},
         {"title": "Chapter 3: Final Unlinked Words", "filename": "c3_nonlinked.xhtml", "content": "<h1>Chapter 3</h1><p>Content for chapter 3.</p>"}
     ]
-    chapters = _add_epub_chapters(book, chapter_details)
-    
+    chapters, _toc_links = _add_epub_chapters(book, chapter_details)
+
     # Basic NCX for fallback
     book.toc = tuple(epub.Link(ch.file_name, ch.title, ch.file_name.split('.')[0] + "_nl") for ch in chapters)
     book.add_item(epub.EpubNcx())
@@ -584,7 +587,7 @@ def create_ncx(book, chapters_data, toc_settings):
                               'title', 'href', 'uid', and 'children' (list of child dicts).
         toc_settings (dict): Configuration for ToC generation.
     """
-    
+
     def _create_toc_links_recursive(items_data):
         links = []
         for item_data in items_data: # item_data can be an EpubHtml object or a dict
@@ -603,7 +606,7 @@ def create_ncx(book, chapters_data, toc_settings):
                 continue
 
             link = epub.Link(href, title, uid)
-            
+
             if children:
                 children_links = _create_toc_links_recursive(children)
                 links.append((link, tuple(children_links)))
@@ -655,7 +658,7 @@ def create_nav_document(book, chapters_data, toc_settings, epub_version):
                     link_object = item_data[0]
                 if len(item_data) > 1 and isinstance(item_data[1], (list, tuple)):
                     children_tuple = item_data[1]
-            
+
             if link_object:
                 # Item should only be added if its own level (current_depth) is within max_depth
                 # The initial check (current_depth > max_depth) handles pruning deeper branches entirely.
@@ -664,16 +667,16 @@ def create_nav_document(book, chapters_data, toc_settings, epub_version):
                 #     continue
 
                 list_item_html = f'<li><a href="{link_object.href}">{link_object.title}</a>'
-                
+
                 # Recursively call for children if they exist and the *next* level is within max_depth
                 if children_tuple and (max_depth is None or (current_depth + 1) <= max_depth):
                     children_html_str = _generate_html_list_items(children_tuple, current_depth + 1, max_depth)
                     if children_html_str: # Only append if children actually generated HTML (weren't pruned)
                         list_item_html += f"\n<ol>\n{children_html_str}</ol>\n"
-                
+
                 list_item_html += "</li>"
                 html_parts.append(list_item_html)
-        
+
         if not html_parts:
             return ""
         return "\n".join(html_parts)
@@ -683,18 +686,18 @@ def create_nav_document(book, chapters_data, toc_settings, epub_version):
     # Use book.toc which is expected to be a tuple of Links or (Link, children_tuple)
     toc_items_source = book.toc if hasattr(book, 'toc') and book.toc else []
     toc_html_items = _generate_html_list_items(toc_items_source, 1, toc_max_depth)
-    
+
     nav_content_parts = [
-        f'<?xml version="1.0" encoding="utf-8"?>\n',
-        f'<!DOCTYPE html>\n',
+        '<?xml version="1.0" encoding="utf-8"?>\n',
+        '<!DOCTYPE html>\n',
         # Retrieve language from book metadata
         f'<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{book.get_metadata("DC", "language")[0][0] if book.get_metadata("DC", "language") else "en"}">\n',
         f'<head>\n  <title>{book.title} - Navigation</title>\n</head>\n',
-        f'<body>\n',
-        f'  <nav epub:type="toc" id="toc">\n',
-        f'    <h1>Table of Contents</h1>\n', # Default title, can be configured
+        '<body>\n',
+        '  <nav epub:type="toc" id="toc">\n',
+        '    <h1>Table of Contents</h1>\n', # Default title, can be configured
         f'    <ol>\n{toc_html_items}\n    </ol>\n',
-        f'  </nav>\n'
+        '  </nav>\n'
     ]
 
     # Landmarks
@@ -711,9 +714,9 @@ def create_nav_document(book, chapters_data, toc_settings, epub_version):
     if toc_settings.get("include_page_list_in_toc", False):
         nav_content_parts.append('  <nav epub:type="page-list" hidden="">\n')
         nav_content_parts.append('    <h1>Page List</h1>\n    <ol>\n      <!-- Page list items go here -->\n    </ol>\n  </nav>\n')
-        
+
     nav_content_parts.append('</body>\n</html>')
-    
+
     final_nav_content = "".join(nav_content_parts)
 
     # ebooklib's EpubNav can take content directly, or it generates from book.toc
@@ -735,6 +738,6 @@ def create_nav_document(book, chapters_data, toc_settings, epub_version):
                     simple_toc_links.append(epub.Link(chap_item_obj.file_name, chap_item_obj.title, uid))
         if simple_toc_links:
             book.toc = tuple(simple_toc_links)
-    
+
     # The EpubGenerator will be responsible for adding this item to the book.
     return nav_item

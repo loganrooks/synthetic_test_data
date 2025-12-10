@@ -1,0 +1,26 @@
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include ROADMAP.md
+
+# Include configuration files
+include pyproject.toml
+
+# Include default configuration
+include synth_data_gen/core/default_config.yaml
+
+# Include pattern definitions for analyzer
+recursive-include synth_data_gen/analyzer/patterns *.yaml
+
+# Exclude test files
+recursive-exclude tests *
+exclude .gitignore
+exclude .github
+
+# Exclude development files
+exclude .pre-commit-config.yaml
+prune .github
+prune memory-bank
+prune docs
+prune specifications

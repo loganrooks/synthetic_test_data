@@ -1,6 +1,10 @@
+import logging
 import os
 import zipfile
+
 from ebooklib import epub
+
+logger = logging.getLogger(__name__)
 
 # Define output base directory relative to the project root
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -18,7 +22,7 @@ MD_SUBDIR_NAME = "markdown" # Renamed to avoid conflict with MD_DIR
 
 def ensure_output_directories(base_dir: str):
     """Ensures all necessary output subdirectories exist within the given base_dir."""
-    
+
     # Ensure the base_dir itself exists
     os.makedirs(base_dir, exist_ok=True)
 
@@ -57,9 +61,9 @@ def _create_epub_book(identifier, title, author="Synthetic Data Generator", lang
         if author: book.add_author(author)
         book.add_metadata('DC', 'publisher', 'PhiloGraph Testing Inc.')
         book.add_metadata('DC', 'date', '2025-05-09', others={'event': 'publication'})
-    
+
     if custom_metadata: # For adding specific or overriding metadata
-        for prefix, name, value, others_dict in custom_metadata: 
+        for prefix, name, value, others_dict in custom_metadata:
             book.add_metadata(prefix, name, value, others=others_dict)
     return book
 
@@ -73,7 +77,7 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
         ch_filename = detail.get("filename", f"chap_{i+1:02}.xhtml")
         ch_content = detail.get("content", f"<h1>{ch_title}</h1><p>Content for {ch_title}.</p>")
         ch_uid = detail.get("uid", ch_filename.split('.')[0]) # Use filename as uid if not provided
-        
+
         chapter = epub.EpubHtml(title=ch_title, file_name=ch_filename, lang=book.language, uid=ch_uid)
         if isinstance(ch_content, str):
             chapter.content = ch_content.encode('utf-8')
@@ -88,7 +92,7 @@ def _add_epub_chapters(book, chapter_details, default_style_item=None):
 
 def _write_epub_file(book, filepath):
     """Helper function to write the EPUB file, with basic custom file handling."""
-    
+
     # Standard EPUB writing
     epub.write_epub(filepath, book, {})
 
@@ -100,11 +104,11 @@ def _write_epub_file(book, filepath):
                     # Ensure the path is treated as relative to the ZIP root
                     # For META-INF, rel_path should be e.g., "META-INF/encryption.xml"
                     epub_zip.writestr(rel_path, content_bytes)
-            # print(f"Successfully added custom files to EPUB: {filepath}") # Optional: for debugging
+            logger.debug("Successfully added custom files to EPUB: %s", filepath)
         except Exception as e:
-            print(f"Error adding custom files to EPUB {filepath}: {e}")
+            logger.error("Error adding custom files to EPUB %s: %s", filepath, e)
             # Consider re-raising or more specific error handling
-    print(f"Successfully created EPUB: {filepath}")
+    logger.info("Successfully created EPUB: %s", filepath)
 
 # Call this once if common.py is imported, or ensure main runner calls it.
 # For now, let's assume the main runner will call ensure_output_directories().

@@ -1,10 +1,11 @@
-import pytest
-import os
 import shutil
 from pathlib import Path
 
+import pytest
+
 # Adjust the import path based on your project structure
 from synth_data_gen.common import utils
+
 
 @pytest.fixture
 def cleanup_generated_dir():
@@ -23,7 +24,7 @@ def test_ensure_output_directories_creates_all(cleanup_generated_dir):
     base_generated_dir = Path(utils.PROJECT_ROOT) / "generated"
     if base_generated_dir.exists():
         shutil.rmtree(base_generated_dir)
-    
+
     utils.ensure_output_directories(utils.BASE_OUTPUT_DIR)
 
     # Check for the existence of all directories defined in utils.py

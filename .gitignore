@@ -35,3 +35,21 @@ venv.bak/
 .idea/
 *.swp
 *.swo
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/.mcp.local.json
+
+# Generated output
+generated/
+synthetic_output/
+*.epub
+*.pdf
+
+# Test artifacts
+synth_data_gen/analyzer/patterns/test_category.yaml
+
+# Environment and secrets
+.env
+.env.*
+secrets/

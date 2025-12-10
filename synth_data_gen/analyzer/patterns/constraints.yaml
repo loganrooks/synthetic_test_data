@@ -1,0 +1,73 @@
+# Cross-pattern constraints
+# Defines relationships between patterns: requires, conflicts, implies
+
+constraints:
+  # EPUB version constraints
+  - type: "conflicts"
+    source: "navdoc_*"
+    target: "epub2_only"
+    reason: "Navigation Documents require EPUB3"
+
+  - type: "conflicts"
+    source: "epub3_semantic_notes"
+    target: "epub2_only"
+    reason: "epub:type attributes require EPUB3 namespace"
+
+  - type: "conflicts"
+    source: "page_markers_epub3_pagebreak"
+    target: "epub2_only"
+    reason: "epub:type='pagebreak' requires EPUB3"
+
+  - type: "requires"
+    source: "navdoc_*"
+    target: "epub3_container"
+    reason: "Navigation Documents are only valid in EPUB3"
+
+  - type: "requires"
+    source: "epub3_semantic_notes"
+    target: "epub3_container"
+    reason: "epub:type='noteref' requires EPUB3"
+
+  # ToC structural constraints
+  - type: "conflicts"
+    source: "ncx_flat"
+    target: "ncx_nested"
+    reason: "NCX can only have one depth structure"
+
+  - type: "conflicts"
+    source: "navdoc_basic"
+    target: "navdoc_full"
+    reason: "Choose one NavDoc style"
+
+  # Notes system constraints
+  - type: "conflicts"
+    source: "dual_system_*"
+    target: "single_note_system"
+    reason: "Cannot have both dual and single note systems"
+
+  - type: "conflicts"
+    source: "footnotes_same_page_*"
+    target: "endnotes_collected"
+    reason: "Notes can be either footnotes or endnotes, not both (unless dual system)"
+
+  - type: "implies"
+    source: "dual_system_symbols"
+    target: "separate_notes_file"
+    reason: "Dual systems typically have editor notes in separate file"
+
+  # Header constraints
+  - type: "conflicts"
+    source: "styled_p_headers"
+    target: "h1_h6_standard"
+    reason: "Use either styled p or standard h1-h6, not both for main headers"
+
+  - type: "conflicts"
+    source: "div_headers"
+    target: "h1_h6_standard"
+    reason: "Use either div or standard h1-h6 for main headers"
+
+  # Compatibility notes (informational)
+  - type: "implies"
+    source: "epub3_container"
+    target: "ncx_flat"
+    reason: "EPUB3 should include NCX for backward compatibility (optional)"

@@ -1,12 +1,14 @@
-import pytest
+import json  # For JSON frontmatter test
 import os
-import shutil # Added for tearDown equivalent
+import shutil  # Added for tearDown equivalent
+from unittest.mock import call  # Keep call for checking mock arguments
+
+import pytest
 from pytest_mock import MockerFixture
-from unittest.mock import call # Keep call for checking mock arguments
-from synth_data_gen.generators.markdown import MarkdownGenerator
+
 from synth_data_gen.core.base import BaseGenerator
-import random # For patching random.randint and random.random
-import json # For JSON frontmatter test
+from synth_data_gen.generators.markdown import MarkdownGenerator
+
 
 @pytest.fixture
 def markdown_generator_test_setup():
@@ -28,16 +30,16 @@ def test_get_default_specific_config(markdown_generator_test_setup):
     """Test that get_default_specific_config for Markdown returns the expected structure."""
     generator, _ = markdown_generator_test_setup
     defaults = generator.get_default_specific_config()
-    
+
     assert isinstance(defaults, dict)
     assert "headings_config" in defaults
     assert isinstance(defaults["headings_config"], dict)
     assert "max_depth" in defaults["headings_config"]
     assert defaults["headings_config"]["max_depth"] == 3
-    
+
     assert "md_list_items_config" in defaults
     assert isinstance(defaults["md_list_items_config"], dict)
-    
+
     assert "md_images_config" in defaults
     assert isinstance(defaults["md_images_config"], dict)
 
@@ -53,23 +55,17 @@ def test_generate_exact_headings_count(mocker: MockerFixture, markdown_generator
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_heading_count = 2
-    
+
     def determine_count_side_effect(config_value, context_key): # Removed self_instance
         if context_key == "headings":
             return exact_heading_count
-        elif context_key == "md_list_items":
+        elif context_key == "md_list_items" or context_key == "md_images" or context_key == "md_tables" or context_key == "md_code_blocks":
             return config_value.get("count", 0) if isinstance(config_value, dict) else 0
-        elif context_key == "md_images":
-            return config_value.get("count", 0) if isinstance(config_value, dict) else 0
-        elif context_key == "md_tables":
-             return config_value.get("count", 0) if isinstance(config_value, dict) else 0
-        elif context_key == "md_code_blocks":
-             return config_value.get("count", 0) if isinstance(config_value, dict) else 0
         return 1
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     specific_config = {
         "headings_config": {"count": exact_heading_count, "max_depth": 2},
         "md_list_items_config": {"count": 0},
@@ -84,7 +80,7 @@ def test_generate_exact_headings_count(mocker: MockerFixture, markdown_generator
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     assert call(specific_config["headings_config"], "headings") in mock_determine_count.call_args_list
 
 def test_generate_exact_list_items_count(mocker: MockerFixture, markdown_generator_test_setup):
@@ -92,9 +88,9 @@ def test_generate_exact_list_items_count(mocker: MockerFixture, markdown_generat
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_list_item_count = 3
-    
+
     def determine_count_side_effect(config_value, context_key): # Removed self_instance
         if context_key == "headings":
             return config_value.get("count", 1) if isinstance(config_value, dict) else 1
@@ -119,7 +115,7 @@ def test_generate_exact_list_items_count(mocker: MockerFixture, markdown_generat
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     assert call(specific_config["md_list_items_config"], "md_list_items") in mock_determine_count.call_args_list
 
 def test_generate_exact_images_count(mocker: MockerFixture, markdown_generator_test_setup):
@@ -127,9 +123,9 @@ def test_generate_exact_images_count(mocker: MockerFixture, markdown_generator_t
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_image_count = 2
-    
+
     def determine_count_side_effect(config_value, context_key): # Removed self_instance
         if context_key == "headings":
             return config_value.get("count", 1) if isinstance(config_value, dict) else 1
@@ -154,7 +150,7 @@ def test_generate_exact_images_count(mocker: MockerFixture, markdown_generator_t
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     assert call(specific_config["md_images_config"], "md_images") in mock_determine_count.call_args_list
 
 def test_generate_exact_gfm_tables_count(mocker: MockerFixture, markdown_generator_test_setup):
@@ -162,17 +158,13 @@ def test_generate_exact_gfm_tables_count(mocker: MockerFixture, markdown_generat
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_table_count = 1
-    
+
     def determine_count_side_effect(config_value, context_key): # Removed self_instance
         if context_key == "md_tables":
             return exact_table_count
-        elif context_key == "md_footnotes":
-            return config_value.get("count", 0) if isinstance(config_value, dict) else 0
-        elif context_key == "md_task_lists":
-            return config_value.get("count", 0) if isinstance(config_value, dict) else 0
-        elif context_key == "md_code_blocks":
+        elif context_key == "md_footnotes" or context_key == "md_task_lists" or context_key == "md_code_blocks":
             return config_value.get("count", 0) if isinstance(config_value, dict) else 0
         return 0
     mock_determine_count.side_effect = determine_count_side_effect
@@ -196,7 +188,7 @@ def test_generate_exact_gfm_tables_count(mocker: MockerFixture, markdown_generat
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     assert call(specific_config["gfm_features"]["md_tables_occurrence_config"], "md_tables") in mock_determine_count.call_args_list
 
 def test_generate_range_headings_count(mocker: MockerFixture, markdown_generator_test_setup):
@@ -205,7 +197,7 @@ def test_generate_range_headings_count(mocker: MockerFixture, markdown_generator
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     min_headings = 2
     max_headings = 5
     expected_headings_from_range = 3
@@ -231,7 +223,7 @@ def test_generate_range_headings_count(mocker: MockerFixture, markdown_generator
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     assert call(specific_config["headings_config"], "headings") in mock_determine_count.call_args_list
     mock_randint.assert_called_once_with(min_headings, max_headings)
     assert mock_create_heading.call_count == expected_headings_from_range
@@ -248,7 +240,7 @@ def test_generate_probabilistic_headings_count(mocker: MockerFixture, markdown_g
     def determine_count_side_effect(config_value, context_key): # Removed self_instance
         return original_determine_count(generator, config_value, context_key) # Use generator from fixture
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     mock_create_heading_exact = mocker.patch.object(generator, '_create_md_heading', return_value="")
 
     # Scenario 1
@@ -273,7 +265,7 @@ def test_generate_probabilistic_headings_count(mocker: MockerFixture, markdown_g
     mock_random_random.reset_mock(); mock_randint.reset_mock(); mock_determine_count.reset_mock()
     mock_create_heading_exact.reset_mock() # Reset this specific mock too
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     # Scenario 2
     mock_random_random.return_value = 0.03
     min_headings_range, max_headings_range = 2, 4
@@ -325,7 +317,7 @@ def test_generate_range_list_items_count(mocker: MockerFixture, markdown_generat
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     min_list_items, max_list_items = 2, 5
     expected_list_items_from_range = 4
     mock_randint.return_value = expected_list_items_from_range
@@ -340,7 +332,7 @@ def test_generate_range_list_items_count(mocker: MockerFixture, markdown_generat
              return config_value.get("count", 0) if isinstance(config_value, dict) else 0
         return 1
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     specific_config = {
         "headings_config": {"count": 1, "max_depth": 1},
         "md_list_items_config": {
@@ -358,7 +350,7 @@ def test_generate_range_list_items_count(mocker: MockerFixture, markdown_generat
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_any_call(os.path.dirname(output_path))
-    
+
     assert call(specific_config["md_list_items_config"], "md_list_items") in mock_determine_count.call_args_list
     mock_randint.assert_called_once_with(min_list_items, max_list_items)
     assert mock_create_list_item.call_count == expected_list_items_from_range
@@ -370,7 +362,7 @@ def test_generate_probabilistic_list_items_count(mocker: MockerFixture, markdown
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_random_random = mocker.patch('synth_data_gen.core.base.random.random')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     original_determine_count = BaseGenerator._determine_count
     def determine_count_side_effect(config_value, context_key):
         if context_key == "md_list_items":
@@ -457,7 +449,7 @@ def test_generate_range_images_count(mocker: MockerFixture, markdown_generator_t
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     min_images, max_images = 1, 3
     expected_images_from_range = 2
     mock_randint.return_value = expected_images_from_range
@@ -470,7 +462,7 @@ def test_generate_range_images_count(mocker: MockerFixture, markdown_generator_t
         elif context_key == "md_list_items": return 0
         return 0
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     specific_config = {
         "headings_config": {"count": 1},
         "md_list_items_config": {"count": 0, "include_lists": False},
@@ -497,7 +489,7 @@ def test_generate_probabilistic_images_count(mocker: MockerFixture, markdown_gen
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_random_random = mocker.patch('synth_data_gen.core.base.random.random')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     original_determine_count = BaseGenerator._determine_count
     def determine_count_side_effect(config_value, context_key):
         if context_key == "md_images":
@@ -506,7 +498,7 @@ def test_generate_probabilistic_images_count(mocker: MockerFixture, markdown_gen
         elif context_key == "md_list_items": return 0
         return 0
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     mock_create_image_s1 = mocker.patch.object(generator, '_create_md_image', return_value="![alt](src)\n")
 
     # Scenario 1
@@ -580,14 +572,12 @@ def test_generate_exact_footnotes_count(mocker: MockerFixture, markdown_generato
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_footnotes_count = 2
-    
+
     def determine_count_side_effect(config_value, context_key): # Removed self_instance
         if context_key == "md_footnotes": return exact_footnotes_count
-        elif context_key == "md_tables": return 0
-        elif context_key == "md_task_lists": return 0
-        elif context_key == "md_code_blocks": return 0
+        elif context_key == "md_tables" or context_key == "md_task_lists" or context_key == "md_code_blocks": return 0
         return 0
     mock_determine_count.side_effect = determine_count_side_effect
 
@@ -618,7 +608,7 @@ def test_generate_range_footnotes_count(mocker: MockerFixture, markdown_generato
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     min_footnotes, max_footnotes = 1, 4
     expected_footnotes = 2
     mock_randint.return_value = expected_footnotes
@@ -660,14 +650,14 @@ def test_generate_probabilistic_footnotes_count(mocker: MockerFixture, markdown_
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_random_random = mocker.patch('synth_data_gen.core.base.random.random')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     original_determine_count = BaseGenerator._determine_count
     def determine_count_side_effect(config_value, context_key):
         if context_key == "md_footnotes":
             return original_determine_count(generator, config_value, context_key)
         return 0
     mock_determine_count.side_effect = determine_count_side_effect
-    
+
     mock_create_s1 = mocker.patch.object(generator, '_create_md_footnote', return_value="")
 
     # Scenario 1
@@ -709,7 +699,7 @@ def test_generate_probabilistic_footnotes_count(mocker: MockerFixture, markdown_
     mock_create_s2.reset_mock()
     mock_determine_count.side_effect = determine_count_side_effect
     mock_create_s3 = mocker.patch.object(generator, '_create_md_footnote', return_value="")
-    
+
     # Scenario 3
     mock_random_random.return_value = 0.5
     expected_s3 = 0
@@ -730,7 +720,7 @@ def test_generate_exact_task_lists_count(mocker: MockerFixture, markdown_generat
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_count = 1
     def side_effect(config, key): return exact_count if key == "md_task_lists" else 0 # Removed self_instance
     mock_determine_count.side_effect = side_effect
@@ -751,7 +741,7 @@ def test_generate_range_task_lists_count(mocker: MockerFixture, markdown_generat
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     min_val, max_val = 1, 3
     expected_val = 2
     mock_randint.return_value = expected_val
@@ -777,11 +767,11 @@ def test_generate_probabilistic_task_lists_count(mocker: MockerFixture, markdown
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_random_random = mocker.patch('synth_data_gen.core.base.random.random')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     original_determine_count = BaseGenerator._determine_count
     def side_effect(config_value, key): return original_determine_count(generator, config_value, key) if key == "md_task_lists" else 0
     mock_determine_count.side_effect = side_effect
-    
+
     mock_create_s1 = mocker.patch.object(generator, '_create_md_task_list', return_value="")
 
     # Scenario 1
@@ -820,7 +810,7 @@ def test_generate_probabilistic_task_lists_count(mocker: MockerFixture, markdown
     mock_create_s2.reset_mock()
     mock_determine_count.side_effect = side_effect
     mock_create_s3 = mocker.patch.object(generator, '_create_md_task_list', return_value="")
-    
+
     # Scenario 3
     mock_random_random.return_value = 0.5
     expected_s3 = 0
@@ -840,7 +830,7 @@ def test_generate_exact_code_blocks_count(mocker: MockerFixture, markdown_genera
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
-    
+
     exact_count = 1
     def side_effect(config, key): return exact_count if key == "md_code_blocks" else 0 # Removed self_instance
     mock_determine_count.side_effect = side_effect
@@ -861,7 +851,7 @@ def test_generate_range_code_blocks_count(mocker: MockerFixture, markdown_genera
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     min_val, max_val = 2, 4
     expected_val = 3
     mock_randint.return_value = expected_val
@@ -887,11 +877,11 @@ def test_generate_probabilistic_code_blocks_count(mocker: MockerFixture, markdow
     mock_determine_count = mocker.patch.object(generator, '_determine_count')
     mock_random_random = mocker.patch('synth_data_gen.core.base.random.random')
     mock_randint = mocker.patch('synth_data_gen.core.base.random.randint')
-    
+
     original_determine_count = BaseGenerator._determine_count
     def side_effect(config_value, key): return original_determine_count(generator, config_value, key) if key == "md_code_blocks" else 0
     mock_determine_count.side_effect = side_effect
-    
+
     mock_create_s1 = mocker.patch.object(generator, '_create_md_code_block', return_value="")
 
     # Scenario 1
@@ -930,7 +920,7 @@ def test_generate_probabilistic_code_blocks_count(mocker: MockerFixture, markdow
     mock_create_s2.reset_mock()
     mock_determine_count.side_effect = side_effect
     mock_create_s3 = mocker.patch.object(generator, '_create_md_code_block', return_value="")
-    
+
     # Scenario 3
     mock_random_random.return_value = 0.5
     expected_s3 = 0
@@ -951,10 +941,10 @@ def test_generate_frontmatter_yaml_basic(mocker: MockerFixture, markdown_generat
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_generate_frontmatter = mocker.patch.object(generator, '_generate_frontmatter')
     mocker.patch.object(generator, '_create_md_basic_elements_content', return_value="")
-    
+
     expected_fm_content = "---\ntitle: Test YAML\n---\n"
     mock_generate_frontmatter.return_value = expected_fm_content
-    
+
     frontmatter_config = {
         "style": "yaml", "fields": {"title": "Test YAML"}, "include_chance": 1.0
     }
@@ -970,8 +960,8 @@ def test_generate_frontmatter_yaml_basic(mocker: MockerFixture, markdown_generat
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
     mock_generate_frontmatter.assert_called_once_with(specific_config, global_config)
-    
-    with open(output_path, 'r') as f:
+
+    with open(output_path) as f:
         content = f.read()
     assert content.startswith(expected_fm_content)
 
@@ -980,7 +970,7 @@ def test_generate_frontmatter_yaml_not_included_when_chance_is_zero(mocker: Mock
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
     mock_generate_frontmatter = mocker.patch.object(generator, '_generate_frontmatter')
-    
+
     frontmatter_config = {
         "style": "yaml", "fields": {"title": "Test Title"}, "include_chance": 0.0
     }
@@ -993,14 +983,14 @@ def test_generate_frontmatter_yaml_not_included_when_chance_is_zero(mocker: Mock
     output_path = os.path.join(output_dir, "test_no_frontmatter.md")
 
     mock_generate_frontmatter.return_value = "---\ntitle: Should Not Be Written\n---\n"
-    
+
     mock_basic_content = mocker.patch.object(generator, '_create_md_basic_elements_content', return_value="# Dummy Content\n")
     generator.generate(specific_config, global_config, output_path)
-    
+
     mock_ensure_dirs.assert_any_call(os.path.dirname(output_path))
     mock_generate_frontmatter.assert_not_called()
-    
-    with open(output_path, 'r') as f:
+
+    with open(output_path) as f:
         content = f.read()
     assert not content.startswith("---")
     mock_basic_content.assert_called_once()
@@ -1010,7 +1000,7 @@ def test_generate_frontmatter_toml_basic(mocker: MockerFixture, markdown_generat
     """Test basic TOML frontmatter generation - expecting failure."""
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
-    
+
     specific_config = {
         "frontmatter": {
             "style": "toml", "include_chance": 1.0, "fields": {"title": "Test TOML"}
@@ -1027,18 +1017,18 @@ def test_generate_frontmatter_toml_basic(mocker: MockerFixture, markdown_generat
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
+
     assert os.path.exists(output_path), "Output file was not created"
-    with open(output_path, 'r') as f:
+    with open(output_path) as f:
         content = f.read()
-    
+
     assert content.startswith("+++"), f"Content should start with TOML delimiter '+++', but was: '{content[:10]}...'"
 
 def test_generate_frontmatter_json_basic(mocker: MockerFixture, markdown_generator_test_setup):
     """Test basic JSON frontmatter generation."""
     generator, output_dir = markdown_generator_test_setup
     mock_ensure_dirs = mocker.patch('synth_data_gen.generators.markdown.ensure_output_directories')
-    
+
     specific_config = {
         "headings_config": {"count": 0}, "md_list_items_config": {"count": 0},
         "md_images_config": {"count": 0}, "gfm_features": {},
@@ -1053,13 +1043,13 @@ def test_generate_frontmatter_json_basic(mocker: MockerFixture, markdown_generat
     generator.generate(specific_config, global_config, output_path)
 
     mock_ensure_dirs.assert_called_once_with(os.path.dirname(output_path))
-    
-    with open(output_path, 'r') as f:
+
+    with open(output_path) as f:
         full_file_content = f.read()
 
     assert full_file_content.strip().startswith("{") and full_file_content.strip().endswith("}"), \
         "Content should be a JSON object if style is JSON"
-    
+
     try:
         json_data = json.loads(full_file_content.strip())
         assert json_data.get("title") == "Test JSON"

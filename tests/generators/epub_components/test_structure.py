@@ -1,12 +1,13 @@
-import unittest
 import os
 import tempfile
-from ebooklib import epub, ITEM_DOCUMENT
+import unittest
 import xml.etree.ElementTree as ET
 import zipfile
-from io import BytesIO
+
+from ebooklib import epub
 
 from synth_data_gen.generators.epub_components import structure
+
 
 class TestEpubStructure(unittest.TestCase):
     def setUp(self):
@@ -42,7 +43,7 @@ class TestEpubStructure(unittest.TestCase):
         filename = os.path.join(self.output_path, "test_epub2_guide_content.epub")
         # Call SUT without writing the file to inspect the book object directly
         book = structure.create_epub2_with_guide(filename=filename, write_file=False)
-        
+
         # Verify guide items
         expected_guide_items = [
             {'type': 'cover', 'title': 'Cover Image', 'href': 'cover.xhtml'},
@@ -51,7 +52,7 @@ class TestEpubStructure(unittest.TestCase):
         ]
         self.assertIsNotNone(book.guide, "Guide section should exist.")
         self.assertEqual(len(book.guide), len(expected_guide_items), "Incorrect number of guide items.")
-        
+
         for i, item in enumerate(expected_guide_items):
             self.assertEqual(book.guide[i]['type'], item['type'])
             self.assertEqual(book.guide[i]['title'], item['title'])
@@ -64,7 +65,7 @@ class TestEpubStructure(unittest.TestCase):
         #    print(f"Item ID Key from map: {item_id_key}")
         # for item_obj in book.items:
         #    print(f"Item object ID: {item_obj.id}, Href: {item_obj.get_name()}")
-            
+
         chapter1 = book.get_item_with_id("ch1")
 
         self.assertIsNotNone(chapter1, f"Chapter 1 item (id='ch1') not found. Available IDs: {[item.id for item in book.items]}")
@@ -78,7 +79,7 @@ class TestEpubStructure(unittest.TestCase):
         self.assertIsInstance(nav_doc.content, bytes, "NAV content should be bytes.")
         self.assertIn(b"<title>table of contents</title>", nav_doc.content.lower()) # search for lowercase
         self.assertIn(b"<li><a href=\"chapter1.xhtml\">Chapter 1</a></li>", nav_doc.content)
-        
+
         # Verify NCX (basic check for EPUB2)
         ncx_item = book.get_item_with_id('ncx') # Default ID for NCX
         if ncx_item is None: # Fallback to type checking if ID fails
@@ -87,7 +88,7 @@ class TestEpubStructure(unittest.TestCase):
                 if isinstance(item, epub.EpubNcx):
                     ncx_item = item
                     break
-    
+
         self.assertIsNotNone(ncx_item, "NCX item not found in book.items.")
         # Content will be empty as write_epub is not called when write_file=False
         # self.assertIsInstance(ncx_item.content, bytes, "NCX content should be bytes.")
@@ -112,7 +113,7 @@ class TestEpubStructure(unittest.TestCase):
         filename = os.path.join(self.output_path, "test_opf_meta_content.epub")
         # Call SUT without writing the file to inspect the book object directly
         book = structure.create_epub_opf_specific_meta(filename=filename, write_file=False)
-        
+
         self.assertIsNotNone(book, "Book object should be returned.")
 
         # Check for dc:identifier
@@ -135,11 +136,11 @@ class TestEpubStructure(unittest.TestCase):
         filename = os.path.join(self.output_path, "test_spine_pagemap.epub")
         structure.create_epub_spine_pagemap_ref(filename=filename, write_file=True)
         self.assertTrue(os.path.exists(filename), "EPUB file was not created.")
-        
+
         # Read the created EPUB to check its contents
         read_book = epub.read_epub(filename)
         self.assertIsNotNone(read_book, "Could not read created EPUB file.")
-        
+
         # Check for page-map.xml in manifest
         page_map_item_manifest = read_book.get_item_with_href('page-map.xml')
         self.assertIsNotNone(page_map_item_manifest, "page-map.xml not found in manifest.")
@@ -155,7 +156,7 @@ class TestEpubStructure(unittest.TestCase):
         self.assertIsNotNone(page_map_item, "Page-map item with UID 'page_map' not found.")
         self.assertEqual(page_map_item.get_name(), "page-map.xml")
         self.assertEqual(page_map_item.media_type, "application/oebps-page-map+xml")
-        
+
         # Check page-map content
         expected_page_map_content = b"""<?xml version="1.0" encoding="UTF-8"?>
 <page-map xmlns="http://www.idpf.org/2007/opf">
@@ -167,7 +168,7 @@ class TestEpubStructure(unittest.TestCase):
         # Check spine page_map attribute
         self.assertIsNotNone(book.page_map, "book.page_map attribute should be set.")
         self.assertEqual(book.page_map, page_map_item.id, "book.page_map should point to the UID of the page_map_item.")
-        
+
         # Check that the chapter is in the spine
         chapter_item = book.get_item_with_id("c1_pm")
         self.assertIsNotNone(chapter_item, "Chapter item c1_pm not found.")
@@ -176,7 +177,7 @@ class TestEpubStructure(unittest.TestCase):
         # However, ebooklib might process this into a simpler list for book.spine
         # and store the page_map attribute separately on the book object.
         # Let's check if the chapter UID is in the spine items.
-        
+
         found_in_spine = False
         for spine_entry in book.spine:
             if isinstance(spine_entry, tuple) and spine_entry[0] == chapter_item.id:
@@ -210,25 +211,25 @@ class TestEpubStructure(unittest.TestCase):
         filename_pattern = os.path.join(self.output_path, "test_split_content_chapter_{}.epub")
         num_splits = 1 # Test content of one split file
         books = structure.create_epub_structure_split_files(filename_pattern=filename_pattern, num_splits=num_splits, write_files=False)
-        
+
         self.assertEqual(len(books), num_splits, "Incorrect number of book objects returned.")
         book = books[0]
         self.assertIsNotNone(book, "Book object should be returned.")
-        
+
         titles = book.get_metadata('DC', 'title')
         self.assertTrue(len(titles) > 0, "Title not found.")
-        self.assertEqual(titles[0][0], f"Sample Split EPUB - Part 1")
+        self.assertEqual(titles[0][0], "Sample Split EPUB - Part 1")
 
         identifiers = book.get_metadata('DC', 'identifier')
         self.assertTrue(len(identifiers) > 0, "Identifier not found.")
-        self.assertEqual(identifiers[0][0], f"urn:uuid:sample-split-file-1")
+        self.assertEqual(identifiers[0][0], "urn:uuid:sample-split-file-1")
 
         languages = book.get_metadata('DC', 'language')
         self.assertTrue(len(languages) > 0, "Language not found.")
         self.assertEqual(languages[0][0], "en")
 
         # Check chapter content
-        chapter_item = book.get_item_with_id(f"split_ch_1")
+        chapter_item = book.get_item_with_id("split_ch_1")
         self.assertIsNotNone(chapter_item, "Chapter item not found.")
         self.assertIsInstance(chapter_item.content, bytes)
         self.assertIn(b"<h1>Chapter for Split File 1</h1>", chapter_item.content)
@@ -239,7 +240,7 @@ class TestEpubStructure(unittest.TestCase):
         filename = os.path.join(self.output_path, "test_calibre_artifacts.epub")
         structure.create_epub_structure_calibre_artifacts(filename=filename, write_file=True)
         self.assertTrue(os.path.exists(filename))
-        
+
         # Instead of relying on read_epub to fully parse items,
         # let's unzip and read the OPF file directly.
         opf_content_str = None
@@ -284,13 +285,13 @@ class TestEpubStructure(unittest.TestCase):
 
             found_series_xml = False
             series_content_xml = None
-            
+
             # Calibre meta tags are typically directly under <metadata>
             # Find all 'meta' tags, which might or might not have the opf: prefix depending on how ebooklib writes them
             # when namespace is None. The most robust is to check for any 'meta' tag.
             # However, valid OPF should use the opf: namespace for its own elements.
             # Let's assume ebooklib correctly uses opf:meta for these.
-            
+
             # Given the default namespace on <package>, unprefixed <meta> tags within <opf:metadata>
             # are considered to be in the OPF namespace.
             for meta_tag in metadata_element.findall('opf:meta', namespaces):
@@ -300,7 +301,7 @@ class TestEpubStructure(unittest.TestCase):
                     found_series_xml = True
                     series_content_xml = content_attr
                     break
-            
+
             self.assertTrue(found_series_xml, f"Calibre series metadata tag not found in OPF XML. OPF content:\n{opf_content_str}")
             self.assertEqual(series_content_xml, "Minimal Debug Series", f"Incorrect calibre:series content in OPF XML. OPF content:\n{opf_content_str}")
 
@@ -329,7 +330,7 @@ class TestEpubStructure(unittest.TestCase):
                     elif meta_name == 'calibre:series_index':
                         found_series_index_content = True
                         series_index_val_content = attrs_dict.get('content')
-        
+
         self.assertTrue(found_series_content, "Metadata 'calibre:series' not found in None namespace (content test).")
         self.assertEqual(series_name_content, "Minimal Debug Series", "Metadata 'calibre:series' has incorrect value (content test).")
         # The SUT currently only adds 'calibre:series', so no assertions for 'calibre:series_index'.
