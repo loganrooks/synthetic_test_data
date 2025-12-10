@@ -100,12 +100,14 @@ ignore = [
 known-first-party = ["synth_data_gen"]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_ignores = true
 disallow_untyped_defs = false  # Start permissive, tighten later
 check_untyped_defs = true
 ignore_missing_imports = true
+explicit_package_bases = true
+mypy_path = "."
 
 [[tool.mypy.overrides]]
 module = "tests.*"

@@ -25,10 +25,10 @@ class ValidationResult:
     pattern_id: str
     success: bool
     generated_path: Optional[Path] = None
-    detected_patterns: List[str] = None
+    detected_patterns: Optional[List[str]] = None
     error: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.detected_patterns is None:
             self.detected_patterns = []
 
